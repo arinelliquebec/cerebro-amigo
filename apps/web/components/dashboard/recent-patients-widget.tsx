@@ -1,10 +1,18 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { motion } from "framer-motion"
+import MuiCard from "@mui/material/Card"
+import MuiCardContent from "@mui/material/CardContent"
+import MuiCardHeader from "@mui/material/CardHeader"
+import MuiAvatar from "@mui/material/Avatar"
+import MuiList from "@mui/material/List"
+import MuiListItem from "@mui/material/ListItem"
+import MuiListItemAvatar from "@mui/material/ListItemAvatar"
+import MuiListItemText from "@mui/material/ListItemText"
+import MuiIconButton from "@mui/material/IconButton"
+import MuiTooltip from "@mui/material/Tooltip"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { MoreHorizontal, Calendar, MessageSquare } from "lucide-react"
+import { Calendar, MessageSquare, MoreHorizontal } from "lucide-react"
 
 const recentPatients = [
   {
@@ -14,7 +22,7 @@ const recentPatients = [
     lastVisit: "Hoje, 09:00",
     nextVisit: "28/06/2026",
     status: "Em acompanhamento",
-    statusColor: "bg-[#10B981]",
+    statusColor: "#10B981",
   },
   {
     id: 2,
@@ -23,7 +31,7 @@ const recentPatients = [
     lastVisit: "Ontem, 14:30",
     nextVisit: "05/06/2026",
     status: "Novo paciente",
-    statusColor: "bg-[#0D9488]",
+    statusColor: "#14B8A6",
   },
   {
     id: 3,
@@ -32,7 +40,7 @@ const recentPatients = [
     lastVisit: "25/05/2026",
     nextVisit: "Amanhã",
     status: "Em acompanhamento",
-    statusColor: "bg-[#10B981]",
+    statusColor: "#10B981",
   },
   {
     id: 4,
@@ -41,68 +49,127 @@ const recentPatients = [
     lastVisit: "20/05/2026",
     nextVisit: "01/06/2026",
     status: "Atenção",
-    statusColor: "bg-[#F59E0B]",
+    statusColor: "#F59E0B",
   },
 ]
 
 export function RecentPatientsWidget() {
   return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-[#0F2137]">
-            Pacientes Recentes
-          </CardTitle>
-          <Button variant="ghost" size="sm" className="text-[#0D9488] hover:text-[#0F766E]">
+    <MuiCard
+      elevation={0}
+      sx={{
+        border: "1px solid rgba(226,232,240,0.8)",
+        borderRadius: 3,
+        transition: "all 0.22s ease",
+        "&:hover": {
+          borderColor: "rgba(20,184,166,0.25)",
+          boxShadow: "0 4px 24px rgba(20,184,166,0.07)",
+        },
+      }}
+    >
+      <MuiCardHeader
+        title="Pacientes Recentes"
+        titleTypographyProps={{
+          fontSize: "0.9375rem",
+          fontWeight: 600,
+          color: "#0F2137",
+        }}
+        action={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-[#14B8A6] hover:text-[#0D9488] text-xs"
+          >
             Ver todos
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {recentPatients.map((patient) => (
-            <div
+        }
+        sx={{ pb: 0.5, pt: 2, px: 2.5 }}
+      />
+      <MuiCardContent sx={{ px: 1, pt: 0.5, pb: "12px !important" }}>
+        <MuiList disablePadding>
+          {recentPatients.map((patient, i) => (
+            <motion.div
               key={patient.id}
-              className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors group"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.06, duration: 0.25, ease: "easeOut" }}
             >
-              <Avatar className="h-11 w-11 border-2 border-[#0D9488]/20">
-                <AvatarFallback className="bg-[#F0F9F8] text-[#0D9488] text-sm font-medium">
-                  {patient.initials}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {patient.name}
-                  </p>
-                  <span className={`h-2 w-2 rounded-full ${patient.statusColor}`} />
-                </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    Última: {patient.lastVisit}
-                  </span>
-                  <span className="text-xs text-[#0D9488] font-medium">
-                    Próxima: {patient.nextVisit}
-                  </span>
-                </div>
-              </div>
+              <MuiListItem
+                alignItems="center"
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 2,
+                  mx: 0.5,
+                  mb: 0.25,
+                  cursor: "pointer",
+                  "&:hover": { bgcolor: "rgba(20,184,166,0.04)" },
+                  "&:hover .actions": { opacity: 1 },
+                  transition: "background 0.18s ease",
+                }}
+              >
+                <MuiListItemAvatar sx={{ minWidth: 48 }}>
+                  <MuiAvatar
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      bgcolor: "#F0F9F8",
+                      color: "#14B8A6",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      border: "2px solid rgba(20,184,166,0.18)",
+                    }}
+                  >
+                    {patient.initials}
+                  </MuiAvatar>
+                </MuiListItemAvatar>
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[#0D9488]">
-                  <Calendar className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[#0D9488]">
-                  <MessageSquare className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+                <MuiListItemText
+                  primary={
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium text-[#0F2137]">
+                        {patient.name}
+                      </span>
+                      <span
+                        className="h-2 w-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: patient.statusColor }}
+                      />
+                    </span>
+                  }
+                  secondary={
+                    <span className="flex gap-3 mt-0.5">
+                      <span className="text-xs text-muted-foreground">
+                        Última: {patient.lastVisit}
+                      </span>
+                      <span className="text-xs text-[#14B8A6] font-medium">
+                        Próxima: {patient.nextVisit}
+                      </span>
+                    </span>
+                  }
+                />
+
+                <div className="actions flex items-center gap-0.5 opacity-0 transition-opacity duration-150">
+                  <MuiTooltip title="Agendar" placement="top">
+                    <MuiIconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#14B8A6" } }}>
+                      <Calendar size={15} />
+                    </MuiIconButton>
+                  </MuiTooltip>
+                  <MuiTooltip title="Mensagem" placement="top">
+                    <MuiIconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#14B8A6" } }}>
+                      <MessageSquare size={15} />
+                    </MuiIconButton>
+                  </MuiTooltip>
+                  <MuiTooltip title="Mais opções" placement="top">
+                    <MuiIconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#0F2137" } }}>
+                      <MoreHorizontal size={15} />
+                    </MuiIconButton>
+                  </MuiTooltip>
+                </div>
+              </MuiListItem>
+            </motion.div>
           ))}
-        </div>
-      </CardContent>
-    </Card>
+        </MuiList>
+      </MuiCardContent>
+    </MuiCard>
   )
 }

@@ -123,7 +123,7 @@ export default function MensagensPage() {
                 <Input
                   type="search"
                   placeholder="Buscar conversa..."
-                  className="pl-9 bg-muted/50 border-0 focus-visible:ring-[#0D9488]"
+                  className="pl-9 bg-muted/50 border-0 focus-visible:ring-[#14B8A6]"
                 />
               </div>
             </div>
@@ -138,8 +138,8 @@ export default function MensagensPage() {
                     }`}
                   >
                     <div className="relative">
-                      <Avatar className="h-12 w-12 border-2 border-[#0D9488]/20">
-                        <AvatarFallback className="bg-[#F0F9F8] text-[#0D9488] font-medium">
+                      <Avatar className="h-12 w-12 border-2 border-[#14B8A6]/20">
+                        <AvatarFallback className="bg-[#F0F9F8] text-[#14B8A6] font-medium">
                           {conv.initials}
                         </AvatarFallback>
                       </Avatar>
@@ -161,7 +161,7 @@ export default function MensagensPage() {
                       </p>
                     </div>
                     {conv.unread > 0 && (
-                      <Badge className="bg-[#0D9488] text-white text-xs h-5 w-5 p-0 flex items-center justify-center rounded-full">
+                      <Badge className="bg-[#14B8A6] text-white text-xs h-5 w-5 p-0 flex items-center justify-center rounded-full">
                         {conv.unread}
                       </Badge>
                     )}
@@ -177,8 +177,8 @@ export default function MensagensPage() {
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Avatar className="h-10 w-10 border-2 border-[#0D9488]/20">
-                    <AvatarFallback className="bg-[#0D9488] text-white font-medium">
+                  <Avatar className="h-10 w-10 border-2 border-[#14B8A6]/20">
+                    <AvatarFallback className="bg-[#14B8A6] text-white font-medium">
                       {selectedConversation.initials}
                     </AvatarFallback>
                   </Avatar>
@@ -194,10 +194,10 @@ export default function MensagensPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#0D9488]">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#14B8A6]">
                   <Phone className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#0D9488]">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#14B8A6]">
                   <Video className="h-5 w-5" />
                 </Button>
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -216,7 +216,7 @@ export default function MensagensPage() {
                   <div
                     className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
                       msg.sender === "doctor"
-                        ? "bg-[#0D9488] text-white rounded-br-md"
+                        ? "bg-[#14B8A6] text-white rounded-br-md"
                         : "bg-muted text-foreground rounded-bl-md"
                     }`}
                   >
@@ -241,7 +241,7 @@ export default function MensagensPage() {
             {/* Message Input */}
             <div className="p-4 border-t border-border">
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#0D9488]">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#14B8A6]">
                   <Paperclip className="h-5 w-5" />
                 </Button>
                 <Input
@@ -249,12 +249,12 @@ export default function MensagensPage() {
                   placeholder="Digite sua mensagem..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  className="flex-1 bg-muted/50 border-0 focus-visible:ring-[#0D9488]"
+                  className="flex-1 bg-muted/50 border-0 focus-visible:ring-[#14B8A6]"
                 />
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#0D9488]">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-[#14B8A6]">
                   <Smile className="h-5 w-5" />
                 </Button>
-                <Button size="icon" className="bg-[#0D9488] hover:bg-[#0F766E] text-white">
+                <Button size="icon" className="bg-[#14B8A6] hover:bg-[#0D9488] text-white">
                   <Send className="h-5 w-5" />
                 </Button>
               </div>

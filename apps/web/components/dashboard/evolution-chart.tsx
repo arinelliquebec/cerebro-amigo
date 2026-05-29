@@ -37,8 +37,8 @@ export function EvolutionChart() {
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorPacientes" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0D9488" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#0D9488" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#14B8A6" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorCheckins" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.3} />
@@ -69,7 +69,7 @@ export function EvolutionChart() {
               <Area
                 type="monotone"
                 dataKey="pacientes"
-                stroke="#0D9488"
+                stroke="#14B8A6"
                 strokeWidth={2}
                 fill="url(#colorPacientes)"
                 name="Pacientes"
@@ -87,7 +87,7 @@ export function EvolutionChart() {
         </div>
         <div className="flex items-center justify-center gap-6 mt-4">
           <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-[#0D9488]" />
+            <span className="h-3 w-3 rounded-full bg-[#14B8A6]" />
             <span className="text-xs text-muted-foreground">Pacientes</span>
           </div>
           <div className="flex items-center gap-2">

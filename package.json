@@ -1,5 +1,8 @@
 {
   "name": "cerebro-amigo-v3",
   "version": "0.0.1",
-  "private": true
+  "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp"]
+  }
 }

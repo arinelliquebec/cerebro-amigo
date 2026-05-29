@@ -155,8 +155,8 @@ export default function CheckinsPage() {
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   {/* Avatar and Basic Info */}
-                  <Avatar className="h-12 w-12 border-2 border-[#0D9488]/20">
-                    <AvatarFallback className="bg-[#F0F9F8] text-[#0D9488] font-medium">
+                  <Avatar className="h-12 w-12 border-2 border-[#14B8A6]/20">
+                    <AvatarFallback className="bg-[#F0F9F8] text-[#14B8A6] font-medium">
                       {checkin.initials}
                     </AvatarFallback>
                   </Avatar>
@@ -209,10 +209,10 @@ export default function CheckinsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[#0D9488]">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[#14B8A6]">
                       <MessageSquare className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[#0D9488]">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[#14B8A6]">
                       <Calendar className="h-4 w-4" />
                     </Button>
                   </div>
