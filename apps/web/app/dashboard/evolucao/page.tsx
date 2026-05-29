@@ -133,7 +133,7 @@ export default function EvolucaoPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-10 w-10 rounded-lg bg-[#F0F9F8] flex items-center justify-center">
-                    <stat.icon className="h-5 w-5 text-[#0D9488]" />
+                    <stat.icon className="h-5 w-5 text-[#14B8A6]" />
                   </div>
                   <div className={`flex items-center gap-1 text-xs font-medium ${
                     stat.trend === "up" ? "text-[#10B981]" : "text-[#E57373]"
@@ -179,8 +179,8 @@ export default function EvolucaoPage() {
                   <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorPacientes" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0D9488" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#0D9488" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#14B8A6" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorConsultas" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.3} />
@@ -197,14 +197,14 @@ export default function EvolucaoPage() {
                         borderRadius: "8px",
                       }}
                     />
-                    <Area type="monotone" dataKey="pacientes" stroke="#0D9488" strokeWidth={2} fill="url(#colorPacientes)" name="Pacientes" />
+                    <Area type="monotone" dataKey="pacientes" stroke="#14B8A6" strokeWidth={2} fill="url(#colorPacientes)" name="Pacientes" />
                     <Area type="monotone" dataKey="consultas" stroke="#14B8A6" strokeWidth={2} fill="url(#colorConsultas)" name="Consultas" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
               <div className="flex items-center justify-center gap-6 mt-2">
                 <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-[#0D9488]" />
+                  <span className="h-3 w-3 rounded-full bg-[#14B8A6]" />
                   <span className="text-xs text-muted-foreground">Pacientes</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -272,7 +272,7 @@ export default function EvolucaoPage() {
               <CardTitle className="text-base font-semibold text-[#0F2137]">
                 Progresso dos Pacientes
               </CardTitle>
-              <Button variant="ghost" className="text-[#0D9488] hover:text-[#0F766E]">
+              <Button variant="ghost" className="text-[#14B8A6] hover:text-[#0D9488]">
                 Ver todos
               </Button>
             </div>
@@ -284,8 +284,8 @@ export default function EvolucaoPage() {
                   key={patient.id}
                   className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                 >
-                  <Avatar className="h-11 w-11 border-2 border-[#0D9488]/20">
-                    <AvatarFallback className="bg-[#F0F9F8] text-[#0D9488] font-medium">
+                  <Avatar className="h-11 w-11 border-2 border-[#14B8A6]/20">
+                    <AvatarFallback className="bg-[#F0F9F8] text-[#14B8A6] font-medium">
                       {patient.initials}
                     </AvatarFallback>
                   </Avatar>

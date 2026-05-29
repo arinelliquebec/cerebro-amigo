@@ -24,7 +24,7 @@ const appointments = [
     patient: "Fernanda Lima",
     initials: "FL",
     type: "Primeira Consulta",
-    typeColor: "bg-[#0D9488]",
+    typeColor: "bg-[#14B8A6]",
     modality: "Presencial",
     status: "confirmed",
   },
@@ -149,9 +149,9 @@ export default function AgendaPage() {
                     onClick={() => setSelectedDate(date)}
                     className={`flex flex-col items-center p-3 rounded-xl transition-all ${
                       isSelected
-                        ? "bg-[#0D9488] text-white"
+                        ? "bg-[#14B8A6] text-white"
                         : isToday
-                        ? "bg-[#F0F9F8] text-[#0D9488]"
+                        ? "bg-[#F0F9F8] text-[#14B8A6]"
                         : "hover:bg-muted"
                     }`}
                   >
@@ -164,7 +164,7 @@ export default function AgendaPage() {
                     {/* Appointment indicator */}
                     {i === 3 && (
                       <div className={`flex gap-0.5 mt-1 ${isSelected ? "opacity-80" : ""}`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#0D9488]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
                         <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
                         <span className="h-1.5 w-1.5 rounded-full bg-[#E57373]" />
                       </div>
@@ -185,7 +185,7 @@ export default function AgendaPage() {
                   <CardTitle className="text-base font-semibold text-[#0F2137]">
                     {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </CardTitle>
-                  <Button className="bg-[#0D9488] hover:bg-[#0F766E] text-white gap-2" size="sm">
+                  <Button className="bg-[#14B8A6] hover:bg-[#0D9488] text-white gap-2" size="sm">
                     <Plus className="h-4 w-4" />
                     Nova Consulta
                   </Button>
@@ -200,15 +200,15 @@ export default function AgendaPage() {
                     >
                       {/* Time Column */}
                       <div className="w-20 flex-shrink-0 p-4 border-r border-border">
-                        <p className="text-sm font-semibold text-[#0D9488]">{apt.time}</p>
+                        <p className="text-sm font-semibold text-[#14B8A6]">{apt.time}</p>
                         <p className="text-xs text-muted-foreground">{apt.endTime}</p>
                       </div>
 
                       {/* Appointment Details */}
                       <div className="flex-1 p-4">
                         <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-[#0D9488]/20">
-                            <AvatarFallback className="bg-[#F0F9F8] text-[#0D9488] text-sm font-medium">
+                          <Avatar className="h-10 w-10 border-2 border-[#14B8A6]/20">
+                            <AvatarFallback className="bg-[#F0F9F8] text-[#14B8A6] text-sm font-medium">
                               {apt.initials}
                             </AvatarFallback>
                           </Avatar>
@@ -265,8 +265,8 @@ export default function AgendaPage() {
                   <span className="text-lg font-bold text-[#0F2137]">{appointments.length}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-[#F0F9F8]">
-                  <span className="text-sm text-[#0D9488]">Confirmadas</span>
-                  <span className="text-lg font-bold text-[#0D9488]">
+                  <span className="text-sm text-[#14B8A6]">Confirmadas</span>
+                  <span className="text-lg font-bold text-[#14B8A6]">
                     {appointments.filter(a => a.status === "confirmed").length}
                   </span>
                 </div>
@@ -287,14 +287,14 @@ export default function AgendaPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F0F9F8]">
-                  <Avatar className="h-12 w-12 border-2 border-[#0D9488]/30">
-                    <AvatarFallback className="bg-[#0D9488] text-white font-medium">
+                  <Avatar className="h-12 w-12 border-2 border-[#14B8A6]/30">
+                    <AvatarFallback className="bg-[#14B8A6] text-white font-medium">
                       FL
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium text-[#0F2137]">Fernanda Lima</p>
-                    <p className="text-sm text-[#0D9488] font-semibold">08:00 - 09:00</p>
+                    <p className="text-sm text-[#14B8A6] font-semibold">08:00 - 09:00</p>
                     <p className="text-xs text-muted-foreground">Primeira Consulta</p>
                   </div>
                 </div>
