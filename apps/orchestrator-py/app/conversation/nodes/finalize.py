@@ -31,14 +31,16 @@ async def finalize(state: ConversaState) -> dict:
         await conn.execute(
             """
             INSERT INTO mensagens
-                (conversa_id, papel, conteudo, modelo_usado, tokens_in, tokens_out)
-            VALUES ($1, 'assistant', $2, $3, $4, $5)
+                (conversa_id, papel, conteudo, modelo_usado,
+                 tokens_in, tokens_out, custo_usd)
+            VALUES ($1, 'assistant', $2, $3, $4, $5, $6)
             """,
             state["conversa_id"],
             texto,
             state.get("modelo_resposta"),
             state.get("tokens_in"),
             state.get("tokens_out"),
+            state.get("custo_usd"),
         )
 
     logger.info(

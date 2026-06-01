@@ -1,13 +1,15 @@
 """Configuração tipada centralizada.
 
-Carrega variáveis de ambiente via pydantic-settings. Autenticação AWS
-via IAM role (produção) ou AWS_PROFILE (dev local) — sem ANTHROPIC_API_KEY.
+Carrega variáveis de ambiente via pydantic-settings. Camada LLM é
+provider-switchável (ADR-015): `LLM_PROVIDER=anthropic` (default operacional,
+auth via ANTHROPIC_API_KEY) ou `LLM_PROVIDER=bedrock` (auth via IAM role /
+AWS_PROFILE). Trocar de provider = trocar uma env var.
 """
 
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,7 +32,17 @@ class Settings(BaseSettings):
     )
     max_retry_audit: int = 2
 
-    # ─── AWS Bedrock (sem ANTHROPIC_API_KEY — auth via IAM role) ───
+    # ─── Provider LLM (ADR-015) ───
+    # anthropic = API direta (default operacional). bedrock = AWS, atrás da flag.
+    llm_provider: Literal["anthropic", "bedrock"] = "anthropic"
+
+    # ─── Anthropic API (LLM_PROVIDER=anthropic) ───
+    anthropic_api_key: SecretStr | None = None
+    anthropic_model_haiku: str = "claude-haiku-4-5-20251001"
+    anthropic_model_sonnet: str = "claude-sonnet-4-6"
+    anthropic_model_opus: str = "claude-opus-4-8"
+
+    # ─── AWS Bedrock (LLM_PROVIDER=bedrock — auth via IAM role) ───
     aws_region: str = "sa-east-1"
     bedrock_region: str = "sa-east-1"
     bedrock_model_haiku: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
@@ -50,6 +62,19 @@ class Settings(BaseSettings):
 
     # ─── Auth interna ───
     internal_api_token: SecretStr
+
+    @model_validator(mode="after")
+    def _validate_llm_provider(self) -> "Settings":
+        """Fail-fast: a auth exigida depende do provider selecionado (ADR-015)."""
+        if self.llm_provider == "anthropic" and not self.anthropic_api_key:
+            raise ValueError(
+                "LLM_PROVIDER=anthropic exige ANTHROPIC_API_KEY no ambiente."
+            )
+        if self.llm_provider == "bedrock" and not self.bedrock_region:
+            raise ValueError(
+                "LLM_PROVIDER=bedrock exige BEDROCK_REGION (região AWS) no ambiente."
+            )
+        return self
 
     @property
     def is_production(self) -> bool:

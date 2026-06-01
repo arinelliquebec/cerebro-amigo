@@ -8,7 +8,8 @@ import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.config import get_settings
-from app.conversation.llm import haiku, sonnet, with_schema
+from app.conversation.llm import haiku, resolve_model_id, sonnet, with_schema
+from app.conversation.pricing import LLMProvider, ModelTier, compute_cost
 from app.conversation.prompts import AUDIT_SYSTEM_V1, RESPONSE_GENERATION_SYSTEM_V1
 from app.conversation.schemas import AuditOutput
 from app.conversation.state import ConversaState
@@ -46,21 +47,29 @@ async def generate_response(state: ConversaState) -> dict:
     ).strip()
 
     usage = getattr(response, "usage_metadata", None) or {}
+    tokens_in = usage.get("input_tokens")
+    tokens_out = usage.get("output_tokens")
+
+    provider = LLMProvider(settings.llm_provider)
+    modelo = resolve_model_id(provider, ModelTier.SONNET)
+    custo_usd = compute_cost(provider, modelo, tokens_in, tokens_out)
 
     logger.info(
         "response.generate.done",
         retry_count=state.get("retry_count", 0),
         len_chars=len(rascunho),
-        tokens_in=usage.get("input_tokens"),
-        tokens_out=usage.get("output_tokens"),
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        custo_usd=custo_usd,
     )
 
     return {
         "resposta_rascunho": rascunho,
         "retry_count": state.get("retry_count", 0),
-        "modelo_resposta": settings.bedrock_model_sonnet,
-        "tokens_in": usage.get("input_tokens"),
-        "tokens_out": usage.get("output_tokens"),
+        "modelo_resposta": modelo,
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "custo_usd": custo_usd,
     }
 
 

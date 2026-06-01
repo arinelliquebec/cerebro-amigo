@@ -1,17 +1,28 @@
-"""APScheduler — dispara cada agente em sua cadência.
+"""APScheduler — dispara cada agente na sua cadência individual.
 
-Default: roda todos os agentes registrados a cada N segundos
-(`SCHEDULER_INTERVAL_SECONDS`). Cada agente decide internamente quais
-pacientes processar via `find_pending()` + dedup window.
+Cadências configuráveis por variável de ambiente (ver core/config.py):
+  - resumo_pre_consulta / diario: RESUMIDOR_INTERVAL_SECONDS / DIARIO_INTERVAL_SECONDS
+    → curtos (5 min default), precisam pegar a janela de consulta rápido.
+  - adesao:          ADESAO_INTERVAL_HOURS (default 6h)
+  - padroes:         PADROES_INTERVAL_HOURS (default 12h — scipy é pesado)
+  - risco_silencioso: RISCO_SILENCIOSO_INTERVAL_HOURS (default 24h)
+    NOTA: dedup_window_hours=168 (7 dias). Com cadência de 24h, 6/7 disparos
+    escanearão todos os pacientes mas serão descartados pela dedup window.
+    Fix real: ADR-014 (dedup-no-SQL em _listar_candidatos). Até lá, as 6 varreduras
+    extras são baratas (< N SELECT por paciente, sem LLM) mas não ideais.
 
-Se quiser cadências diferentes por agente no futuro, mover para
-schedules específicos aqui (ex.: resumidor a cada 5min, padroes
-diariamente, etc).
+Todos os jobs operacionais (gerador_checkins_medicacao, gerador_questionarios) usam
+SCHEDULER_INTERVAL_SECONDS para manter frequência alta.
+
+Start dates escalonados (offset por agente) evitam o burst de todos os agentes
+disparando no mesmo instante no boot — agentes de hora longa esperam 1-3 min antes
+do primeiro tick.
 """
 
 from __future__ import annotations
 
-import asyncio
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -26,6 +37,82 @@ logger = structlog.get_logger(__name__)
 _scheduler: AsyncIOScheduler | None = None
 
 
+# ─── Definição de cadência por agente ──────────────────────────────────────
+
+@dataclass(frozen=True)
+class _Schedule:
+    """Cadência de um agente/job no scheduler."""
+
+    # Exatamente um dos dois deve ser fornecido.
+    interval_seconds: int | None = None
+    interval_hours: int | None = None
+
+    # Segundos de espera após o boot antes do primeiro tick.
+    # Usado para escalonar disparos e evitar burst simultâneo no startup.
+    start_offset_s: int = 0
+
+    # Jitter (±segundos) para variar execuções entre reinícios consecutivos.
+    # Relevante para agentes horários — evita colisões no mesmo segundo.
+    jitter_s: int = 0
+
+    def trigger(self) -> IntervalTrigger:
+        start = datetime.now(timezone.utc) + timedelta(seconds=self.start_offset_s)
+        kwargs: dict = {"start_date": start}
+        if self.jitter_s:
+            kwargs["jitter"] = self.jitter_s
+        if self.interval_hours is not None:
+            return IntervalTrigger(hours=self.interval_hours, **kwargs)
+        return IntervalTrigger(seconds=self.interval_seconds, **kwargs)
+
+    def describe(self) -> str:
+        if self.interval_hours is not None:
+            return f"{self.interval_hours}h"
+        return f"{self.interval_seconds}s"
+
+
+def _build_agent_schedules() -> dict[str, _Schedule]:
+    """Constrói o mapa agente→cadência a partir das settings.
+
+    Chamado dentro de start_scheduler() para que os start_dates sejam
+    relativos ao momento do boot, não ao import do módulo.
+    """
+    s = get_settings()
+    return {
+        # Agentes sensíveis à janela de consulta — disparo rápido.
+        "resumo_pre_consulta": _Schedule(
+            interval_seconds=s.resumidor_interval_seconds,
+            start_offset_s=0,
+        ),
+        "diario": _Schedule(
+            interval_seconds=s.diario_interval_seconds,
+            start_offset_s=15,    # 15s após resumidor para não coincidir
+        ),
+
+        # Agentes analíticos — cadência longa, escalonados no boot.
+        "adesao": _Schedule(
+            interval_hours=s.adesao_interval_hours,
+            start_offset_s=60,    # espera 1 min antes do 1º tick
+            jitter_s=60,
+        ),
+        "padroes": _Schedule(
+            interval_hours=s.padroes_interval_hours,
+            start_offset_s=120,   # espera 2 min
+            jitter_s=60,
+        ),
+        "risco_silencioso": _Schedule(
+            interval_hours=s.risco_silencioso_interval_hours,
+            start_offset_s=180,   # espera 3 min
+            jitter_s=120,
+            # FIXME ADR-014: com dedup_window=168h e cadência de 24h,
+            # 6 dos 7 disparos semanais escaneiam todos os pacientes
+            # e descartam via dedup. Implementar dedup-no-SQL em
+            # _listar_candidatos para eliminar esse desperdício.
+        ),
+    }
+
+
+# ─── Tick handlers ─────────────────────────────────────────────────────────
+
 async def _tick_agent(name: str) -> None:
     """Roda um ciclo de um agente, com isolamento de falhas."""
     log = logger.bind(agente=name)
@@ -35,6 +122,7 @@ async def _tick_agent(name: str) -> None:
         log.info("scheduler.tick.done", **stats)
     except Exception as exc:  # noqa: BLE001
         log.exception("scheduler.tick.failed", error=str(exc))
+
 
 async def _tick_job(name: str) -> None:
     """Roda um ciclo de um job, com isolamento de falhas."""
@@ -47,40 +135,66 @@ async def _tick_job(name: str) -> None:
         log.exception("scheduler.job_tick.failed", error=str(exc))
 
 
+# ─── Ciclo de vida ─────────────────────────────────────────────────────────
+
 def start_scheduler() -> AsyncIOScheduler:
     global _scheduler
     if _scheduler is not None:
         return _scheduler
 
     settings = get_settings()
-    interval = settings.scheduler_interval_seconds
+    agent_schedules = _build_agent_schedules()
 
     sched = AsyncIOScheduler(timezone="UTC")
+
+    # Agentes analíticos — cadência individual por agente.
     for agent_name in AGENT_REGISTRY:
+        schedule = agent_schedules.get(
+            agent_name,
+            # Fallback: qualquer agente futuro não mapeado usa o intervalo global.
+            _Schedule(interval_seconds=settings.scheduler_interval_seconds, start_offset_s=0),
+        )
         sched.add_job(
             _tick_agent,
-            trigger=IntervalTrigger(seconds=interval),
+            trigger=schedule.trigger(),
             args=[agent_name],
             id=f"tick:{agent_name}",
             replace_existing=True,
-            coalesce=True,        # se atrasar, não acumular execuções
-            max_instances=1,      # nunca dois ticks paralelos do mesmo agente
+            coalesce=True,       # se atrasar, não acumular execuções
+            max_instances=1,     # nunca dois ticks paralelos do mesmo agente
         )
-        logger.info("scheduler.job.added", agente=agent_name, interval_s=interval)
+        logger.info(
+            "scheduler.agent.registered",
+            agente=agent_name,
+            cadencia=schedule.describe(),
+            start_offset_s=schedule.start_offset_s,
+        )
 
-    # Registra jobs operacionais (não-LLM) junto dos agents
-    for job_name in JOB_REGISTRY:
+    # Jobs operacionais — mantêm cadência curta (gerador_checkins, questionários).
+    # Escalonados entre si com pequenos offsets para não coincidirem no mesmo tick.
+    job_names = list(JOB_REGISTRY.keys())
+    for i, job_name in enumerate(job_names):
+        job_offset = 240 + i * 30   # 240s, 270s, ... após o boot
+        job_schedule = _Schedule(
+            interval_seconds=settings.scheduler_interval_seconds,
+            start_offset_s=job_offset,
+        )
         sched.add_job(
             _tick_job,
-            trigger=IntervalTrigger(seconds=interval),
+            trigger=job_schedule.trigger(),
             args=[job_name],
             id=f"tick:job:{job_name}",
             replace_existing=True,
             coalesce=True,
             max_instances=1,
         )
-        logger.info("scheduler.job.added", job=job_name, interval_s=interval)
-        
+        logger.info(
+            "scheduler.job.registered",
+            job=job_name,
+            cadencia=job_schedule.describe(),
+            start_offset_s=job_offset,
+        )
+
     sched.start()
     _scheduler = sched
     return sched
@@ -93,6 +207,8 @@ def shutdown_scheduler() -> None:
         _scheduler = None
 
 
+# ─── Disparo manual (endpoints HTTP) ───────────────────────────────────────
+
 async def run_once(name: str) -> dict:
     """Disparo manual síncrono — usado pelos endpoints HTTP."""
     agent = get_agent(name)
@@ -102,14 +218,13 @@ async def run_once(name: str) -> dict:
 async def run_for_patient(name: str, paciente_id) -> dict:
     """Disparo manual focado em um paciente — útil para testes e bypass.
 
-    Estratégia: percorre o `find_pending` do agente e processa o primeiro
-    payload cujo `paciente_id` bate. Isto respeita a lógica de elegibilidade
-    do agente (consulta agendada para resumidor, triggers ativos para
-    adesao, etc.) e dispara `_run_for_payload` que ignora dedup window
-    propositadamente — endpoint manual é para forçar nova execução.
+    Percorre o find_pending do agente e processa o primeiro payload cujo
+    paciente_id bate. Respeita a lógica de elegibilidade do agente (consulta
+    agendada para resumidor, triggers ativos para adesao, etc.) e dispara
+    _run_for_payload que ignora dedup window propositadamente — endpoint
+    manual é para forçar nova execução.
 
-    Se o agente não considera o paciente "pending" agora (ex.: triggers
-    de adesão não atingidos, sem consulta agendada), retorna sem criar
+    Se o agente não considera o paciente "pending" agora, retorna sem criar
     insight, explicitando o motivo.
     """
     agent = get_agent(name)
@@ -132,5 +247,4 @@ async def run_for_patient(name: str, paciente_id) -> dict:
     }
 
 
-# Re-export pra typing
 __all__ = ["run_for_patient", "run_once", "shutdown_scheduler", "start_scheduler"]

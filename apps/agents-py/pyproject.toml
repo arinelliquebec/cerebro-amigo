@@ -13,7 +13,8 @@ dependencies = [
     "apscheduler>=3.10.0",
 
     # LangChain / LangSmith
-    "langchain-aws>=0.2.0",
+    "langchain-aws>=0.2.0",          # LLM_PROVIDER=bedrock
+    "langchain-anthropic>=0.3.0",    # LLM_PROVIDER=anthropic (default, ADR-015)
     "langchain-core>=0.3.0",
     "langsmith>=0.4.0",
 
