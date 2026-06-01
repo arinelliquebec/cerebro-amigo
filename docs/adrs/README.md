@@ -27,6 +27,8 @@ contexto regulatório, sem dependência da memória do autor.
 | [007](007-gateway-net-nao-go.md) | Gateway .NET 10, não Go (V3) | Accepted | Stack |
 | [008](008-llm-bedrock-nao-anthropic-api.md) | LLM via Bedrock In-Region, não ANTHROPIC_API_KEY | Superseded by ADR-015 | Stack / Compliance |
 | [009](009-separacao-plano-interativo-batch.md) | Separação plano interativo (crise) / batch + builds no CI | Accepted | Arquitetura / Segurança clínica |
+| [010](adr-010-crise-no-diario.md) | Triagem de crise no Diário (áudio e texto) | Accepted | Segurança clínica |
+| [011](011-enforcement-custo-llm.md) | Enforcement do teto de custo diário de LLM | Accepted (impl. adiada) | Operação / Segurança clínica |
 | [014](014-dirty-patients-find-pending.md) | Candidatos incrementais em find_pending ("pacientes sujos") | Proposed | Performance / Arquitetura analítica |
 | [015](015-llm-provider-switchavel.md) | Camada LLM provider-switchável (Anthropic API ⇄ Bedrock) | Accepted | Stack / Compliance |
 

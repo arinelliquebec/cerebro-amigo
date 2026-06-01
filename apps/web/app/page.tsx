@@ -8,9 +8,9 @@ import { CTASection } from "@/components/landing/cta-section"
 import { FooterSection } from "@/components/landing/footer-section"
 
 export const metadata = {
-  title: "Cérebro Amigo - CRM Médico",
+  title: "Cérebro Amigo — Acompanhamento entre consultas para psiquiatria",
   description:
-    "O CRM que trabalha entre consultas. Acompanhe pacientes, organize condutas e fortaleça a continuidade do cuidado.",
+    "Acompanhamento entre consultas para psiquiatria: o paciente registra humor, sintomas e áudios no diário; antes do retorno, a IA entrega o briefing pronto.",
 }
 
 export default function HomePage() {

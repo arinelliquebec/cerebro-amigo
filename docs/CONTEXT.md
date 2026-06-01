@@ -263,8 +263,8 @@ SCHEDULER_INTERVAL_SECONDS
 - **PR 0** (ops): medir RAM/CPU real da box (`docker stats`, `aws ec2 describe-instances`) para calibrar `mem_limit` em `docker-compose.yml`
 - **PR 2**: capar pool asyncpg do agents-py (10 → 3-5 conn) + tornar tunável por env
 - **PR 3**: scipy/numpy no agents-py (`padroes.py`) para `asyncio.to_thread` — impede bloqueio do event loop na triagem de crise do diário
-- **PR 4 (ADR-011)**: fechar lacuna de SHADOW_MODE em agents-py (default `true`, crise isenta)
-- **PR 5 (ADR-012)**: consolidar triagem de crise do diário (`services/crisis.py`, `/internal/diario/*`) no orchestrator-py; agents-py vira batch puro
+- **PR 4 (ADR a criar)**: fechar lacuna de SHADOW_MODE em agents-py (default `true`, crise isenta). NOTA: o número 011 referido no ADR-009 já foi usado pelo enforcement de custo; renumerar ao criar.
+- **PR 5 (ADR a criar)**: consolidar triagem de crise do diário (`services/crisis.py`, `/internal/diario/*`) no orchestrator-py; agents-py vira batch puro
 - **PR 7 (ops)**: criar repositórios ECR (`setup-ecr.sh`), configurar secrets CI, primeiro deploy via ECR
 - **PR 8**: multi-stage Dockerfiles Python (remover `build-essential` do runtime)
 - **ADR-014**: implementar Fase 1 (dedup-no-SQL em `_listar_candidatos` do risco_silencioso)
@@ -291,5 +291,7 @@ SCHEDULER_INTERVAL_SECONDS
 | [007](adrs/007-gateway-net-nao-go.md) | Gateway .NET, não Go (V3) | Accepted |
 | [008](adrs/008-llm-bedrock-nao-anthropic-api.md) | LLM via Bedrock In-Region, não ANTHROPIC_API_KEY | Superseded by ADR-015 |
 | [009](adrs/009-separacao-plano-interativo-batch.md) | Separação plano interativo (crise) / batch + builds no CI | Accepted |
+| [010](adrs/adr-010-crise-no-diario.md) | Triagem de crise no Diário (áudio e texto) | Accepted |
+| [011](adrs/011-enforcement-custo-llm.md) | Enforcement do teto de custo diário de LLM | Accepted (impl. adiada) |
 | [014](adrs/014-dirty-patients-find-pending.md) | Candidatos incrementais em find_pending ("pacientes sujos") | Proposed |
 | [015](adrs/015-llm-provider-switchavel.md) | Camada LLM provider-switchável (Anthropic API ⇄ Bedrock) | Accepted |

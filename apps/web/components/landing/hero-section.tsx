@@ -2,10 +2,9 @@
 
 import { cacheLife } from 'next/cache'
 import Link from "next/link"
-import { BrandWordmark } from "@/components/brand-wordmark"
 import { HeroPreview } from "@/components/landing/hero-preview"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, ArrowRight, Sparkles } from "lucide-react"
+import { CheckCircle, ArrowRight, Sparkles, ShieldCheck } from "lucide-react"
 
 export async function HeroSection() {
   cacheLife('days')
@@ -26,24 +25,23 @@ export async function HeroSection() {
               Acompanhamento entre consultas · Psiquiatria
             </div>
 
-            <div className="space-y-5">
-              <h1 className="leading-[1.1]">
-                <BrandWordmark size="hero" />
-              </h1>
-              <p className="text-xl lg:text-2xl text-navy/90 font-medium leading-relaxed">
-                O sistema que trabalha entre consultas
-              </p>
-            </div>
+            <h1 className="font-serif font-semibold text-navy text-5xl lg:text-6xl leading-[1.04] tracking-tight text-balance">
+              Nenhum retorno começa do{" "}
+              <span className="italic text-primary">zero</span>.
+            </h1>
 
-            <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
-              Acompanhe pacientes continuamente, antecipe crises e chegue ao retorno com dados
-              reais de evolução — sem depender só da consulta.
+            <p className="text-muted-foreground text-lg lg:text-xl leading-relaxed max-w-lg">
+              Entre as consultas, o paciente registra humor, sintomas e até{" "}
+              <strong className="font-semibold text-navy">áudios no diário</strong>. Antes de
+              cada retorno, a IA entrega um{" "}
+              <strong className="font-semibold text-navy">briefing pronto</strong> — evolução,
+              aderência e sinais de risco.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 size="lg"
-                className="bg-coral hover:bg-coral-dark text-white text-base px-8 py-6 rounded-xl shadow-xl shadow-coral/20 hover:shadow-2xl hover:shadow-coral/30 transition-all duration-300 hover:-translate-y-0.5"
+                className="bg-primary hover:bg-purple-dark text-white text-base px-8 py-6 rounded-xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5"
                 asChild
               >
                 <Link href="/dashboard">
@@ -61,9 +59,15 @@ export async function HeroSection() {
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-6 pt-2">
-              {["LGPD", "AWS Brasil", "Protocolo de crise integrado"].map((tag) => (
-                <div key={tag} className="flex items-center gap-2 text-sm text-muted-foreground/80">
+            {/* Credibilidade — fato verdadeiro, sem depoimento/nº/logos inventados */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-secondary/60 px-3.5 py-1.5 text-sm">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <span className="font-medium text-navy">Desenvolvido com psiquiatra</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {["LGPD", "AWS Brasil · sa-east-1", "Protocolo de crise"].map((tag) => (
+                <div key={tag} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="h-5 w-5 rounded-full bg-success/10 flex items-center justify-center">
                     <CheckCircle className="h-3 w-3 text-success" />
                   </div>

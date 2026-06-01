@@ -4,8 +4,8 @@ import { inter, playfair } from '@/lib/fonts'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Cérebro Amigo - CRM Médico',
-  description: 'O CRM que trabalha entre consultas. Acompanhe pacientes, organize condutas e fortaleça a continuidade do cuidado.',
+  title: 'Cérebro Amigo — Acompanhamento entre consultas para psiquiatria',
+  description: 'Acompanhamento entre consultas para psiquiatria: o paciente registra humor, sintomas e áudios no diário; antes do retorno, a IA entrega o briefing pronto.',
   icons: {
     icon: [
       {
