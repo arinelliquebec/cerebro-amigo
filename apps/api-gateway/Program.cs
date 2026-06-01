@@ -245,6 +245,7 @@ PortalPacienteEndpoints.Map(app);
 app.MapPortalConversation();
 CheckinsEndpoints.Map(app);
 InsightsEndpoints.Map(app);
+ConsultasEndpoints.Map(app);
 SeedEndpoint.Map(app);
 
 app.Run();

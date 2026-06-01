@@ -1,321 +1,191 @@
 "use client"
 
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Clock,
-  User,
-  Video,
-  MapPin,
-  Zap,
-} from "lucide-react"
-import { useState } from "react"
+import { ChevronLeft, ChevronRight, Clock, Video, MapPin, FileText, Loader2, CheckCircle2 } from "lucide-react"
+import { NovaConsultaDialog } from "@/components/agenda/nova-consulta-dialog"
 
-const appointments = [
-  {
-    id: 1,
-    time: "08:00",
-    endTime: "09:00",
-    patient: "Fernanda Lima",
-    initials: "FL",
-    type: "Primeira Consulta",
-    typeColor: "bg-primary",
-    modality: "Presencial",
-    status: "confirmed",
-  },
-  {
-    id: 2,
-    time: "09:00",
-    endTime: "10:00",
-    patient: "Maria Santos",
-    initials: "MS",
-    type: "Retorno",
-    typeColor: "bg-primary",
-    modality: "Presencial",
-    status: "confirmed",
-  },
-  {
-    id: 3,
-    time: "10:30",
-    endTime: "11:30",
-    patient: "João Silva",
-    initials: "JS",
-    type: "Retorno",
-    typeColor: "bg-primary",
-    modality: "Online",
-    status: "confirmed",
-  },
-  {
-    id: 4,
-    time: "14:00",
-    endTime: "15:00",
-    patient: "Ana Costa",
-    initials: "AC",
-    type: "Retorno",
-    typeColor: "bg-primary",
-    modality: "Presencial",
-    status: "pending",
-  },
-  {
-    id: 5,
-    time: "15:30",
-    endTime: "16:30",
-    patient: "Carlos Oliveira",
-    initials: "CO",
-    type: "Urgência",
-    typeColor: "bg-coral",
-    modality: "Presencial",
-    status: "confirmed",
-  },
-  {
-    id: 6,
-    time: "17:00",
-    endTime: "18:00",
-    patient: "Lucia Ferreira",
-    initials: "LF",
-    type: "Retorno",
-    typeColor: "bg-primary",
-    modality: "Online",
-    status: "pending",
-  },
-]
+interface Consulta {
+  id: string
+  pacienteId: string
+  pacienteNome: string | null
+  iniciaEm: string
+  modalidade: string
+  status: string
+}
 
-const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
-const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
+function ymd(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const dia = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${dia}`
+}
+function hora(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+}
+function iniciais(nome: string | null) {
+  if (!nome) return "?"
+  const p = nome.trim().split(/\s+/)
+  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?"
+}
+
+const STATUS: Record<string, { rotulo: string; cls: string }> = {
+  agendada: { rotulo: "Agendada", cls: "bg-muted text-muted-foreground" },
+  confirmada: { rotulo: "Confirmada", cls: "bg-success/10 text-success" },
+  realizada: { rotulo: "Realizada", cls: "bg-primary/10 text-primary" },
+  cancelada: { rotulo: "Cancelada", cls: "bg-destructive/10 text-destructive" },
+}
 
 export default function AgendaPage() {
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [dia, setDia] = useState<Date>(() => new Date())
+  const [consultas, setConsultas] = useState<Consulta[]>([])
+  const [loading, setLoading] = useState(true)
+  const [acao, setAcao] = useState<string | null>(null)
 
-  const getWeekDays = () => {
-    const start = new Date(currentDate)
-    start.setDate(start.getDate() - start.getDay())
-    
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(start)
-      date.setDate(start.getDate() + i)
-      return date
+  const carregar = useCallback(async (d: Date) => {
+    setLoading(true)
+    const dataStr = ymd(d)
+    try {
+      const r = await fetch(`/api/consultas?de=${dataStr}&ate=${dataStr}`)
+      const rows = r.ok ? await r.json() : []
+      setConsultas(Array.isArray(rows) ? rows : [])
+    } catch {
+      setConsultas([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    carregar(dia)
+  }, [dia, carregar])
+
+  function navega(delta: number) {
+    setDia((d) => {
+      const n = new Date(d)
+      n.setDate(n.getDate() + delta)
+      return n
     })
   }
 
-  const weekDates = getWeekDays()
-  const today = new Date()
-
-  const nextWeek = () => {
-    const next = new Date(currentDate)
-    next.setDate(next.getDate() + 7)
-    setCurrentDate(next)
+  async function mudarStatus(id: string, status: string) {
+    setAcao(id)
+    try {
+      const r = await fetch(`/api/consultas/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+      if (r.ok) setConsultas((cs) => cs.map((c) => (c.id === id ? { ...c, status } : c)))
+    } finally {
+      setAcao(null)
+    }
   }
 
-  const prevWeek = () => {
-    const prev = new Date(currentDate)
-    prev.setDate(prev.getDate() - 7)
-    setCurrentDate(prev)
-  }
+  const ehHoje = ymd(dia) === ymd(new Date())
+  const ordenadas = [...consultas].sort((a, b) => a.iniciaEm.localeCompare(b.iniciaEm))
 
   return (
     <div className="min-h-screen">
-      <Header title="Agenda" subtitle="Gerencie suas consultas" />
+      <Header title="Agenda" />
 
-      <div className="p-6 space-y-6">
-        {/* Week Navigation */}
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" size="icon" onClick={prevWeek}>
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <h2 className="text-lg font-semibold text-navy">
-                {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-              </h2>
-              <Button variant="ghost" size="icon" onClick={nextWeek}>
-                <ChevronRight className="h-5 w-5" />
-              </Button>
+      <div className="p-8 space-y-6">
+        {/* Controles de dia */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => navega(-1)} aria-label="Dia anterior">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[220px] text-center">
+              <p className="text-lg font-semibold text-navy capitalize">
+                {dia.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+              </p>
+              {ehHoje && <p className="text-xs text-primary">Hoje</p>}
             </div>
+            <Button variant="outline" size="icon" onClick={() => navega(1)} aria-label="Próximo dia">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            {!ehHoje && (
+              <Button variant="ghost" size="sm" className="text-primary" onClick={() => setDia(new Date())}>
+                Hoje
+              </Button>
+            )}
+          </div>
 
-            <div className="grid grid-cols-7 gap-2">
-              {weekDates.map((date, i) => {
-                const isToday = date.toDateString() === today.toDateString()
-                const isSelected = date.toDateString() === selectedDate.toDateString()
-                
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedDate(date)}
-                    className={`flex flex-col items-center p-3 rounded-xl transition-all ${
-                      isSelected
-                        ? "bg-primary text-white"
-                        : isToday
-                        ? "bg-secondary text-primary"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
-                      {weekDays[i]}
-                    </span>
-                    <span className={`text-lg font-semibold mt-1 ${isSelected ? "text-white" : "text-foreground"}`}>
-                      {date.getDate()}
-                    </span>
-                    {/* Appointment indicator */}
-                    {i === 3 && (
-                      <div className={`flex gap-0.5 mt-1 ${isSelected ? "opacity-80" : ""}`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-coral" />
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+          <NovaConsultaDialog diaInicial={ymd(dia)} onCriada={() => carregar(dia)} />
+        </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Day Schedule */}
-          <div className="lg:col-span-2">
-            <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold text-navy">
-                    {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </CardTitle>
-                  <Button className="bg-primary hover:bg-purple-dark text-white gap-2" size="sm">
-                    <Plus className="h-4 w-4" />
-                    Nova Consulta
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border">
-                  {appointments.map((apt) => (
-                    <div
-                      key={apt.id}
-                      className="flex items-stretch hover:bg-muted/50 transition-colors cursor-pointer"
-                    >
-                      {/* Time Column */}
-                      <div className="w-20 flex-shrink-0 p-4 border-r border-border">
-                        <p className="text-sm font-semibold text-primary">{apt.time}</p>
-                        <p className="text-xs text-muted-foreground">{apt.endTime}</p>
-                      </div>
+        {/* Lista */}
+        {loading ? (
+          <div className="flex justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : ordenadas.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Nenhuma consulta neste dia.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {ordenadas.map((c) => {
+              const st = STATUS[c.status] ?? STATUS.agendada
+              const cancelada = c.status === "cancelada"
+              return (
+                <Card key={c.id} className={`border-border/60 ${cancelada ? "opacity-60" : ""}`}>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className="flex w-16 shrink-0 flex-col items-center">
+                      <Clock className="mb-1 h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold text-navy">{hora(c.iniciaEm)}</span>
+                    </div>
 
-                      {/* Appointment Details */}
-                      <div className="flex-1 p-4">
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-primary/20">
-                            <AvatarFallback className="bg-secondary text-primary text-sm font-medium">
-                              {apt.initials}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-medium text-navy">{apt.patient}</h4>
-                              <Badge className={`${apt.typeColor} text-white text-xs`}>
-                                {apt.type}
-                              </Badge>
-                              <span className={`h-2 w-2 rounded-full ${
-                                apt.status === "confirmed" ? "bg-success" : "bg-warning"
-                              }`} />
-                            </div>
-                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                1 hora
-                              </span>
-                              <span className="flex items-center gap-1">
-                                {apt.modality === "Online" ? (
-                                  <>
-                                    <Video className="h-3 w-3" />
-                                    Online
-                                  </>
-                                ) : (
-                                  <>
-                                    <MapPin className="h-3 w-3" />
-                                    Presencial
-                                  </>
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="flex-shrink-0 gap-1.5 text-primary border-primary/30 hover:bg-primary/5 hover:border-primary"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Link href={`/dashboard/consultas/${apt.id}/briefing`}>
-                              <Zap className="h-3.5 w-3.5" />
-                              Briefing
-                            </Link>
-                          </Button>
-                        </div>
+                    <Avatar className="h-11 w-11 border-2 border-primary/15">
+                      <AvatarFallback className="bg-secondary text-sm font-semibold text-primary">
+                        {iniciais(c.pacienteNome)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-navy">{c.pacienteNome ?? "Paciente"}</p>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1 capitalize">
+                          {c.modalidade === "teleconsulta" ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+                          {c.modalidade}
+                        </span>
+                        <Badge className={`border-0 text-[10px] ${st.cls}`}>{st.rotulo}</Badge>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Summary */}
-          <div className="space-y-6">
-            <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-navy">
-                  Resumo do Dia
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <span className="text-sm text-muted-foreground">Total de consultas</span>
-                  <span className="text-lg font-bold text-navy">{appointments.length}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                  <span className="text-sm text-primary">Confirmadas</span>
-                  <span className="text-lg font-bold text-primary">
-                    {appointments.filter(a => a.status === "confirmed").length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
-                  <span className="text-sm text-warning">Pendentes</span>
-                  <span className="text-lg font-bold text-warning">
-                    {appointments.filter(a => a.status === "pending").length}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-navy">
-                  Próxima Consulta
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
-                  <Avatar className="h-12 w-12 border-2 border-primary/30">
-                    <AvatarFallback className="bg-primary text-white font-medium">
-                      FL
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-navy">Fernanda Lima</p>
-                    <p className="text-sm text-primary font-semibold">08:00 - 09:00</p>
-                    <p className="text-xs text-muted-foreground">Primeira Consulta</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {!cancelada && c.status === "agendada" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 text-xs text-success"
+                          disabled={acao === c.id}
+                          onClick={() => mudarStatus(c.id, "confirmada")}
+                        >
+                          {acao === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          Confirmar
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" asChild className="gap-1 text-xs">
+                        <Link href={`/dashboard/consultas/${c.id}/briefing`}>
+                          <FileText className="h-3.5 w-3.5" /> Briefing
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

@@ -34,17 +34,22 @@ async function request<T>(
     },
   })
 
+  const texto = await res.text()
+
   if (!res.ok) {
     let body: unknown
-    try { body = await res.json() } catch { body = null }
+    try { body = texto ? JSON.parse(texto) : null } catch { body = texto }
     throw new GatewayError(res.status, body)
   }
 
-  return res.json() as Promise<T>
+  // 204 / corpo vazio (ex.: PATCH) → null.
+  return (texto ? JSON.parse(texto) : null) as T
 }
 
 export const gateway = {
   post: <T>(path: string, body: unknown, token?: string) =>
     request<T>(path, { method: "POST", body: JSON.stringify(body) }, token),
+  patch: <T>(path: string, body: unknown, token?: string) =>
+    request<T>(path, { method: "PATCH", body: JSON.stringify(body) }, token),
   get: <T>(path: string) => request<T>(path, { method: "GET" }),
 }

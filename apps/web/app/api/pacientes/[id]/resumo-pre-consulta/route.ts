@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from "next/server"
+import { gateway, GatewayError } from "@/lib/gateway"
+
+// GET retorna o último resumo cacheado: { ultimo: ResumoPreConsultaDto | null }
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  try {
+    const data = await gateway.get(`/api/v1/pacientes/${id}/resumo-pre-consulta`)
+    return NextResponse.json(data)
+  } catch (err) {
+    if (err instanceof GatewayError && (err.status === 401 || err.status === 403))
+      return NextResponse.json({ error: "não autorizado" }, { status: 401 })
+    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+  }
+}
+
+// POST dispara geração on-demand (agents-py). Pode demorar — deixa o gateway esperar.
+export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  try {
+    const data = await gateway.post(`/api/v1/pacientes/${id}/resumo-pre-consulta`, {})
+    return NextResponse.json(data)
+  } catch (err) {
+    if (err instanceof GatewayError) {
+      if (err.status === 401 || err.status === 403)
+        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
+      // 502/500 do agents-py — repassa pra UI mostrar "tente de novo"
+      return NextResponse.json(err.body ?? { error: "falha ao gerar" }, { status: err.status })
+    }
+    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+  }
+}
