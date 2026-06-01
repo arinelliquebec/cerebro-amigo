@@ -6,6 +6,7 @@ import { SpotlightCard } from "@/components/ui/spotlight-card"
 import {
   ClipboardList,
   Smile,
+  Mic,
   ShieldAlert,
   Bell,
   TrendingUp,
@@ -28,6 +29,13 @@ const features = [
     description:
       "Escalas validadas (PHQ-9, GAD-7) enviadas automaticamente entre consultas e armazenadas na evolução.",
     gradient: "from-coral/5 to-secondary/30",
+  },
+  {
+    icon: Mic,
+    title: "Diário por voz",
+    description:
+      "O paciente registra como está por áudio. A IA transcreve em pt-BR e organiza em humor, temas e sintomas relatados — sem digitar nada.",
+    gradient: "from-primary/5 to-secondary/30",
   },
   {
     icon: ShieldAlert,
