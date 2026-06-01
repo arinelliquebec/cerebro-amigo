@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,298 +10,280 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Pill,
   ShieldCheck,
-  MessageSquare,
   Clock,
   Zap,
+  Loader2,
+  Sparkles,
 } from "lucide-react"
 
-// Mock data — substituir por fetch real quando agente estiver integrado
-interface BriefingData {
-  paciente: { nome: string; iniciais: string; ultimaConsulta: string | null }
-  humor: { atual: number; anterior: number; historico: number[] } | null
-  adesao: { percentual: number; medicamento: string; diasPerdidos: string[] } | null
-  crises: { quantidade: number } | null
-  topicos: string[]
-  sintese: string | null
-  geradoEm: string | null
-  horaConsulta: string
-  tipoConsulta: string
+interface Consulta {
+  id: string
+  pacienteId: string
+  pacienteNome: string | null
+  iniciaEm: string
+  modalidade: string
+  status: string
+}
+interface PontoHumor {
+  data: string
+  humor: number | null
+  ansiedade: number | null
+}
+interface Adesao {
+  medicamento: string
+  tomadas: number
+  faltas: number
+  total: number
+  percentualAdesao: number | null
+}
+interface Resumo {
+  id: string
+  titulo: string
+  conteudo: string
+  severidade: string
+  criadoEm: string
 }
 
-const mockBriefings: Record<string, BriefingData> = {
-  "1": {
-    paciente: { nome: "Fernanda Lima", iniciais: "FL", ultimaConsulta: null },
-    humor: null,
-    adesao: null,
-    crises: null,
-    topicos: [],
-    sintese: null,
-    geradoEm: null,
-    horaConsulta: "08:00",
-    tipoConsulta: "Primeira Consulta",
-  },
-  "2": {
-    paciente: { nome: "Maria Santos", iniciais: "MS", ultimaConsulta: "18/05/2026" },
-    humor: { atual: 7, anterior: 3, historico: [3, 3, 4, 5, 6, 6, 7] },
-    adesao: { percentual: 95, medicamento: "Sertralina 50mg", diasPerdidos: ["qua"] },
-    crises: { quantidade: 0 },
-    topicos: ["Redução de dose da Sertralina", "Insônia nos últimos 3 dias"],
-    sintese:
-      "Maria teve melhora consistente de humor esta semana, subindo de 3 para 7 em 7 dias. Adesão excelente (95%), apenas uma dose perdida na quarta-feira. Sem crises registradas desde a última consulta. Principal preocupação relatada: insônia recorrente e interesse em redução gradual de dose.",
-    geradoEm: "08:47",
-    horaConsulta: "09:00",
-    tipoConsulta: "Retorno",
-  },
-  "3": {
-    paciente: { nome: "João Silva", iniciais: "JS", ultimaConsulta: "05/05/2026" },
-    humor: { atual: 4, anterior: 6, historico: [6, 5, 5, 4, 4, 3, 4] },
-    adesao: { percentual: 68, medicamento: "Escitalopram 10mg", diasPerdidos: ["seg", "qua", "sex"] },
-    crises: { quantidade: 1 },
-    topicos: ["Estresse no trabalho", "Dificuldade para sair de casa"],
-    sintese:
-      "João apresentou queda de humor (6 → 4) com adesão abaixo do esperado na semana. Registrou 1 crise leve na última terça-feira. Relata piora dos sintomas ansiosos ligados a conflito no trabalho. Atenção redobrada recomendada — avaliar ajuste de dose e suporte psicossocial.",
-    geradoEm: "10:15",
-    horaConsulta: "10:30",
-    tipoConsulta: "Retorno",
-  },
+function iniciais(nome: string | null): string {
+  if (!nome) return "?"
+  const p = nome.trim().split(/\s+/)
+  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?"
+}
+function hora(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+}
+const STATUS_ROTULO: Record<string, string> = {
+  agendada: "Agendada",
+  confirmada: "Confirmada",
+  realizada: "Realizada",
+  cancelada: "Cancelada",
 }
 
 function Sparkline({ values }: { values: number[] }) {
-  const min = 1
-  const max = 10
-  const w = 200
-  const h = 48
-  const pad = 4
-
-  const points = values
+  const w = 200, h = 48, pad = 4, min = 1, max = 10
+  const pts = values
     .map((v, i) => {
       const x = pad + (i / (values.length - 1)) * (w - pad * 2)
       const y = h - pad - ((v - min) / (max - min)) * (h - pad * 2)
       return `${x},${y}`
     })
     .join(" ")
-
-  const last = values[values.length - 1]
-  const lastX = w - pad
-  const lastY = h - pad - ((last - min) / (max - min)) * (h - pad * 2)
-
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-12">
-      <polyline
-        points={points}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        className="text-primary"
-      />
-      <circle cx={lastX} cy={lastY} r="3" className="fill-primary" />
+      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" className="text-primary" />
       {values.map((v, i) => {
         const x = pad + (i / (values.length - 1)) * (w - pad * 2)
         const y = h - pad - ((v - min) / (max - min)) * (h - pad * 2)
-        return (
-          <circle key={i} cx={x} cy={y} r="2" className="fill-primary opacity-40" />
-        )
+        return <circle key={i} cx={x} cy={y} r="2.5" className="fill-primary" />
       })}
     </svg>
   )
 }
 
-function HumorBadge({ valor }: { valor: number }) {
-  if (valor >= 7) return <span className="text-xs font-medium text-success">Bom</span>
-  if (valor >= 4) return <span className="text-xs font-medium text-warning">Moderado</span>
-  return <span className="text-xs font-medium text-destructive">Baixo</span>
-}
-
 export default function BriefingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const briefing = mockBriefings[id] ?? mockBriefings["2"]
-  const { paciente, humor, adesao, crises, topicos, sintese, geradoEm, horaConsulta, tipoConsulta } = briefing
-  const isPrimeira = tipoConsulta === "Primeira Consulta"
+  const [consulta, setConsulta] = useState<Consulta | null>(null)
+  const [humor, setHumor] = useState<PontoHumor[]>([])
+  const [adesao, setAdesao] = useState<Adesao[]>([])
+  const [resumo, setResumo] = useState<Resumo | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(false)
+  const [gerando, setGerando] = useState(false)
 
-  const humorDelta = humor ? humor.atual - humor.anterior : 0
-  const TrendIcon = humorDelta > 0 ? TrendingUp : humorDelta < 0 ? TrendingDown : Minus
-  const trendColor = humorDelta > 0 ? "text-success" : humorDelta < 0 ? "text-destructive" : "text-muted-foreground"
+  useEffect(() => {
+    let vivo = true
+    ;(async () => {
+      try {
+        const c = await fetch(`/api/consultas/${id}`).then((r) => (r.ok ? r.json() : Promise.reject()))
+        if (!vivo) return
+        setConsulta(c)
+        const pid = c.pacienteId
+        const [h, a, res] = await Promise.all([
+          fetch(`/api/pacientes/${pid}/humor?dias=14`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`/api/pacientes/${pid}/adesao`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`/api/pacientes/${pid}/resumo-pre-consulta`).then((r) => (r.ok ? r.json() : { ultimo: null })),
+        ])
+        if (!vivo) return
+        setHumor(Array.isArray(h) ? h : [])
+        setAdesao(Array.isArray(a) ? a : [])
+        setResumo(res?.ultimo ?? null)
+      } catch {
+        if (vivo) setErro(true)
+      } finally {
+        if (vivo) setLoading(false)
+      }
+    })()
+    return () => {
+      vivo = false
+    }
+  }, [id])
+
+  async function gerarResumo() {
+    if (!consulta) return
+    setGerando(true)
+    try {
+      const r = await fetch(`/api/pacientes/${consulta.pacienteId}/resumo-pre-consulta`, { method: "POST" })
+      const data = await r.json().catch(() => null)
+      setResumo(data?.resumo ?? data?.ultimo ?? null)
+    } finally {
+      setGerando(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    )
+  }
+
+  if (erro || !consulta) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <p className="text-sm text-muted-foreground">Consulta não encontrada.</p>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/agenda">Voltar à agenda</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  const serie = humor.map((p) => Math.round(p.humor ?? 0)).filter((v) => v > 0)
+  const atual = serie.length ? serie[serie.length - 1] : null
+  const anterior = serie.length > 1 ? serie[0] : null
+  const delta = atual !== null && anterior !== null ? atual - anterior : 0
+  const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus
+  const trendColor = delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"
+  const adesaoPrincipal = adesao.length ? [...adesao].sort((a, b) => b.total - a.total)[0] : null
+  const semHistorico = serie.length === 0 && adesao.length === 0
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50 px-6 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/50 bg-background/95 px-6 py-3 backdrop-blur">
         <Button variant="ghost" size="sm" asChild className="gap-2 text-muted-foreground">
           <Link href="/dashboard/agenda">
-            <ArrowLeft className="h-4 w-4" />
-            Agenda
+            <ArrowLeft className="h-4 w-4" /> Agenda
           </Link>
         </Button>
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold text-primary">Consulta: {horaConsulta}</span>
-          <Badge className="bg-primary/10 text-primary border-0 text-xs">
-            {tipoConsulta}
-          </Badge>
+          <span className="text-sm font-semibold text-primary">Consulta: {hora(consulta.iniciaEm)}</span>
+          <Badge className="border-0 bg-primary/10 text-xs text-primary capitalize">{consulta.modalidade}</Badge>
+          <Badge variant="outline" className="text-xs">{STATUS_ROTULO[consulta.status] ?? consulta.status}</Badge>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
-        {/* Patient header */}
+      <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16 border-2 border-primary/20">
-            <AvatarFallback className="bg-secondary text-primary text-xl font-semibold">
-              {paciente.iniciais}
+            <AvatarFallback className="bg-secondary text-xl font-semibold text-primary">
+              {iniciais(consulta.pacienteNome)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold text-navy">{paciente.nome}</h1>
-            {paciente.ultimaConsulta ? (
-              <p className="text-sm text-muted-foreground">
-                Última consulta: {paciente.ultimaConsulta}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Primeira consulta</p>
-            )}
+            <h1 className="text-2xl font-bold text-navy">{consulta.pacienteNome ?? "Paciente"}</h1>
+            <p className="text-sm text-muted-foreground">
+              {new Date(consulta.iniciaEm).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
           </div>
-          {geradoEm && (
-            <div className="ml-auto text-right">
-              <p className="text-xs text-muted-foreground">Briefing gerado às</p>
-              <p className="text-sm font-semibold text-navy">{geradoEm}</p>
-            </div>
-          )}
         </div>
 
-        {isPrimeira ? (
+        {semHistorico ? (
           <div className="rounded-2xl border border-dashed border-border p-10 text-center">
-            <p className="text-muted-foreground text-sm">
-              Primeira consulta — sem histórico anterior para análise.
+            <p className="text-sm text-muted-foreground">
+              Sem histórico de humor ou adesão para este paciente ainda.
             </p>
           </div>
         ) : (
-          <>
-            {/* Metric cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* Humor */}
-              <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Humor</p>
-                <div className="flex items-end gap-1.5">
-                  <span className="text-3xl font-bold text-navy">{humor?.atual ?? "—"}</span>
-                  <span className="text-sm text-muted-foreground mb-0.5">/10</span>
-                </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {/* Humor */}
+            <div className="space-y-1 rounded-2xl border border-border/50 bg-card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Humor</p>
+              <div className="flex items-end gap-1.5">
+                <span className="text-3xl font-bold text-navy">{atual ?? "—"}</span>
+                {atual !== null && <span className="mb-0.5 text-sm text-muted-foreground">/10</span>}
+              </div>
+              {anterior !== null && (
                 <div className="flex items-center gap-1">
                   <TrendIcon className={`h-3.5 w-3.5 ${trendColor}`} />
                   <span className={`text-xs font-medium ${trendColor}`}>
-                    {humorDelta > 0 ? `+${humorDelta}` : humorDelta} vs. última
+                    {delta > 0 ? `+${delta}` : delta} no período
                   </span>
                 </div>
-                {humor && <HumorBadge valor={humor.atual} />}
-              </div>
-
-              {/* Adesão */}
-              <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Adesão</p>
-                <div className="flex items-end gap-1">
-                  <span className={`text-3xl font-bold ${
-                    (adesao?.percentual ?? 0) >= 80 ? "text-success" : "text-warning"
-                  }`}>
-                    {adesao?.percentual ?? "—"}
-                    {adesao && <span className="text-lg">%</span>}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-snug">
-                  {adesao?.medicamento}
-                </p>
-                {adesao && adesao.diasPerdidos.length > 0 && (
-                  <p className="text-xs text-warning">
-                    Perdeu: {adesao.diasPerdidos.join(", ")}
-                  </p>
-                )}
-              </div>
-
-              {/* Crises */}
-              <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Crises</p>
-                <span className={`text-3xl font-bold ${
-                  (crises?.quantidade ?? 0) === 0 ? "text-success" : "text-destructive"
-                }`}>
-                  {crises?.quantidade ?? "—"}
-                </span>
-                <p className="text-xs text-muted-foreground">desde última consulta</p>
-                {crises?.quantidade === 0 && (
-                  <span className="text-xs font-medium text-success flex items-center gap-1">
-                    <ShieldCheck className="h-3 w-3" /> Sem ocorrências
-                  </span>
-                )}
-              </div>
-
-              {/* Tópicos */}
-              <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tópicos</p>
-                <span className="text-3xl font-bold text-navy">{topicos.length}</span>
-                <p className="text-xs text-muted-foreground">assuntos para discutir</p>
-                {topicos.length > 0 && (
-                  <span className="text-xs text-primary flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" /> ver abaixo
-                  </span>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Sparkline */}
-            {humor && (
-              <div className="rounded-2xl border border-border/50 bg-card p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-navy">Evolução do humor — últimos 7 dias</p>
-                  <div className="flex gap-3 text-xs text-muted-foreground">
-                    {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d, i) => (
-                      <span key={i}>{d}</span>
-                    ))}
-                  </div>
-                </div>
-                <Sparkline values={humor.historico} />
-                <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                  <span>{humor.anterior} (início)</span>
-                  <span>{humor.atual} (hoje)</span>
-                </div>
-              </div>
-            )}
+            {/* Adesão */}
+            <div className="space-y-1 rounded-2xl border border-border/50 bg-card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Adesão</p>
+              <span className={`text-3xl font-bold ${(adesaoPrincipal?.percentualAdesao ?? 0) >= 80 ? "text-success" : "text-warning"}`}>
+                {adesaoPrincipal?.percentualAdesao ?? "—"}
+                {adesaoPrincipal?.percentualAdesao != null && <span className="text-lg">%</span>}
+              </span>
+              <p className="text-xs leading-snug text-muted-foreground">
+                {adesaoPrincipal?.medicamento ?? "sem prescrição"}
+              </p>
+              {adesaoPrincipal && adesaoPrincipal.faltas > 0 && (
+                <p className="text-xs text-warning">{adesaoPrincipal.faltas} falta(s) em 30d</p>
+              )}
+            </div>
 
-            {/* Tópicos do paciente */}
-            {topicos.length > 0 && (
-              <div className="rounded-2xl border border-border/50 bg-card p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-semibold text-navy">O que a paciente quer discutir</p>
-                </div>
-                <ul className="space-y-2">
-                  {topicos.map((t, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Síntese IA */}
-            {sintese && (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-semibold text-primary">Síntese do período</p>
-                </div>
-                <p className="text-sm text-foreground leading-relaxed">{sintese}</p>
-              </div>
-            )}
-          </>
+            {/* Registros */}
+            <div className="space-y-1 rounded-2xl border border-border/50 bg-card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Registros</p>
+              <span className="text-3xl font-bold text-navy">{serie.length}</span>
+              <p className="text-xs text-muted-foreground">de humor (14d)</p>
+              {serie.length > 0 && atual !== null && atual >= 7 && (
+                <span className="flex items-center gap-1 text-xs font-medium text-success">
+                  <ShieldCheck className="h-3 w-3" /> estável
+                </span>
+              )}
+            </div>
+          </div>
         )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          <p className="text-xs text-muted-foreground">
-            {geradoEm ? `Gerado às ${geradoEm} por Cérebro Amigo` : "Sem dados de histórico"}
-          </p>
+        {serie.length > 1 && (
+          <div className="rounded-2xl border border-border/50 bg-card p-5">
+            <p className="mb-3 text-sm font-semibold text-navy">Evolução do humor — últimos registros</p>
+            <Sparkline values={serie} />
+            <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+              <span>{anterior} (início)</span>
+              <span>{atual} (atual)</span>
+            </div>
+          </div>
+        )}
+
+        {/* Síntese IA */}
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold text-primary">Síntese pré-consulta</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={gerarResumo} disabled={gerando} className="gap-1.5 text-xs">
+              {gerando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {resumo ? "Atualizar" : "Gerar"}
+            </Button>
+          </div>
+          {resumo ? (
+            <>
+              {resumo.titulo && <p className="mb-1 text-sm font-medium text-navy">{resumo.titulo}</p>}
+              <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{resumo.conteudo}</p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Gerado em {new Date(resumo.criadoEm).toLocaleString("pt-BR")} · revisão do médico obrigatória
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {gerando ? "Gerando resumo do período…" : "Nenhum resumo gerado ainda. Clique em Gerar."}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-border/50 pt-2">
+          <p className="text-xs text-muted-foreground">Cérebro Amigo · organiza fatos; a decisão clínica é sua</p>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/agenda">Voltar à agenda</Link>
           </Button>

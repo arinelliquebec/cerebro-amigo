@@ -1,38 +1,51 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 
-const appointments = [
-  { id: 1, time: "09:00", patient: "Maria Santos", type: "Retorno", status: "confirmed" },
-  { id: 2, time: "10:30", patient: "João Silva", type: "Primeira Consulta", status: "confirmed" },
-  { id: 3, time: "14:00", patient: "Ana Costa", type: "Retorno", status: "pending" },
-  { id: 4, time: "15:30", patient: "Carlos Oliveira", type: "Urgência", status: "confirmed" },
-  { id: 5, time: "17:00", patient: "Lucia Ferreira", type: "Retorno", status: "pending" },
-]
+interface Consulta {
+  id: string
+  pacienteNome: string | null
+  iniciaEm: string
+  modalidade: string
+  status: string
+}
 
 const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"]
-
-const typeColor: Record<string, string> = {
-  "Retorno": "text-primary",
-  "Primeira Consulta": "text-navy",
-  "Urgência": "text-coral",
-}
-
-const typeBg: Record<string, string> = {
-  "Retorno": "bg-primary/10",
-  "Primeira Consulta": "bg-navy/10",
-  "Urgência": "bg-coral/10",
-}
-
 const delayClass = ["delay-100", "delay-200", "delay-300"]
+
+const STATUS_DOT: Record<string, string> = {
+  confirmada: "bg-success",
+  agendada: "bg-warning",
+  realizada: "bg-primary",
+  cancelada: "bg-destructive",
+}
+
+function ymd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+function hora(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+}
 
 export function AgendaWidget() {
   const [currentDate] = useState(new Date())
+  const [consultas, setConsultas] = useState<Consulta[]>([])
+  const [loading, setLoading] = useState(true)
   const today = currentDate.getDate()
+
+  useEffect(() => {
+    const hoje = ymd(new Date())
+    fetch(`/api/consultas?de=${hoje}&ate=${hoje}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => setConsultas(Array.isArray(rows) ? rows : []))
+      .catch(() => setConsultas([]))
+      .finally(() => setLoading(false))
+  }, [])
 
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear()
@@ -44,8 +57,9 @@ export function AgendaWidget() {
     for (let i = 1; i <= daysInMonth; i++) days.push(i)
     return days
   }
-
   const days = getDaysInMonth()
+
+  const ordenadas = [...consultas].sort((a, b) => a.iniciaEm.localeCompare(b.iniciaEm))
 
   return (
     <Card className="border-border/80 hover:border-primary/25 hover:shadow-[0_4px_24px_rgba(94,75,139,0.07)] transition-all duration-200">
@@ -53,13 +67,13 @@ export function AgendaWidget() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-[0.9375rem] font-semibold text-navy">Agenda</CardTitle>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
               <ChevronLeft size={16} />
             </Button>
             <span className="text-xs font-medium text-muted-foreground px-1">
               {currentDate.toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
             </span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
               <ChevronRight size={16} />
             </Button>
           </div>
@@ -74,60 +88,63 @@ export function AgendaWidget() {
             </div>
           ))}
           {days.map((day, i) => (
-            <button
+            <div
               key={i}
-              disabled={day === null}
-              className={`text-xs py-1.5 rounded-lg font-medium transition-colors ${
+              className={`text-xs py-1.5 rounded-lg font-medium ${
                 day === null
-                  ? "cursor-default"
+                  ? ""
                   : day === today
                   ? "bg-primary text-white shadow-sm"
-                  : "hover:bg-secondary text-foreground hover:text-primary"
+                  : "text-foreground"
               }`}
             >
               {day}
-            </button>
+            </div>
           ))}
         </div>
 
-        {/* Appointments */}
+        {/* Appointments (reais) */}
         <div className="pt-3 border-t border-border/50 space-y-2">
           <p className="text-xs font-semibold text-navy mb-2">Consultas de Hoje</p>
-          <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
-            {appointments.slice(0, 3).map((apt, i) => (
-              <div
-                key={apt.id}
-                className={`flex items-center gap-3 p-2.5 rounded-xl bg-muted/40 hover:bg-secondary transition-colors cursor-pointer animate-fade-left ${delayClass[i]}`}
-              >
-                <span
-                  className={`text-sm font-bold tabular-nums w-12 flex-shrink-0 ${typeColor[apt.type] ?? "text-primary"}`}
+          {loading ? (
+            <div className="flex justify-center py-4 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : ordenadas.length === 0 ? (
+            <p className="py-3 text-center text-xs text-muted-foreground">Nenhuma consulta hoje.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
+              {ordenadas.slice(0, 3).map((c, i) => (
+                <Link
+                  key={c.id}
+                  href={`/dashboard/consultas/${c.id}/briefing`}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl bg-muted/40 hover:bg-secondary transition-colors cursor-pointer animate-fade-left ${delayClass[i]}`}
                 >
-                  {apt.time}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-navy truncate">{apt.patient}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Badge
-                      variant="secondary"
-                      className={`text-[0.6rem] h-4 px-1.5 font-semibold border-0 ${typeBg[apt.type] ?? "bg-primary/10"} ${typeColor[apt.type] ?? "text-primary"}`}
-                    >
-                      {apt.type}
-                    </Badge>
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                        apt.status === "confirmed" ? "bg-success" : "bg-warning"
-                      }`}
-                    />
+                  <span className="text-sm font-bold tabular-nums w-12 flex-shrink-0 text-primary">
+                    {hora(c.iniciaEm)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-navy truncate">{c.pacienteNome ?? "Paciente"}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Badge
+                        variant="secondary"
+                        className="text-[0.6rem] h-4 px-1.5 font-semibold border-0 bg-primary/10 text-primary capitalize"
+                      >
+                        {c.modalidade}
+                      </Badge>
+                      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status] ?? "bg-warning"}`} />
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
           <Button
             variant="ghost"
+            asChild
             className="w-full text-primary hover:text-purple-dark hover:bg-secondary mt-1 text-xs h-8"
           >
-            Ver agenda completa
+            <Link href="/dashboard/agenda">Ver agenda completa</Link>
           </Button>
         </div>
       </CardContent>
