@@ -185,6 +185,7 @@ class ResumidorAgent(BaseAgent):
             valido_ate=datetime.fromisoformat(payload.extra["consulta_inicia_em"]),
             tokens_in=call.tokens_in,
             tokens_out=call.tokens_out,
+            custo_usd=call.custo_usd,
             modelo=call.model_id or settings.model_sonnet,
         )
 

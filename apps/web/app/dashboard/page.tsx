@@ -17,20 +17,20 @@ export default function DashboardPage() {
     <div className="min-h-screen">
       <Header title="Dashboard" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-8 space-y-8">
         {/* Stats Overview */}
         <StatsCards />
 
         {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-3">
           {/* Left Column - 2 cols */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             <EvolutionChart />
             <RecentPatientsWidget />
           </div>
 
           {/* Right Column - Widgets */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             <AgendaWidget />
             <CheckinWidget />
             <MessagesWidget />

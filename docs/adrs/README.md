@@ -25,7 +25,10 @@ contexto regulatório, sem dependência da memória do autor.
 | [005](005-versionamento-texto-crise.md) | Versionamento e revisão do texto de crise | Accepted | Segurança clínica |
 | [006](006-fail-safe-classificador-crise.md) | Fail-safe do classificador de crise | Accepted | Segurança clínica |
 | [007](007-gateway-net-nao-go.md) | Gateway .NET 10, não Go (V3) | Accepted | Stack |
-| [008](008-llm-bedrock-nao-anthropic-api.md) | LLM via Bedrock In-Region, não ANTHROPIC_API_KEY | Accepted | Stack / Compliance |
+| [008](008-llm-bedrock-nao-anthropic-api.md) | LLM via Bedrock In-Region, não ANTHROPIC_API_KEY | Superseded by ADR-015 | Stack / Compliance |
+| [009](009-separacao-plano-interativo-batch.md) | Separação plano interativo (crise) / batch + builds no CI | Accepted | Arquitetura / Segurança clínica |
+| [014](014-dirty-patients-find-pending.md) | Candidatos incrementais em find_pending ("pacientes sujos") | Proposed | Performance / Arquitetura analítica |
+| [015](015-llm-provider-switchavel.md) | Camada LLM provider-switchável (Anthropic API ⇄ Bedrock) | Accepted | Stack / Compliance |
 
 ## Status possíveis
 

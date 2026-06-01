@@ -1,11 +1,32 @@
 # Postgres é externo (RDS sa-east-1) — não entra aqui.
 # Serviços Python autenticam na Bedrock via IAM role da EC2 (produção) ou AWS_PROFILE (dev).
+#
+# image: → ECR em produção (tag = IMAGE_TAG=$GITHUB_SHA, definido pelo CI).
+# build: → mantido para dev local; "docker compose up --build" constrói localmente.
+# IMAGE_TAG não setado em dev → usa tag "latest" (construa local antes: docker compose build).
+#
+# ─── Isolamento de recurso (ADR-009 PR 1) ────────────────────────────────────
+#
+# Plano interativo (orchestrator-py, api-gateway, web): sem mem_limit — caminho de
+# crise nunca é OOM-killed por pressão do batch. mem_reservation = piso suave que
+# o OOM killer respeita ao escolher vítima.
+#
+# Plano batch (agents-py, notifier-py): mem_limit = teto duro; cpu_shares baixo =
+# menor prioridade de CPU quando há contenção. Se agents-py explodir em RAM,
+# o kernel mata o cgroup do batch, não o do orchestrator.
+#
+# Calibrar após medir: docker stats --no-stream
+# Valores atuais conservadores para t3.small (2 vCPU / 2 GB RAM).
 
 services:
   web:
+    image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/web:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+    # Plano interativo — sem teto de RAM.
+    mem_reservation: 256m
+    cpu_shares: 1024
     ports:
       - "3000:3000"
     env_file: .env
@@ -25,8 +46,12 @@ services:
       start_period: 30s
 
   api-gateway:
+    image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/api-gateway:${IMAGE_TAG:-latest}
     build:
       context: ./apps/api-gateway
+    # Plano interativo — sem teto de RAM.
+    mem_reservation: 256m
+    cpu_shares: 1024
     ports:
       - "5050:5000"
     env_file: .env
@@ -38,8 +63,14 @@ services:
       start_period: 15s
 
   orchestrator-py:
+    image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/orchestrator-py:${IMAGE_TAG:-latest}
     build:
       context: ./apps/orchestrator-py
+    # Caminho de crise — sem mem_limit intencional (ADR-009).
+    # LangGraph checkpoint (psycopg3 pool 10) + asyncpg pool 20 + Bedrock Haiku/Sonnet.
+    # mem_reservation = piso suave; OOM killer prioriza agents-py/notifier-py como vítimas.
+    mem_reservation: 512m
+    cpu_shares: 1024
     ports:
       - "8081:8081"
     env_file: .env
@@ -51,8 +82,18 @@ services:
       start_period: 15s
 
   agents-py:
+    image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/agents-py:${IMAGE_TAG:-latest}
     build:
       context: ./apps/agents-py
+    # Plano batch — teto duro. scipy/numpy (padroes) + langchain-aws + asyncpg pool 10.
+    # mem_limit: OOM killer mata este cgroup antes do orchestrator.
+    # cpus: at most 1 vCPU; numa box de 2 vCPU, garante ≥1 livre pro orchestrator.
+    # cpu_shares: prioridade baixa quando CPU contendida (orchestrator=1024 vs batch=256).
+    # Evolução para disparo externo: ver infra/aws/eventbridge-agents-trigger.md
+    mem_limit: 768m
+    mem_reservation: 256m
+    cpus: "1.0"
+    cpu_shares: 256
     ports:
       - "8082:8082"
     env_file: .env
@@ -64,8 +105,14 @@ services:
       start_period: 15s
 
   notifier-py:
+    image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/notifier-py:${IMAGE_TAG:-latest}
     build:
       context: ./apps/notifier-py
+    # Plano batch leve — sem LLM, sem scipy. Teto conservador.
+    mem_limit: 256m
+    mem_reservation: 64m
+    cpus: "0.50"
+    cpu_shares: 256
     ports:
       - "8083:8083"
     env_file: .env

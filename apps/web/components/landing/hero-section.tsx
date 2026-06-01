@@ -5,29 +5,33 @@ import Link from "next/link"
 import { BrandWordmark } from "@/components/brand-wordmark"
 import { HeroPreview } from "@/components/landing/hero-preview"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, ArrowRight } from "lucide-react"
+import { CheckCircle, ArrowRight, Sparkles } from "lucide-react"
 
 export async function HeroSection() {
   cacheLife('days')
 
   return (
-    <section className="relative overflow-hidden py-20 lg:py-28">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(94,75,139,0.07),transparent)]" />
-      <div className="container mx-auto max-w-7xl px-6">
-        <div className="grid items-center gap-12 lg:grid-cols-[1fr_auto] lg:gap-10">
+    <section className="relative overflow-hidden py-24 lg:py-32">
+      {/* Background layers */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(94,75,139,0.10),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_40%_at_80%_50%,rgba(229,115,115,0.06),transparent)]" />
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
+      <div className="container mx-auto max-w-7xl px-6 relative">
+        <div className="grid items-center gap-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           {/* Left */}
-          <div className="space-y-8 lg:max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-primary/20 text-xs font-semibold text-primary uppercase tracking-wider">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+          <div className="space-y-8 lg:max-w-xl animate-fade-up">
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-secondary border border-primary/15 text-xs font-semibold text-primary uppercase tracking-wider shadow-sm shadow-primary/5">
+              <Sparkles className="h-3.5 w-3.5" />
               Acompanhamento entre consultas · Psiquiatria
             </div>
 
-            <div className="space-y-4">
-              <h1>
+            <div className="space-y-5">
+              <h1 className="leading-[1.1]">
                 <BrandWordmark size="hero" />
               </h1>
-              <p className="text-xl lg:text-2xl text-navy font-medium leading-snug">
-                O sistema que trabalha<br />entre consultas
+              <p className="text-xl lg:text-2xl text-navy/90 font-medium leading-relaxed">
+                O sistema que trabalha entre consultas
               </p>
             </div>
 
@@ -36,10 +40,10 @@ export async function HeroSection() {
               reais de evolução — sem depender só da consulta.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 size="lg"
-                className="bg-coral hover:bg-coral-dark text-white text-base px-8 py-6 rounded-xl shadow-lg shadow-coral/20"
+                className="bg-coral hover:bg-coral-dark text-white text-base px-8 py-6 rounded-xl shadow-xl shadow-coral/20 hover:shadow-2xl hover:shadow-coral/30 transition-all duration-300 hover:-translate-y-0.5"
                 asChild
               >
                 <Link href="/dashboard">
@@ -50,34 +54,43 @@ export async function HeroSection() {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-base px-8 py-6 rounded-xl border-border text-navy hover:border-primary/50"
+                className="text-base px-8 py-6 rounded-xl border-border/80 text-navy hover:border-primary/40 hover:bg-secondary/40 transition-all duration-200"
                 asChild
               >
                 <Link href="/login">Já tenho conta</Link>
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-5 pt-1">
+            <div className="flex flex-wrap items-center gap-6 pt-2">
               {["LGPD", "AWS Brasil", "Protocolo de crise integrado"].map((tag) => (
-                <div key={tag} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <CheckCircle className="h-3.5 w-3.5 text-success" />
-                  <span>{tag}</span>
+                <div key={tag} className="flex items-center gap-2 text-sm text-muted-foreground/80">
+                  <div className="h-5 w-5 rounded-full bg-success/10 flex items-center justify-center">
+                    <CheckCircle className="h-3 w-3 text-success" />
+                  </div>
+                  <span className="font-medium">{tag}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Right — product preview */}
-          <div className="relative flex min-w-0 shrink-0 justify-center lg:justify-start">
-            <HeroPreview />
-            <div
-              className="pointer-events-none absolute -top-8 -right-8 h-80 w-80 rounded-full bg-primary/[0.08] blur-3xl"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute -bottom-8 -left-8 h-56 w-56 rounded-full bg-coral/[0.08] blur-2xl"
-              aria-hidden
-            />
+          <div className="relative flex min-w-0 shrink-0 justify-center lg:justify-end animate-scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="relative">
+              <HeroPreview />
+              {/* Ambient glow effects */}
+              <div
+                className="pointer-events-none absolute -top-12 -right-12 h-72 w-72 rounded-full bg-primary/[0.12] blur-3xl"
+                aria-hidden
+              />
+              <div
+                className="pointer-events-none absolute -bottom-12 -left-12 h-64 w-64 rounded-full bg-coral/[0.10] blur-3xl"
+                aria-hidden
+              />
+              <div
+                className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-purple-light/[0.05] blur-3xl"
+                aria-hidden
+              />
+            </div>
           </div>
         </div>
       </div>

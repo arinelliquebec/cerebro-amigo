@@ -82,3 +82,4 @@ class ConversaState(TypedDict, total=False):
     modelo_resposta: NotRequired[str | None]
     tokens_in: NotRequired[int | None]
     tokens_out: NotRequired[int | None]
+    custo_usd: NotRequired[float | None]

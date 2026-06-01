@@ -246,21 +246,35 @@ SCHEDULER_INTERVAL_SECONDS
 
 **Pronto:**
 - Landing, `/login`, `/dashboard/*` (dados ainda mock via seed de demonstração)
+- `/dashboard/agenda` — calendário semanal + botão "Briefing" por consulta ✓
+- `/dashboard/consultas/[id]/briefing` — tela de briefing pré-consulta (mock) ✓
 - Monorepo skeleton + docker-compose local (todos os 5 containers healthy)
 - `apps/api-gateway/` — portado .NET 10, compilando, deploy na EC2
 - `apps/orchestrator-py/` — portado Python + LangGraph, Bedrock configurado
-- `apps/agents-py/` — portado Python + APScheduler, 5 agentes analíticos
+- `apps/agents-py/` — portado Python + APScheduler, 5 agentes analíticos; cadências por agente (ADR-009 PR 3); suite de testes 52/52 ✓
 - `apps/notifier-py/` — portado Python + pywebpush
 - `infra/migrations/` — DDL completo (`0001_init`, `0002_fix_agente_execucoes`, `0003_add_automacao_pausada`), aplicado em RDS
 - `infra/seed/` — seed de demonstração (3 pacientes com histórico clínico, insights, notificações)
-- `.github/workflows/deploy.yml` — CI/CD SSH EC2 via GitHub Actions
+- **ADR-009 (parte deploy):** `.github/workflows/deploy.yml` reescrito — builds no CI (GitHub Actions → ECR `sa-east-1`); EC2 faz `compose pull + up -d` (sem `--build`); health+ready checks pós-deploy. `docker-compose.yml` com `image:` ECR + limites de recurso batch (mem_limit/cpus em agents-py e notifier-py; orchestrator sem teto).
+- `infra/aws/setup-ecr.sh` — script de bootstrap ECR (5 repos, lifecycle policy, IAM pull policy)
+- Testes unitários verdes: orchestrator-py 19/19, agents-py 52/52 ✓; conftest fixado
 
-**A FAZER (por prioridade):**
+**A FAZER — ADR-009 (partes faltando):**
+- **PR 0** (ops): medir RAM/CPU real da box (`docker stats`, `aws ec2 describe-instances`) para calibrar `mem_limit` em `docker-compose.yml`
+- **PR 2**: capar pool asyncpg do agents-py (10 → 3-5 conn) + tornar tunável por env
+- **PR 3**: scipy/numpy no agents-py (`padroes.py`) para `asyncio.to_thread` — impede bloqueio do event loop na triagem de crise do diário
+- **PR 4 (ADR-011)**: fechar lacuna de SHADOW_MODE em agents-py (default `true`, crise isenta)
+- **PR 5 (ADR-012)**: consolidar triagem de crise do diário (`services/crisis.py`, `/internal/diario/*`) no orchestrator-py; agents-py vira batch puro
+- **PR 7 (ops)**: criar repositórios ECR (`setup-ecr.sh`), configurar secrets CI, primeiro deploy via ECR
+- **PR 8**: multi-stage Dockerfiles Python (remover `build-essential` do runtime)
+- **ADR-014**: implementar Fase 1 (dedup-no-SQL em `_listar_candidatos` do risco_silencioso)
+
+**A FAZER (backlog produto):**
 1. BFF real (`app/api/*`) + remover dados mock do `/dashboard/*`
 2. Portal paciente `/p/*` (PWA, push, conversa SSE)
-3. Agenda `/dashboard/agenda` (novo no V3)
-4. Editor de prompts dos agentes (UI do médico para `agentes.system_prompt`)
-5. IAM role na EC2 com `bedrock:InvokeModel` em sa-east-1 (confirmar se criada)
+3. Editor de prompts dos agentes (UI do médico para `agentes.system_prompt`)
+4. IAM role na EC2 com `bedrock:InvokeModel` em sa-east-1 (confirmar se criada)
+5. Quota Bedrock sa-east-1 (caso de suporte aberto — ver `docs/aws-bedrock-quota-support-case.md`)
 
 ---
 
@@ -275,4 +289,7 @@ SCHEDULER_INTERVAL_SECONDS
 | [005](adrs/005-versionamento-texto-crise.md) | Versionamento texto de crise | Accepted |
 | [006](adrs/006-fail-safe-classificador-crise.md) | Fail-safe classificador de crise | Accepted |
 | [007](adrs/007-gateway-net-nao-go.md) | Gateway .NET, não Go (V3) | Accepted |
-| [008](adrs/008-llm-bedrock-nao-anthropic-api.md) | LLM via Bedrock In-Region, não ANTHROPIC_API_KEY | Accepted |
+| [008](adrs/008-llm-bedrock-nao-anthropic-api.md) | LLM via Bedrock In-Region, não ANTHROPIC_API_KEY | Superseded by ADR-015 |
+| [009](adrs/009-separacao-plano-interativo-batch.md) | Separação plano interativo (crise) / batch + builds no CI | Accepted |
+| [014](adrs/014-dirty-patients-find-pending.md) | Candidatos incrementais em find_pending ("pacientes sujos") | Proposed |
+| [015](adrs/015-llm-provider-switchavel.md) | Camada LLM provider-switchável (Anthropic API ⇄ Bedrock) | Accepted |

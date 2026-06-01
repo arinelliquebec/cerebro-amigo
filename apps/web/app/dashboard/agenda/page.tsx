@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +14,7 @@ import {
   User,
   Video,
   MapPin,
+  Zap,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -242,6 +244,18 @@ export default function AgendaPage() {
                               </span>
                             </div>
                           </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="flex-shrink-0 gap-1.5 text-primary border-primary/30 hover:bg-primary/5 hover:border-primary"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Link href={`/dashboard/consultas/${apt.id}/briefing`}>
+                              <Zap className="h-3.5 w-3.5" />
+                              Briefing
+                            </Link>
+                          </Button>
                         </div>
                       </div>
                     </div>

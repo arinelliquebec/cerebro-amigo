@@ -11,9 +11,89 @@ concurrency:
 permissions:
   contents: read
 
+# ─── Rollback ──────────────────────────────────────────────────────────────
+#
+# Para reverter para um SHA anterior, conecte na EC2 via SSM e execute:
+#
+#   export IMAGE_TAG=<sha-anterior>
+#   aws ecr get-login-password --region sa-east-1 \
+#     | docker login --username AWS --password-stdin \
+#       004177894935.dkr.ecr.sa-east-1.amazonaws.com
+#   cd /opt/cerebro-amigo-v3
+#   git checkout <sha-anterior> -- docker-compose.yml
+#   docker compose pull
+#   docker compose up -d --remove-orphans
+#
+# As imagens de SHAs anteriores ficam disponíveis no ECR enquanto a lifecycle
+# policy (keep last 10) não as apagar. Ver infra/aws/setup-ecr.sh.
+
 jobs:
+  # ─── Job 1: build e push das 5 imagens para o ECR ────────────────────────
+  build:
+    name: Build & push to ECR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image_tag: ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: private
+
+      - name: Build and push all images
+        env:
+          ECR: 004177894935.dkr.ecr.sa-east-1.amazonaws.com
+          TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # web — contexto = raiz do repo (Dockerfile usa monorepo root)
+          docker build \
+            -t "$ECR/cerebro-amigo/web:$TAG" \
+            -f apps/web/Dockerfile \
+            .
+          docker push "$ECR/cerebro-amigo/web:$TAG"
+
+          # api-gateway (.NET 10)
+          docker build \
+            -t "$ECR/cerebro-amigo/api-gateway:$TAG" \
+            apps/api-gateway/
+          docker push "$ECR/cerebro-amigo/api-gateway:$TAG"
+
+          # orchestrator-py (LangGraph + caminho de crise)
+          docker build \
+            -t "$ECR/cerebro-amigo/orchestrator-py:$TAG" \
+            apps/orchestrator-py/
+          docker push "$ECR/cerebro-amigo/orchestrator-py:$TAG"
+
+          # agents-py (batch + agentes analíticos)
+          docker build \
+            -t "$ECR/cerebro-amigo/agents-py:$TAG" \
+            apps/agents-py/
+          docker push "$ECR/cerebro-amigo/agents-py:$TAG"
+
+          # notifier-py (web push)
+          docker build \
+            -t "$ECR/cerebro-amigo/notifier-py:$TAG" \
+            apps/notifier-py/
+          docker push "$ECR/cerebro-amigo/notifier-py:$TAG"
+
+  # ─── Job 2: deploy via SSM (pull + up, sem build na EC2) ─────────────────
   deploy:
     name: SSM deploy
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -34,18 +114,17 @@ jobs:
             --parameters 'commands=[
               "set -euo pipefail",
               "export HOME=/root",
+              "export IMAGE_TAG=${{ github.sha }}",
               "git config --global --add safe.directory /opt/cerebro-amigo-v3",
               "cd /opt/cerebro-amigo-v3",
               "git pull origin main",
-              "docker stop $(docker ps -q) 2>/dev/null || true",
-              "docker compose down --remove-orphans || true",
-              "docker compose build --pull",
+              "aws ecr get-login-password --region sa-east-1 | docker login --username AWS --password-stdin 004177894935.dkr.ecr.sa-east-1.amazonaws.com",
+              "docker compose pull",
               "docker compose up -d --remove-orphans",
-              "sleep 20",
-              "curl -sf http://localhost:5050/health | grep -q ok || { echo api-gateway unhealthy; exit 1; }",
-              "wget -qO- http://localhost:8081/health | grep -q ok || { echo orchestrator-py unhealthy; exit 1; }",
-              "wget -qO- http://localhost:8082/health | grep -q ok || { echo agents-py unhealthy; exit 1; }",
-              "wget -qO- http://localhost:8083/health | grep -q ok || { echo notifier-py unhealthy; exit 1; }",
+              "for i in $(seq 1 30); do curl -sf http://localhost:5050/health | grep -q ok && curl -sf http://localhost:5050/ready | grep -q ready && break; [ $i -lt 30 ] && sleep 3 || { echo api-gateway nao saudavel; exit 1; }; done && echo api-gateway ok",
+              "for i in $(seq 1 30); do curl -sf http://localhost:8081/health | grep -q ok && curl -sf http://localhost:8081/ready | grep -q ready && break; [ $i -lt 30 ] && sleep 3 || { echo orchestrator-py nao saudavel; exit 1; }; done && echo orchestrator-py ok",
+              "for i in $(seq 1 30); do curl -sf http://localhost:8082/health | grep -q ok && curl -sf http://localhost:8082/ready | grep -q ready && break; [ $i -lt 30 ] && sleep 3 || { echo agents-py nao saudavel; exit 1; }; done && echo agents-py ok",
+              "for i in $(seq 1 30); do curl -sf http://localhost:8083/health | grep -q ok && curl -sf http://localhost:8083/ready | grep -q ready && break; [ $i -lt 30 ] && sleep 3 || { echo notifier-py nao saudavel; exit 1; }; done && echo notifier-py ok",
               "echo deploy ok"
             ]' \
             --timeout-seconds 1200 \

@@ -43,31 +43,31 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-300 flex flex-col",
+        "fixed left-0 top-0 z-40 h-screen bg-card/95 backdrop-blur-sm border-r border-border/60 transition-all duration-300 ease-out flex flex-col shadow-[2px_0_16px_rgba(15,33,55,0.04)]",
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+      <div className="flex items-center justify-between h-[72px] px-5 border-b border-border/40">
         <Logo showText={!collapsed} size={collapsed ? "sm" : "md"} />
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          className="h-7 w-7 text-muted-foreground/60 hover:text-foreground hover:bg-secondary/60 transition-colors"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           ) : (
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           )}
         </Button>
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-6 space-y-0.5 overflow-y-auto">
         {!collapsed && (
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+          <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40">
             Menu
           </p>
         )}
@@ -79,31 +79,36 @@ export function Sidebar() {
               href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
-                "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
+                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
+                "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
                 isActive
-                  ? "bg-primary text-white shadow-sm shadow-primary/25"
-                  : "text-muted-foreground hover:bg-secondary hover:text-primary",
+                  ? "bg-primary text-white shadow-sm shadow-primary/20"
+                  : "text-muted-foreground/80 hover:bg-secondary/70 hover:text-navy",
                 collapsed && "justify-center px-2"
               )}
             >
               {isActive && !collapsed && (
-                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-white/80" />
+                <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-white/70" />
               )}
               <item.icon
                 className={cn(
-                  "h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
-                  isActive && "text-white"
+                  "h-[18px] w-[18px] flex-shrink-0 transition-all duration-200",
+                  isActive ? "text-white" : "text-muted-foreground/60 group-hover:text-primary"
                 )}
               />
-              {!collapsed && <span>{item.name}</span>}
+              {!collapsed && <span className="tracking-[-0.01em]">{item.name}</span>}
             </Link>
           )
         })}
       </nav>
 
       {/* Secondary Navigation */}
-      <div className="px-3 py-4 border-t border-border space-y-1">
+      <div className="px-3 py-4 border-t border-border/40 space-y-0.5">
+        {!collapsed && (
+          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40">
+            Sistema
+          </p>
+        )}
         {secondaryNavigation.map((item) => {
           const isActive = pathname === item.href
           return (
@@ -112,21 +117,21 @@ export function Sidebar() {
               href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
-                "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
+                "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
                 isActive
-                  ? "bg-primary text-white shadow-sm shadow-primary/25"
-                  : "text-muted-foreground hover:bg-secondary hover:text-primary",
+                  ? "bg-primary text-white shadow-sm shadow-primary/20"
+                  : "text-muted-foreground/80 hover:bg-secondary/70 hover:text-navy",
                 collapsed && "justify-center px-2"
               )}
             >
               <item.icon
                 className={cn(
-                  "h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
-                  isActive && "text-white"
+                  "h-[18px] w-[18px] flex-shrink-0 transition-all duration-200",
+                  isActive ? "text-white" : "text-muted-foreground/60 group-hover:text-primary"
                 )}
               />
-              {!collapsed && <span>{item.name}</span>}
+              {!collapsed && <span className="tracking-[-0.01em]">{item.name}</span>}
             </Link>
           )
         })}
@@ -134,29 +139,29 @@ export function Sidebar() {
         {/* Logout */}
         <button
           className={cn(
-            "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
-            "text-muted-foreground hover:bg-red-50 hover:text-red-600",
-            "focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
+            "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
+            "text-muted-foreground/70 hover:bg-red-50/60 hover:text-red-500",
+            "focus-visible:ring-2 focus-visible:ring-red-400/30 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
             collapsed && "justify-center px-2"
           )}
         >
-          <LogOut className="h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
-          {!collapsed && <span>Sair</span>}
+          <LogOut className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground/50 group-hover:text-red-400 transition-colors" />
+          {!collapsed && <span className="tracking-[-0.01em]">Sair</span>}
         </button>
       </div>
 
       {/* User Profile */}
       {!collapsed && (
-        <div className="px-3 py-4 border-t border-border">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-medium text-sm">
+        <div className="px-4 py-4 border-t border-border/40">
+          <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-secondary/30">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-purple-dark flex items-center justify-center text-white font-semibold text-xs shadow-sm">
               DR
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+              <p className="text-sm font-semibold text-foreground truncate">
                 Dra. Ana Silva
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-[11px] text-muted-foreground/70 truncate">
                 Psiquiatra
               </p>
             </div>

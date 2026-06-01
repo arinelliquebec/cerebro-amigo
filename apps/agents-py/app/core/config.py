@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,9 +19,37 @@ class Settings(BaseSettings):
     app_env: Literal["development", "staging", "production"] = "development"
     log_level: str = "INFO"
     agents_mode: Literal["scheduled", "manual"] = "scheduled"
+
+    # ─── Cadências do scheduler (ADR-009) ─────────────────────────────────
+    # Cada agente tem sua própria cadência em vez de um IntervalTrigger global.
+    # Ajuste via variáveis de ambiente sem redeployar o código.
+
+    # Fallback para jobs operacionais (gerador_checkins, gerador_questionarios).
     scheduler_interval_seconds: int = 300
 
-    # AWS Bedrock (sem ANTHROPIC_API_KEY — auth via IAM role)
+    # Agentes sensíveis à janela de consulta — precisam de resposta rápida.
+    resumidor_interval_seconds: int = 300   # RESUMIDOR_INTERVAL_SECONDS
+    diario_interval_seconds: int = 300      # DIARIO_INTERVAL_SECONDS
+
+    # Agentes analíticos — dados mudam devagar; cadência longa poupa recursos.
+    # ATENÇÃO: risco_silencioso tem dedup_window_hours=168 (7 dias). Rodar a
+    # 24h gera 6 scans completos/semana descartados pela dedup. Correto após
+    # ADR-014 implementar dedup-no-SQL em _listar_candidatos.
+    adesao_interval_hours: int = 6          # ADESAO_INTERVAL_HOURS
+    padroes_interval_hours: int = 12        # PADROES_INTERVAL_HOURS
+    risco_silencioso_interval_hours: int = 24  # RISCO_SILENCIOSO_INTERVAL_HOURS
+
+    # ─── Provider LLM (ADR-015) ───
+    # anthropic = API direta (default operacional). bedrock = AWS, atrás da flag.
+    llm_provider: Literal["anthropic", "bedrock"] = "anthropic"
+
+    # Anthropic API (LLM_PROVIDER=anthropic — auth via ANTHROPIC_API_KEY)
+    anthropic_api_key: SecretStr | None = None
+    anthropic_model_haiku: str = "claude-haiku-4-5-20251001"
+    anthropic_model_sonnet: str = "claude-sonnet-4-6"
+    anthropic_model_opus: str = "claude-opus-4-8"
+
+    # AWS Bedrock (LLM_PROVIDER=bedrock — auth via IAM role)
     aws_region: str = "sa-east-1"
     bedrock_region: str = "sa-east-1"
     # IDs = inference profiles (prefixo global.). On-demand puro (anthropic.*)
@@ -120,6 +148,19 @@ class Settings(BaseSettings):
     s3_bucket_audio: str = "cerebro-amigo-audio-sa-east-1"
     transcribe_poll_interval_s: float = 2.0
     transcribe_timeout_s: float = 120.0
+
+    @model_validator(mode="after")
+    def _validate_llm_provider(self) -> "Settings":
+        """Fail-fast: a auth exigida depende do provider selecionado (ADR-015)."""
+        if self.llm_provider == "anthropic" and not self.anthropic_api_key:
+            raise ValueError(
+                "LLM_PROVIDER=anthropic exige ANTHROPIC_API_KEY no ambiente."
+            )
+        if self.llm_provider == "bedrock" and not self.bedrock_region:
+            raise ValueError(
+                "LLM_PROVIDER=bedrock exige BEDROCK_REGION (região AWS) no ambiente."
+            )
+        return self
 
 
 @lru_cache
