@@ -4,8 +4,8 @@
   "description": "Acompanhamento entre consultas: humor, diário, medicações e conversa com sua psiquiatra.",
   "start_url": "/p",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f172a",
+  "background_color": "#07070D",
+  "theme_color": "#0E0E18",
   "orientation": "portrait",
   "scope": "/p",
   "lang": "pt-BR",
@@ -28,13 +28,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["health", "medical"],
-  "screenshots": [
-    {
-      "src": "/screenshots/p-home.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
+  "categories": ["health", "medical"]
 }

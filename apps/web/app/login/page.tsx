@@ -2,75 +2,85 @@ import { Suspense } from "react"
 import Link from "next/link"
 import { BrandWordmark } from "@/components/brand-wordmark"
 import { Logo } from "@/components/logo"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { LoginForm } from "@/components/login-form"
+import { NeuralField } from "@/components/landing/neural-field"
+import { AuroraBackdrop } from "@/components/landing/aurora-backdrop"
+import { Eyebrow } from "@/components/landing/eyebrow"
+import { CheckCircle } from "lucide-react"
 
 export const metadata = {
   title: "Entrar — Cérebro Amigo",
   description: "Acesse sua conta do Cérebro Amigo",
 }
 
+const props = [
+  "Briefing pré-consulta gerado por IA",
+  "Acompanhamento seguro entre consultas",
+  "Conformidade com a LGPD",
+]
+
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-navy relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_70%_50%,rgba(148,134,201,0.08),transparent)]" />
-        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
-          <div className="mb-10">
+    <div className="theme-noir min-h-screen bg-background text-foreground flex">
+      {/* Esquerda — marca + campo neural */}
+      <div className="relative hidden w-1/2 overflow-hidden lg:flex">
+        <AuroraBackdrop grid />
+        <div className="pointer-events-none absolute inset-0 opacity-60">
+          <NeuralField />
+        </div>
+        <div className="relative z-10 flex flex-col justify-center px-16">
+          <div className="mb-8">
             <Logo showText={false} size="lg" variant="light" />
           </div>
+          <Eyebrow className="mb-4">Para psiquiatras e clínicos</Eyebrow>
           <h1 className="mb-5">
             <BrandWordmark size="auth" variant="light" />
           </h1>
-          <p className="text-lg text-white/70 mb-10 leading-relaxed max-w-md">
-            O CRM que trabalha entre consultas. Cuide dos seus pacientes com mais eficiência e acolhimento.
+          <p className="mb-10 max-w-md text-lg leading-relaxed text-muted-foreground">
+            O CRM que trabalha entre consultas. Cuide dos seus pacientes com mais
+            eficiência e acolhimento.
           </p>
           <div className="space-y-4">
-            {["Prontuário eletrônico completo", "Comunicação segura com pacientes", "Conformidade com a LGPD"].map((txt) => (
+            {props.map((txt) => (
               <div key={txt} className="flex items-center gap-3.5">
-                <div className="h-9 w-9 rounded-lg bg-primary/15 border border-primary/10 flex items-center justify-center shrink-0">
-                  <svg className="h-4 w-4 text-accent-on-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span className="text-white/70 text-sm font-medium">{txt}</span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 border border-primary/20">
+                  <CheckCircle className="h-4 w-4 text-accent-on-dark" />
+                </span>
+                <span className="text-sm font-medium text-muted-foreground">{txt}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
-        <div className="absolute top-32 -right-16 w-48 h-48 bg-coral/6 rounded-full blur-3xl" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
       </div>
 
-      {/* Right Side */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      {/* Direita — formulário */}
+      <div className="flex flex-1 items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="lg:hidden mb-8 flex justify-center">
-            <Logo size="lg" />
+          <div className="mb-8 flex justify-center lg:hidden">
+            <Logo size="lg" variant="light" />
           </div>
-          <Card className="border-border/40 shadow-xl shadow-navy/5">
-            <CardHeader className="text-center pb-5 pt-7">
-              <CardTitle className="text-2xl font-semibold text-navy tracking-tight">
+          <div className="glass-noir rounded-2xl border border-noir-line p-7 glow-purple-lg">
+            <div className="pb-5 text-center">
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground">
                 Bem-vindo de volta
-              </CardTitle>
-              <CardDescription className="text-muted-foreground/80 mt-1">
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Entre com suas credenciais para acessar o sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 px-7 pb-7">
-              <Suspense fallback={null}>
-                <LoginForm />
-              </Suspense>
-            </CardContent>
-          </Card>
-          <p className="text-center text-xs text-muted-foreground/60 mt-6">
+              </p>
+            </div>
+            <Suspense fallback={null}>
+              <LoginForm />
+            </Suspense>
+          </div>
+          <p className="mt-6 text-center text-xs text-muted-foreground">
             Ao entrar, você concorda com nossos{" "}
-            <Link href="/terms" className="text-primary hover:underline font-medium">Termos de Uso</Link>{" "}
+            <Link href="/terms" className="font-medium text-primary hover:underline">Termos de Uso</Link>{" "}
             e{" "}
-            <Link href="/privacy" className="text-primary hover:underline font-medium">Política de Privacidade</Link>
+            <Link href="/privacy" className="font-medium text-primary hover:underline">Política de Privacidade</Link>
+          </p>
+          <p className="mt-4 text-center text-xs text-noir-text-dim">
+            É paciente?{" "}
+            <Link href="/p/entrar" className="font-medium text-primary hover:underline">Acesse seu portal</Link>
           </p>
         </div>
       </div>
