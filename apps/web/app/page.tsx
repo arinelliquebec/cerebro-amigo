@@ -1,47 +1,88 @@
-import { NavHeader } from "@/components/landing/nav-header"
-import { HeroSection } from "@/components/landing/hero-section"
-import { ProblemBar } from "@/components/landing/problem-bar"
-import { HowItWorks } from "@/components/landing/how-it-works"
-import { FeaturesSection } from "@/components/landing/features-section"
-import { SecuritySection } from "@/components/landing/security-section"
-import { CTASection } from "@/components/landing/cta-section"
-import { FooterSection } from "@/components/landing/footer-section"
+import Link from "next/link"
+import { Logo } from "@/components/logo"
+import { NeuralField } from "@/components/landing/neural-field"
+import { AuroraBackdrop } from "@/components/landing/aurora-backdrop"
 import { Eyebrow } from "@/components/landing/eyebrow"
 import { Reveal } from "@/components/landing/reveal"
+import { HeartHandshake, Stethoscope, ArrowRight, LifeBuoy } from "lucide-react"
 
 export const metadata = {
-  title: "Cérebro Amigo — Acompanhamento entre consultas para psiquiatria",
+  title: "Cérebro Amigo — Acompanhamento entre consultas",
   description:
-    "Acompanhamento entre consultas para psiquiatria: o paciente registra humor, sintomas e áudios no diário; antes do retorno, a IA entrega o briefing pronto.",
+    "Cérebro Amigo: acompanhamento entre consultas para psiquiatria. Entre como paciente ou como médico.",
 }
 
-export default function HomePage() {
+const opcoes = [
+  {
+    href: "/paciente",
+    icon: HeartHandshake,
+    titulo: "Sou paciente",
+    desc: "Acompanhe seu humor, converse quando precisar e não esqueça a medicação.",
+    glow: "hover:glow-coral-lg",
+    iconCls: "bg-accent/15 text-accent",
+    cta: "Acessar meu portal",
+  },
+  {
+    href: "/medico",
+    icon: Stethoscope,
+    titulo: "Sou médico",
+    desc: "Briefing pré-consulta com IA, agenda e acompanhamento dos seus pacientes.",
+    glow: "hover:glow-purple-lg",
+    iconCls: "bg-primary/15 text-primary",
+    cta: "Conhecer a plataforma",
+  },
+]
+
+export default function ChooserPage() {
   return (
-    // `.theme-noir` escopa o tema dark espacial só à landing — dashboard e
-    // portal têm seus próprios layouts e seguem o :root (light).
-    <div className="theme-noir min-h-screen bg-background text-foreground antialiased">
-      <NavHeader />
-      <HeroSection />
-      <ProblemBar />
+    <div className="theme-noir relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-5 py-14 text-foreground antialiased">
+      <AuroraBackdrop grid />
+      <div className="pointer-events-none absolute inset-0 opacity-50">
+        <NeuralField />
+      </div>
 
-      {/* How it works */}
-      <section id="como-funciona" className="relative py-28">
-        <div className="container mx-auto max-w-7xl px-6">
-          <Reveal className="max-w-2xl mb-16">
-            <Eyebrow className="mb-4">Como funciona</Eyebrow>
-            <h2 className="font-serif text-4xl lg:text-5xl font-medium text-foreground leading-[1.05] text-balance">
-              Do plano ao retorno,{" "}
-              <span className="text-accent-on-dark">sem perder visibilidade</span>
-            </h2>
-          </Reveal>
-          <HowItWorks />
+      <div className="relative w-full max-w-3xl">
+        <Reveal className="mb-10 text-center">
+          <div className="mb-6 flex justify-center">
+            <Logo size="lg" variant="light" />
+          </div>
+          <Eyebrow className="mb-4">Bem-vindo</Eyebrow>
+          <h1 className="font-serif text-4xl font-medium leading-[1.05] tracking-tight text-balance sm:text-5xl">
+            Como você quer entrar?
+          </h1>
+        </Reveal>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          {opcoes.map((o, i) => (
+            <Reveal key={o.href} delay={0.08 + i * 0.08}>
+              <Link
+                href={o.href}
+                className={`group flex h-full flex-col rounded-3xl border border-noir-line glass-noir p-7 transition-all duration-300 hover:-translate-y-1 ${o.glow}`}
+              >
+                <div className={`mb-5 grid h-14 w-14 place-items-center rounded-2xl ${o.iconCls}`}>
+                  <o.icon className="h-7 w-7" />
+                </div>
+                <h2 className="text-2xl font-semibold text-foreground">{o.titulo}</h2>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{o.desc}</p>
+                <span className="mt-6 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-accent-on-dark transition-transform group-hover:translate-x-0.5">
+                  {o.cta} <ArrowRight className="h-4 w-4" />
+                </span>
+              </Link>
+            </Reveal>
+          ))}
         </div>
-      </section>
 
-      <FeaturesSection />
-      <SecuritySection />
-      <CTASection />
-      <FooterSection />
+        <Reveal delay={0.28} className="mt-10 text-center">
+          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <LifeBuoy className="h-3.5 w-3.5 text-accent" />
+            Em crise, você não está sozinho · CVV 188 · SAMU 192
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-5 text-xs">
+            <Link href="/privacy" className="text-noir-text-dim transition-colors hover:text-foreground">Privacidade</Link>
+            <Link href="/terms" className="text-noir-text-dim transition-colors hover:text-foreground">Termos</Link>
+          </div>
+        </Reveal>
+      </div>
     </div>
   )
 }
