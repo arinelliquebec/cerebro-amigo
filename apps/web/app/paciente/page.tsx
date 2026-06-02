@@ -317,7 +317,7 @@ export default function PacienteLandingPage() {
             <div className="flex items-center gap-5 text-sm">
               <Link href="/privacy" className="text-noir-text-dim transition-colors hover:text-foreground">Privacidade</Link>
               <Link href="/terms" className="text-noir-text-dim transition-colors hover:text-foreground">Termos</Link>
-              <Link href="/login" className="text-noir-text-dim transition-colors hover:text-foreground">Sou médico</Link>
+              <Link href="/medico" className="text-noir-text-dim transition-colors hover:text-foreground">Sou médico</Link>
             </div>
             <p className="text-xs text-noir-text-dim/60">© 2026 Cérebro Amigo</p>
           </div>
