@@ -169,7 +169,7 @@ export function ImportarDialog({ onConcluido }: { onConcluido: () => void }) {
 
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="text-navy">Importar pacientes</DialogTitle>
+          <DialogTitle className="text-foreground">Importar pacientes</DialogTitle>
           <DialogDescription>
             Envie uma planilha .xlsx (colunas: nome, email, whatsapp, cpf, data_nascimento).
             Cada paciente é criado em <strong>convite pendente</strong> — sem senha e sem e-mail.
@@ -192,7 +192,7 @@ export function ImportarDialog({ onConcluido }: { onConcluido: () => void }) {
               className="flex w-full flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors hover:border-primary/40 hover:bg-secondary/40"
             >
               <FileSpreadsheet className="h-10 w-10 text-primary" />
-              <span className="text-sm font-medium text-navy">Clique para escolher a planilha .xlsx</span>
+              <span className="text-sm font-medium text-foreground">Clique para escolher a planilha .xlsx</span>
               <span className="text-xs text-muted-foreground">Os dados são validados antes de enviar.</span>
             </button>
             <input
@@ -244,7 +244,7 @@ export function ImportarDialog({ onConcluido }: { onConcluido: () => void }) {
                   {linhas.map((l) => (
                     <tr key={l.linha} className={l.valida ? "" : "bg-destructive/5"}>
                       <td className="px-3 py-2 text-muted-foreground">{l.linha}</td>
-                      <td className="px-3 py-2 text-navy">{l.nome || "—"}</td>
+                      <td className="px-3 py-2 text-foreground">{l.nome || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{l.email || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{l.whatsapp || "—"}</td>
                       <td className="px-3 py-2">
@@ -266,7 +266,7 @@ export function ImportarDialog({ onConcluido }: { onConcluido: () => void }) {
                 Trocar arquivo
               </Button>
               <Button
-                className="bg-primary hover:bg-purple-dark text-white"
+                className="bg-primary hover:bg-purple-dark text-primary-foreground"
                 disabled={validas.length === 0}
                 onClick={confirmar}
               >
@@ -316,7 +316,7 @@ export function ImportarDialog({ onConcluido }: { onConcluido: () => void }) {
                     <tr key={r.linha}>
                       <td className="px-3 py-2 text-muted-foreground">{r.linha}</td>
                       <td className="px-3 py-2">
-                        <span className="text-navy">{r.nome || "—"}</span>
+                        <span className="text-foreground">{r.nome || "—"}</span>
                         <span className="block text-xs text-muted-foreground">{r.email}</span>
                       </td>
                       <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
@@ -328,7 +328,7 @@ export function ImportarDialog({ onConcluido }: { onConcluido: () => void }) {
             </ScrollArea>
             <DialogFooter>
               <Button
-                className="bg-primary hover:bg-purple-dark text-white"
+                className="bg-primary hover:bg-purple-dark text-primary-foreground"
                 onClick={() => setAberto(false)}
               >
                 Concluir

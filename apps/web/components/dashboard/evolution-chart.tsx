@@ -26,7 +26,7 @@ export function EvolutionChart() {
   return (
     <Card className="border-border/50 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold text-navy">
+        <CardTitle className="text-base font-semibold text-foreground">
           Evolução
         </CardTitle>
         <p className="text-sm text-muted-foreground">Visão do progresso</p>
@@ -64,7 +64,7 @@ export function EvolutionChart() {
                   borderRadius: "8px",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                labelStyle={{ color: "var(--navy)", fontWeight: 600 }}
+                labelStyle={{ color: "var(--foreground)", fontWeight: 600 }}
               />
               <Area
                 type="monotone"

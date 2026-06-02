@@ -61,7 +61,7 @@ export default function CheckinsPage() {
   return (
     <div className="p-4 pt-8 space-y-5">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold text-navy">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
           <ClipboardCheck className="h-6 w-6 text-primary" /> Check-ins
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">Perguntas rápidas da sua psiquiatra</p>
@@ -79,7 +79,7 @@ export default function CheckinsPage() {
         <ul className="space-y-3">
           {pendentes.map((c) => (
             <li key={c.id} className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
-              <p className="text-sm font-medium text-navy">{ROTULO[c.tipo] ?? c.tipo}</p>
+              <p className="text-sm font-medium text-foreground">{ROTULO[c.tipo] ?? c.tipo}</p>
 
               {c.tipo === "medicacao" ? (
                 <>
@@ -89,7 +89,7 @@ export default function CheckinsPage() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      className="bg-primary hover:bg-purple-dark text-white"
+                      className="bg-primary hover:bg-purple-dark text-primary-foreground"
                       disabled={respondendo === c.id}
                       onClick={() => responder(c, { status: "tomada" })}
                     >
@@ -106,7 +106,7 @@ export default function CheckinsPage() {
                   </div>
                 </>
               ) : c.tipo === "humor_diario" ? (
-                <Button asChild size="sm" className="bg-primary hover:bg-purple-dark text-white gap-1.5">
+                <Button asChild size="sm" className="bg-primary hover:bg-purple-dark text-primary-foreground gap-1.5">
                   <Link href="/p/humor">
                     <Smile className="h-4 w-4" /> Registrar humor
                   </Link>

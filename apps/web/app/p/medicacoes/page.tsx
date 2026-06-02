@@ -49,7 +49,7 @@ export default function MedicacoesPage() {
   return (
     <div className="p-4 pt-8 space-y-5">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold text-navy">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
           <Pill className="h-6 w-6 text-primary" /> Medicações
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">Suas prescrições ativas</p>
@@ -69,13 +69,13 @@ export default function MedicacoesPage() {
             <li key={m.id} className="rounded-2xl border border-border/60 bg-card p-4 space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium text-navy">{m.medicamento}</p>
+                  <p className="font-medium text-foreground">{m.medicamento}</p>
                   <p className="text-sm text-muted-foreground">{m.doseDescricao}</p>
                 </div>
                 <Button
                   size="sm"
                   variant={feito[m.id] ? "outline" : "default"}
-                  className={feito[m.id] ? "text-success border-success/40" : "bg-primary hover:bg-purple-dark text-white"}
+                  className={feito[m.id] ? "text-success border-success/40" : "bg-primary hover:bg-purple-dark text-primary-foreground"}
                   disabled={confirmando === m.id || feito[m.id]}
                   onClick={() => confirmar(m.id)}
                 >

@@ -17,7 +17,7 @@ export default function TrocarSenhaPage() {
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-primary">
           <ShieldCheck className="h-5 w-5" />
-          <h1 className="text-lg font-semibold text-navy">Defina uma nova senha</h1>
+          <h1 className="text-lg font-semibold text-foreground">Defina uma nova senha</h1>
         </div>
         <p className="text-sm text-muted-foreground">
           Você está usando uma senha provisória. Crie uma senha pessoal para continuar.
@@ -45,7 +45,7 @@ export default function TrocarSenhaPage() {
           <Input id="confirmar" name="confirmar" type="password" autoComplete="new-password" required />
         </div>
 
-        <Button type="submit" disabled={pending} className="w-full bg-primary hover:bg-purple-dark text-white">
+        <Button type="submit" disabled={pending} className="w-full bg-primary hover:bg-purple-dark text-primary-foreground">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar nova senha"}
         </Button>
       </form>

@@ -65,7 +65,7 @@ export function AgendaWidget() {
     <Card className="border-border/80 hover:border-primary/25 hover:shadow-[0_4px_24px_rgba(94,75,139,0.07)] transition-all duration-200">
       <CardHeader className="pb-2 pt-5 px-5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-[0.9375rem] font-semibold text-navy">Agenda</CardTitle>
+          <CardTitle className="text-[0.9375rem] font-semibold text-foreground">Agenda</CardTitle>
           <div className="flex items-center gap-0.5">
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
               <ChevronLeft size={16} />
@@ -94,7 +94,7 @@ export function AgendaWidget() {
                 day === null
                   ? ""
                   : day === today
-                  ? "bg-primary text-white shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-foreground"
               }`}
             >
@@ -105,7 +105,7 @@ export function AgendaWidget() {
 
         {/* Appointments (reais) */}
         <div className="pt-3 border-t border-border/50 space-y-2">
-          <p className="text-xs font-semibold text-navy mb-2">Consultas de Hoje</p>
+          <p className="text-xs font-semibold text-foreground mb-2">Consultas de Hoje</p>
           {loading ? (
             <div className="flex justify-center py-4 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -124,7 +124,7 @@ export function AgendaWidget() {
                     {hora(c.iniciaEm)}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-navy truncate">{c.pacienteNome ?? "Paciente"}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{c.pacienteNome ?? "Paciente"}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <Badge
                         variant="secondary"

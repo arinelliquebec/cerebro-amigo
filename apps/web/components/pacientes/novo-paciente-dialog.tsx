@@ -103,7 +103,7 @@ function CampoCopiavel({ valor }: { valor: string }) {
   const [copiado, setCopiado] = useState(false)
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-2">
-      <code className="flex-1 truncate text-xs text-navy">{valor}</code>
+      <code className="flex-1 truncate text-xs text-foreground">{valor}</code>
       <Button
         type="button"
         variant="ghost"
@@ -235,7 +235,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-purple-dark text-white gap-2">
+        <Button className="bg-primary hover:bg-purple-dark text-primary-foreground gap-2">
           <Plus className="h-4 w-4" />
           Novo Paciente
         </Button>
@@ -243,7 +243,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
 
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-navy">Novo paciente</DialogTitle>
+          <DialogTitle className="text-foreground">Novo paciente</DialogTitle>
           <DialogDescription>
             Cadastre o paciente e envie o convite de acesso ao portal.
           </DialogDescription>
@@ -266,7 +266,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
               </div>
             </div>
             {authInfo.link && (
-              <Button className="w-full gap-2 bg-primary hover:bg-purple-dark text-white" asChild>
+              <Button className="w-full gap-2 bg-primary hover:bg-purple-dark text-primary-foreground" asChild>
                 <Link href={authInfo.link}>
                   <LogIn className="h-4 w-4" /> Fazer login
                 </Link>
@@ -283,7 +283,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
                 <div className="flex items-start gap-3 rounded-lg bg-success/10 p-3">
                   <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
                   <div className="text-sm">
-                    <p className="font-medium text-navy">Convite enviado</p>
+                    <p className="font-medium text-foreground">Convite enviado</p>
                     <p className="text-muted-foreground">
                       O paciente recebeu um e-mail com o link para criar a senha (válido por 24h).
                     </p>
@@ -303,7 +303,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
                 <div className="flex items-start gap-3 rounded-lg bg-secondary/60 p-3">
                   <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                   <div className="text-sm">
-                    <p className="font-medium text-navy">Senha provisória criada</p>
+                    <p className="font-medium text-foreground">Senha provisória criada</p>
                     <p className="text-muted-foreground">
                       Entregue ao paciente. Ele troca no primeiro acesso ao portal.
                     </p>
@@ -313,7 +313,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
               </div>
             )}
             <DialogFooter>
-              <Button className="bg-primary hover:bg-purple-dark text-white" onClick={fechar}>
+              <Button className="bg-primary hover:bg-purple-dark text-primary-foreground" onClick={fechar}>
                 Concluir
               </Button>
             </DialogFooter>
@@ -407,7 +407,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
               render={({ field }) => (
                 <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                   <div className="text-sm">
-                    <p className="font-medium text-navy">
+                    <p className="font-medium text-foreground">
                       {field.value ? "Definir senha provisória" : "Enviar convite por e-mail"}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -447,7 +447,7 @@ export function NovoPacienteDialog({ onConcluido }: { onConcluido: () => void })
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-primary hover:bg-purple-dark text-white"
+                className="bg-primary hover:bg-purple-dark text-primary-foreground"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cadastrar"}
               </Button>

@@ -108,7 +108,7 @@ export default function MensagensPage() {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-navy">
+                      <span className="truncate text-sm font-medium text-foreground">
                         {c.pacienteNome ?? "Paciente"}
                       </span>
                       <span className="shrink-0 text-[10px] text-muted-foreground">
@@ -143,7 +143,7 @@ export default function MensagensPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-navy">{sel.pacienteNome ?? "Paciente"}</p>
+                  <p className="text-sm font-semibold text-foreground">{sel.pacienteNome ?? "Paciente"}</p>
                   <p className="text-xs text-muted-foreground">{sel.total} mensagens</p>
                 </div>
                 <Badge variant="outline" className="gap-1 text-xs">
@@ -167,11 +167,11 @@ export default function MensagensPage() {
                         <div
                           className={`max-w-[78%] rounded-2xl px-4 py-2.5 ${
                             ehAssistente
-                              ? "bg-primary text-white"
+                              ? "bg-primary text-primary-foreground"
                               : "border border-border/60 bg-background text-foreground"
                           }`}
                         >
-                          <div className={`mb-1 flex items-center gap-1.5 text-[10px] font-medium ${ehAssistente ? "text-white/70" : "text-muted-foreground"}`}>
+                          <div className={`mb-1 flex items-center gap-1.5 text-[10px] font-medium ${ehAssistente ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                             {ehAssistente ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
                             {ehAssistente ? "Assistente" : "Paciente"} · {horaMin(m.criadaEm)}
                           </div>

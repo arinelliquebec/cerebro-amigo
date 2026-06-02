@@ -21,7 +21,7 @@ export function LoginForm() {
   return (
     <form className="space-y-4" action={formAction}>
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-navy">E-mail</Label>
+        <Label htmlFor="email" className="text-foreground">E-mail</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -38,7 +38,7 @@ export function LoginForm() {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-navy">Senha</Label>
+          <Label htmlFor="password" className="text-foreground">Senha</Label>
           <Link
             href="/forgot-password"
             className="text-xs text-primary hover:text-purple-dark transition-colors"
@@ -68,7 +68,7 @@ export function LoginForm() {
 
       <Button
         type="submit"
-        className="w-full bg-primary hover:bg-purple-dark text-white gap-2"
+        className="w-full bg-primary hover:bg-purple-dark text-primary-foreground gap-2"
         disabled={isPending}
       >
         {isPending ? "Entrando..." : "Entrar"}

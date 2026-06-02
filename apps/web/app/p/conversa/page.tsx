@@ -135,7 +135,7 @@ export default function ConversaPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-5rem)]">
       <header className="border-b border-border/60 px-4 py-3">
-        <h1 className="text-base font-semibold text-navy">Conversa</h1>
+        <h1 className="text-base font-semibold text-foreground">Conversa</h1>
         <p className="text-xs text-muted-foreground">
           Acompanhamento entre consultas · sua psiquiatra é avisada em caso de risco
         </p>
@@ -176,7 +176,7 @@ export default function ConversaPage() {
           <button
             type="submit"
             disabled={status !== "idle" || !input.trim()}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-white disabled:opacity-40"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40"
             aria-label="Enviar"
           >
             <Send className="h-4 w-4" />
@@ -195,7 +195,7 @@ function Bolha({ msg }: { msg: Msg }) {
           <LifeBuoy className="h-4 w-4" />
           <span className="text-sm font-semibold">Apoio imediato</span>
         </div>
-        <p className="whitespace-pre-line text-sm leading-relaxed text-navy">{msg.texto}</p>
+        <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{msg.texto}</p>
         <div className="flex flex-wrap gap-2">
           <a
             href="tel:188"
@@ -225,7 +225,7 @@ function Bolha({ msg }: { msg: Msg }) {
     <div className={`flex ${eUser ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-line ${
-          eUser ? "bg-primary text-white" : "bg-secondary text-navy"
+          eUser ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
         }`}
       >
         {msg.texto}

@@ -101,14 +101,14 @@ export function NovaConsultaDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-purple-dark text-white gap-2">
+        <Button className="bg-primary hover:bg-purple-dark text-primary-foreground gap-2">
           <Plus className="h-4 w-4" /> Nova consulta
         </Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-navy">Agendar consulta</DialogTitle>
+          <DialogTitle className="text-foreground">Agendar consulta</DialogTitle>
           <DialogDescription>Defina paciente, data e modalidade.</DialogDescription>
         </DialogHeader>
 
@@ -164,7 +164,7 @@ export function NovaConsultaDialog({
             <Button type="button" variant="outline" onClick={() => setAberto(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={enviando} className="bg-primary hover:bg-purple-dark text-white">
+            <Button type="submit" disabled={enviando} className="bg-primary hover:bg-purple-dark text-primary-foreground">
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Agendar"}
             </Button>
           </DialogFooter>

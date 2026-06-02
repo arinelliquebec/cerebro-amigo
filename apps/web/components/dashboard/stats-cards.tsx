@@ -52,7 +52,7 @@ export async function StatsCards() {
                   <stat.icon className="h-[18px] w-[18px] text-primary" />
                 </div>
               </div>
-              <p className="text-[2rem] font-bold text-navy leading-none mb-2 tracking-tight">{stat.value}</p>
+              <p className="text-[2rem] font-bold text-foreground leading-none mb-2 tracking-tight">{stat.value}</p>
               {stat.change && <p className="text-xs font-semibold text-warning">{stat.change}</p>}
               {stat.subtitle && (
                 <p className="text-xs text-muted-foreground/70 font-medium">{stat.subtitle}</p>

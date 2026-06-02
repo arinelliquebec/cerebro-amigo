@@ -41,7 +41,7 @@ export function RemindersWidget() {
   return (
     <Card className="border-border/80 hover:border-primary/25 hover:shadow-[0_4px_24px_rgba(94,75,139,0.07)] transition-all duration-200">
       <CardHeader className="pb-1 pt-5 px-5">
-        <CardTitle className="text-[0.9375rem] font-semibold text-navy">Alertas dos agentes</CardTitle>
+        <CardTitle className="text-[0.9375rem] font-semibold text-foreground">Alertas dos agentes</CardTitle>
       </CardHeader>
       <CardContent className="px-3 pt-1 pb-3">
         {loading ? (

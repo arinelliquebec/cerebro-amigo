@@ -19,9 +19,11 @@ export default function PortalLayout({
   children: React.ReactNode
 }) {
   return (
-    <Suspense fallback={<PortalFallback withNav />}>
-      <PortalShell>{children}</PortalShell>
-    </Suspense>
+    <div className="theme-noir">
+      <Suspense fallback={<PortalFallback withNav />}>
+        <PortalShell>{children}</PortalShell>
+      </Suspense>
+    </div>
   )
 }
 

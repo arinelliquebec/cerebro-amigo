@@ -175,7 +175,7 @@ export default function ProntuariosPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-navy truncate">{p.nome}</p>
+                        <p className="font-medium text-foreground truncate">{p.nome}</p>
                         <p className="text-xs text-muted-foreground">
                           {p.prescricoesAtivas} prescrição{p.prescricoesAtivas !== 1 ? "ões" : ""} ativa
                           {p.prescricoesAtivas !== 1 ? "s" : ""}
@@ -200,12 +200,12 @@ export default function ProntuariosPage() {
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <Avatar className="h-16 w-16 border-2 border-primary/30">
-                      <AvatarFallback className="bg-primary text-white text-xl font-medium">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-medium">
                         {initials(selected.nome)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h2 className="text-xl font-semibold text-navy">{selected.nome}</h2>
+                      <h2 className="text-xl font-semibold text-foreground">{selected.nome}</h2>
                       <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                         {age(selected.dataNascimento) && (
                           <span className="flex items-center gap-1">
@@ -229,19 +229,19 @@ export default function ProntuariosPage() {
                 <TabsList className="bg-muted/50">
                   <TabsTrigger
                     value="timeline"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     Timeline
                   </TabsTrigger>
                   <TabsTrigger
                     value="prescricoes"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     Prescrições
                   </TabsTrigger>
                   <TabsTrigger
                     value="exames"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     Exames
                   </TabsTrigger>
@@ -279,7 +279,7 @@ export default function ProntuariosPage() {
                                   {new Date(item.quando).toLocaleString("pt-BR")}
                                 </span>
                               </div>
-                              <p className="text-sm font-medium text-navy">{item.titulo}</p>
+                              <p className="text-sm font-medium text-foreground">{item.titulo}</p>
                               {item.descricao && (
                                 <p className="text-sm text-muted-foreground mt-0.5 line-clamp-3">
                                   {item.descricao}
@@ -317,13 +317,13 @@ export default function ProntuariosPage() {
                               <Pill className="h-4 w-4 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-navy">{rx.medicamentoNome}</p>
+                              <p className="font-medium text-foreground">{rx.medicamentoNome}</p>
                               <p className="text-sm text-muted-foreground">{rx.posologia}</p>
                             </div>
                             <Badge
                               className={
                                 rx.ativa
-                                  ? "bg-emerald-50 text-emerald-700"
+                                  ? "bg-success/15 text-success"
                                   : "bg-muted text-muted-foreground"
                               }
                             >

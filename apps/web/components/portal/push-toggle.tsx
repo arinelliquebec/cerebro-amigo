@@ -45,7 +45,7 @@ export function PushToggle() {
           {estado === "ativo" ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
         </div>
         <div>
-          <p className="text-sm font-medium text-navy">Lembretes no celular</p>
+          <p className="text-sm font-medium text-foreground">Lembretes no celular</p>
           <p className="text-xs text-muted-foreground">
             {estado === "ativo"
               ? "Você recebe lembretes de medicação e check-ins."
@@ -58,7 +58,7 @@ export function PushToggle() {
       <Button
         size="sm"
         variant={estado === "ativo" ? "outline" : "default"}
-        className={estado === "ativo" ? "" : "bg-primary hover:bg-purple-dark text-white"}
+        className={estado === "ativo" ? "" : "bg-primary hover:bg-purple-dark text-primary-foreground"}
         disabled={ocupado || estado === "carregando" || estado === "negado"}
         onClick={alternar}
       >

@@ -102,7 +102,7 @@ export default function AgendaPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="min-w-[220px] text-center">
-              <p className="text-lg font-semibold text-navy capitalize">
+              <p className="text-lg font-semibold text-foreground capitalize">
                 {dia.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
               </p>
               {ehHoje && <p className="text-xs text-primary">Hoje</p>}
@@ -141,7 +141,7 @@ export default function AgendaPage() {
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="flex w-16 shrink-0 flex-col items-center">
                       <Clock className="mb-1 h-4 w-4 text-primary" />
-                      <span className="text-sm font-semibold text-navy">{hora(c.iniciaEm)}</span>
+                      <span className="text-sm font-semibold text-foreground">{hora(c.iniciaEm)}</span>
                     </div>
 
                     <Avatar className="h-11 w-11 border-2 border-primary/15">
@@ -151,7 +151,7 @@ export default function AgendaPage() {
                     </Avatar>
 
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-navy">{c.pacienteNome ?? "Paciente"}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{c.pacienteNome ?? "Paciente"}</p>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1 capitalize">
                           {c.modalidade === "teleconsulta" ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
