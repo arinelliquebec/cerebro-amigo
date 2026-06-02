@@ -31,7 +31,7 @@ Documento vivo. Itens são removidos quando resolvidos, adicionados quando desco
 | T4-3 | **No rollback com um clique** | ~~🟢 Baixa~~ ✅ **Resolvido** | Botão "Reverter para v{N}" aparece no editor quando existe versão anterior à ativa. Chama `ativar(versaoAnterior.id)` inline. | — |
 | T4-4 | **SW não tem página offline HTML** | ~~🟢 Baixa~~ ✅ **Resolvido** | `public/offline.html` criada (UI minimalista pt-BR + botão recarregar). SW precacheia e serve como fallback de navegação antes de `/p`. | — |
 | T4-5 | **Background sync não implementado** | 🟢 Baixa | Checkins respondidos offline não são enviados quando a conexão volta. | Usar `navigator.serviceWorker.ready.then(r => r.sync.register('checkins'))`. |
-| T4-6 | **Ícones do PWA são placeholders** | 🟢 Baixa | Gerados via Python/Pillow com letra "C". Deveriam ser a marca real do produto. | Designer produz ícones 192x192 e 512x512; substituir em `public/`. |
+| T4-6 | **Ícones do PWA são placeholders** | ~~🟢 Baixa~~ ✅ **Resolvido** | Substituídos pela marca real (`brain-logo.png`) em todos os tamanhos (favicon 16/32/48, apple 180, PWA 192/512, push). Falta só uma versão maskable com safe-zone dedicada (polish de design). | — |
 
 ## Geral / Cross-cutting
 
