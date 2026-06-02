@@ -36,7 +36,7 @@ export default async function PortalHome() {
       {/* Saudação */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-navy">Olá, {primeiroNome}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Olá, {primeiroNome}</h1>
           {data.perfil.nomeMedico && (
             <p className="text-sm text-muted-foreground mt-0.5">
               Acompanhamento com {data.perfil.nomeMedico}
@@ -66,7 +66,7 @@ export default async function PortalHome() {
           <Smile className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-navy">
+          <p className="text-sm font-medium text-foreground">
             {data.jaRegistrouHumorHoje ? "Humor registrado hoje" : "Como você está hoje?"}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -79,7 +79,7 @@ export default async function PortalHome() {
       {/* Medicações de hoje */}
       <section className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-navy">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <Pill className="h-4 w-4 text-primary" /> Medicações de hoje
           </h2>
           <Link href="/p/medicacoes" className="text-xs text-primary">ver todas</Link>
@@ -90,7 +90,7 @@ export default async function PortalHome() {
           <ul className="space-y-2">
             {data.tomadasHoje.slice(0, 4).map((t) => (
               <li key={t.id} className="flex items-center justify-between text-sm">
-                <span className="text-navy">
+                <span className="text-foreground">
                   {t.medicamento} <span className="text-muted-foreground">· {t.dose}</span>
                 </span>
                 <span className={t.status === "pendente" ? "text-warning" : "text-success"}>
@@ -108,10 +108,10 @@ export default async function PortalHome() {
       {/* Próxima consulta */}
       {data.proxConsulta && (
         <section className="rounded-2xl border border-border/60 bg-card p-4">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-navy mb-1">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-1">
             <CalendarClock className="h-4 w-4 text-primary" /> Próxima consulta
           </h2>
-          <p className="text-sm text-navy">
+          <p className="text-sm text-foreground">
             {new Date(data.proxConsulta.iniciaEm).toLocaleDateString("pt-BR", {
               weekday: "long",
               day: "numeric",
@@ -132,7 +132,7 @@ export default async function PortalHome() {
           <MessageCircle className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-navy">Conversar</p>
+          <p className="text-sm font-medium text-foreground">Conversar</p>
           <p className="text-xs text-muted-foreground">Desabafe; sua psiquiatra é avisada se houver risco</p>
         </div>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -147,7 +147,7 @@ export default async function PortalHome() {
           <BookText className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-navy">Meu diário</p>
+          <p className="text-sm font-medium text-foreground">Meu diário</p>
           <p className="text-xs text-muted-foreground">Registre como foi seu dia, por texto ou voz</p>
         </div>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />

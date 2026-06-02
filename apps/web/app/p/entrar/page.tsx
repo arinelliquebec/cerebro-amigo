@@ -18,7 +18,7 @@ export default async function EntrarPage({
         <div className="text-center space-y-3">
           <BrandWordmark layout="inline" size="lg" className="justify-center" />
           <div>
-            <h1 className="text-xl font-semibold text-navy">
+            <h1 className="text-xl font-semibold text-foreground">
               {sp.token ? "Ative sua conta" : "Portal do paciente"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">

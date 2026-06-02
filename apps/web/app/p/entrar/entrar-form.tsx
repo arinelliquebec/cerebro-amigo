@@ -86,7 +86,7 @@ export function EntrarForm({ token, next }: { token?: string; next: string }) {
       <Button
         type="submit"
         disabled={pending}
-        className="w-full bg-primary hover:bg-purple-dark text-white"
+        className="w-full bg-primary hover:bg-purple-dark text-primary-foreground"
       >
         {pending ? (
           <Loader2 className="h-4 w-4 animate-spin" />

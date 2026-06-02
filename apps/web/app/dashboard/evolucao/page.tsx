@@ -148,7 +148,7 @@ export default function EvolucaoPage() {
                     {stat.change}
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-navy">{stat.value}</p>
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                 <p className="text-xs text-muted-foreground">{stat.title}</p>
               </CardContent>
             </Card>
@@ -160,7 +160,7 @@ export default function EvolucaoPage() {
           <Card className="border-border/50">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-navy">
+                <CardTitle className="text-base font-semibold text-foreground">
                   Crescimento Mensal
                 </CardTitle>
                 <Select defaultValue="6m">
@@ -195,7 +195,7 @@ export default function EvolucaoPage() {
           {/* Mood Distribution */}
           <Card className="border-border/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-navy">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Distribuição de Humor (Semana)
               </CardTitle>
             </CardHeader>
@@ -229,7 +229,7 @@ export default function EvolucaoPage() {
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold text-navy">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Progresso dos Pacientes
               </CardTitle>
               <Button variant="ghost" className="text-primary hover:text-purple-dark">
@@ -252,7 +252,7 @@ export default function EvolucaoPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-navy">{patient.name}</h4>
+                      <h4 className="font-medium text-foreground">{patient.name}</h4>
                       <Badge variant="secondary" className="text-xs">
                         {patient.diagnosis}
                       </Badge>

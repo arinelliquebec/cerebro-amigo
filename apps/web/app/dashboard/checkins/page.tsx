@@ -150,7 +150,7 @@ export default function CheckinsPage() {
 
         {/* Filters */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-navy">Check-ins Recentes</h2>
+          <h2 className="text-lg font-semibold text-foreground">Check-ins Recentes</h2>
           <Button variant="outline" className="gap-2">
             <Filter className="h-4 w-4" />
             Filtrar
@@ -174,7 +174,7 @@ export default function CheckinsPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-navy">{checkin.patient}</h3>
+                        <h3 className="font-medium text-foreground">{checkin.patient}</h3>
                         {getTrendIcon(checkin.trend)}
                       </div>
                       <div className="flex items-center gap-2 mb-2">

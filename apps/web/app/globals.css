@@ -165,6 +165,16 @@
   --warning: #FBBF24;
   --accent-on-dark: #B3A6DA;      /* eyebrow sobre noir */
 
+  /* sidebar (dashboard) no noir */
+  --sidebar: #0B0B14;
+  --sidebar-foreground: #ECEBF5;
+  --sidebar-primary: #9486C9;
+  --sidebar-primary-foreground: #07070D;
+  --sidebar-accent: #171426;
+  --sidebar-accent-foreground: #CFC6E6;
+  --sidebar-border: #20202E;
+  --sidebar-ring: #9486C9;
+
   /* tokens noir dedicados (efeitos sem equivalente no design system) */
   --noir-bg: #07070D;
   --noir-surface: #0E0E18;

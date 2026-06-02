@@ -183,7 +183,7 @@ export default function BriefingPage({ params }: { params: Promise<{ id: string 
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold text-navy">{consulta.pacienteNome ?? "Paciente"}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{consulta.pacienteNome ?? "Paciente"}</h1>
             <p className="text-sm text-muted-foreground">
               {new Date(consulta.iniciaEm).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
             </p>
@@ -202,7 +202,7 @@ export default function BriefingPage({ params }: { params: Promise<{ id: string 
             <div className="space-y-1 rounded-2xl border border-border/50 bg-card p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Humor</p>
               <div className="flex items-end gap-1.5">
-                <span className="text-3xl font-bold text-navy">{atual ?? "—"}</span>
+                <span className="text-3xl font-bold text-foreground">{atual ?? "—"}</span>
                 {atual !== null && <span className="mb-0.5 text-sm text-muted-foreground">/10</span>}
               </div>
               {anterior !== null && (
@@ -233,7 +233,7 @@ export default function BriefingPage({ params }: { params: Promise<{ id: string 
             {/* Registros */}
             <div className="space-y-1 rounded-2xl border border-border/50 bg-card p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Registros</p>
-              <span className="text-3xl font-bold text-navy">{serie.length}</span>
+              <span className="text-3xl font-bold text-foreground">{serie.length}</span>
               <p className="text-xs text-muted-foreground">de humor (14d)</p>
               {serie.length > 0 && atual !== null && atual >= 7 && (
                 <span className="flex items-center gap-1 text-xs font-medium text-success">
@@ -246,7 +246,7 @@ export default function BriefingPage({ params }: { params: Promise<{ id: string 
 
         {serie.length > 1 && (
           <div className="rounded-2xl border border-border/50 bg-card p-5">
-            <p className="mb-3 text-sm font-semibold text-navy">Evolução do humor — últimos registros</p>
+            <p className="mb-3 text-sm font-semibold text-foreground">Evolução do humor — últimos registros</p>
             <Sparkline values={serie} />
             <div className="mt-1 flex justify-between text-xs text-muted-foreground">
               <span>{anterior} (início)</span>
@@ -269,7 +269,7 @@ export default function BriefingPage({ params }: { params: Promise<{ id: string 
           </div>
           {resumo ? (
             <>
-              {resumo.titulo && <p className="mb-1 text-sm font-medium text-navy">{resumo.titulo}</p>}
+              {resumo.titulo && <p className="mb-1 text-sm font-medium text-foreground">{resumo.titulo}</p>}
               <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{resumo.conteudo}</p>
               <p className="mt-3 text-xs text-muted-foreground">
                 Gerado em {new Date(resumo.criadoEm).toLocaleString("pt-BR")} · revisão do médico obrigatória

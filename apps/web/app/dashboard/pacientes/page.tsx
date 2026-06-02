@@ -65,7 +65,7 @@ export default function PacientesPage() {
         <Header title="Pacientes" subtitle="Gerencie seus pacientes" />
       </div>
       {/* Título só na impressão (Header é escondido no print) */}
-      <h1 className="hidden print:block px-6 pt-6 text-2xl font-semibold text-navy">
+      <h1 className="hidden print:block px-6 pt-6 text-2xl font-semibold text-foreground">
         Pacientes
       </h1>
 
@@ -114,7 +114,7 @@ export default function PacientesPage() {
           <Card className="border-border/50">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-2xl font-bold text-navy">{pacientes.length}</p>
+              <p className="text-2xl font-bold text-foreground">{pacientes.length}</p>
             </CardContent>
           </Card>
           <Card className="border-border/50">
@@ -167,7 +167,7 @@ export default function PacientesPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-navy truncate">{paciente.nome}</h3>
+                        <h3 className="font-medium text-foreground truncate">{paciente.nome}</h3>
                         <span className="text-xs text-muted-foreground">#{paciente.numero}</span>
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
@@ -187,7 +187,7 @@ export default function PacientesPage() {
                     {paciente.ultimaMsg && (
                       <div className="hidden md:block text-right">
                         <p className="text-sm text-muted-foreground">Última mensagem</p>
-                        <p className="text-sm font-medium text-navy">
+                        <p className="text-sm font-medium text-foreground">
                           {new Date(paciente.ultimaMsg).toLocaleDateString("pt-BR")}
                         </p>
                       </div>

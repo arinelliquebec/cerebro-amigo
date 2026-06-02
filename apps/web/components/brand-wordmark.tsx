@@ -31,7 +31,7 @@ export function BrandWordmark({
   className,
 }: BrandWordmarkProps) {
   const s = sizeMap[size]
-  const navy = variant === "light" ? "text-white" : "text-navy"
+  const navy = variant === "light" ? "text-white" : "text-foreground"
   const brand = variant === "light" ? "text-accent-on-dark" : "text-primary"
 
   if (layout === "inline") {

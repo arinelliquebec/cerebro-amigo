@@ -23,7 +23,7 @@ export function RecentPatientsWidget({ data }: { data: RecentePaciente[] }) {
     <Card className="border-border/80 hover:border-primary/25 hover:shadow-[0_4px_24px_rgba(94,75,139,0.07)] transition-all duration-200">
       <CardHeader className="pb-1 pt-5 px-5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-[0.9375rem] font-semibold text-navy">Pacientes Recentes</CardTitle>
+          <CardTitle className="text-[0.9375rem] font-semibold text-foreground">Pacientes Recentes</CardTitle>
           <Button variant="ghost" size="sm" className="text-primary hover:text-purple-dark text-xs" asChild>
             <Link href="/dashboard/pacientes">Ver todos</Link>
           </Button>
@@ -49,7 +49,7 @@ export function RecentPatientsWidget({ data }: { data: RecentePaciente[] }) {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium text-navy truncate">{patient.nome}</span>
+                      <span className="text-sm font-medium text-foreground truncate">{patient.nome}</span>
                       {patient.severidade && (
                         <span
                           className={`h-2 w-2 rounded-full flex-shrink-0 ${SEV_COR[patient.severidade] ?? "bg-primary"}`}
@@ -83,7 +83,7 @@ export function RecentPatientsWidget({ data }: { data: RecentePaciente[] }) {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="grid h-7 w-7 place-items-center text-muted-foreground hover:text-navy">
+                        <span className="grid h-7 w-7 place-items-center text-muted-foreground hover:text-foreground">
                           <MoreHorizontal size={15} />
                         </span>
                       </TooltipTrigger>
