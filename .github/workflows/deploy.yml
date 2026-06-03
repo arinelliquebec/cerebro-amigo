@@ -11,6 +11,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # ─── Rollback ──────────────────────────────────────────────────────────────
 #
 # Para reverter para um SHA anterior, conecte na EC2 via SSM e execute:
