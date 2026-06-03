@@ -1,6 +1,6 @@
+import { Suspense } from "react"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { connection } from "next/server"
 import { gateway, GatewayError } from "@/lib/gateway"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 
@@ -11,8 +11,7 @@ interface MeResponse {
   role: string
 }
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await connection()
+async function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
   const token = cookieStore.get("auth_token")?.value
 
@@ -32,11 +31,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/dashboard")
   }
 
+  return <>{children}</>
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="theme-noir min-h-screen bg-background text-foreground">
       <AdminSidebar />
       <main className="pl-60 min-h-screen">
-        <div className="relative">{children}</div>
+        <div className="relative">
+          <Suspense>
+            <AdminAuthGuard>{children}</AdminAuthGuard>
+          </Suspense>
+        </div>
       </main>
     </div>
   )
