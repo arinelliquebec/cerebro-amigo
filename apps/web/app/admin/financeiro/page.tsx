@@ -194,48 +194,78 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
 
 function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
   const [open, setOpen] = useState(false)
-  const [medicoId, setMedicoId] = useState("")
+  const [nome, setNome] = useState("")
+  const [email, setEmail] = useState("")
   const [plano, setPlano] = useState("trial")
   const [valor, setValor] = useState("0")
-  const [status, setStatus] = useState("trial")
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+
+  function reset() { setNome(""); setEmail(""); setPlano("trial"); setValor("0"); setErro(null); setOk(false) }
 
   async function submeter(e: React.FormEvent) {
     e.preventDefault(); setErro(null)
-    if (!medicoId.trim()) return setErro("Informe o ID do médico")
+    if (!nome.trim()) return setErro("Informe o nome do médico")
+    if (!email.trim()) return setErro("Informe o e-mail")
     const v = parseFloat(valor.replace(",", "."))
     if (isNaN(v)) return setErro("Valor inválido")
     setEnviando(true)
     try {
-      const r = await fetch("/api/admin/assinaturas", {
+      const r = await fetch("/api/admin/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ medicoId, plano, valorMensal: v, status }),
+        body: JSON.stringify({ nome, email, plano, valorMensal: v }),
       })
-      if (!r.ok) return setErro("Erro ao criar assinatura.")
-      onCriado(); setOpen(false)
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) return setErro(d?.error === "email_em_uso" ? "E-mail já cadastrado." : "Erro ao criar convite.")
+      setOk(true)
+      onCriado()
     } catch { setErro("Erro de conexão.") }
     finally { setEnviando(false) }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); setErro(null) }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset() }}>
       <DialogTrigger asChild>
-        <Button variant="coral" className="gap-2"><Plus className="h-4 w-4" /> Nova assinatura</Button>
+        <Button variant="coral" className="gap-2"><Plus className="h-4 w-4" /> Convidar médico</Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>Nova assinatura</DialogTitle></DialogHeader>
-        <form onSubmit={submeter} className="space-y-3">
-          {erro && <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" /> {erro}</div>}
-          <div className="space-y-1.5"><Label>ID do médico (UUID)</Label><Input value={medicoId} onChange={(e) => setMedicoId(e.target.value)} placeholder="uuid do medico" required /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Plano</Label><Select value={plano} onValueChange={setPlano}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["trial","starter","pro","enterprise"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-1.5"><Label>Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["trial","ativa","suspensa","cancelada"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+        <DialogHeader>
+          <DialogTitle>Convidar médico</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cria a conta e envia e-mail para o médico criar a senha.
+          </p>
+        </DialogHeader>
+        {ok ? (
+          <div className="py-4 text-center space-y-2">
+            <p className="text-success font-medium">Convite enviado!</p>
+            <p className="text-sm text-muted-foreground">O médico receberá um e-mail com link válido por 30 minutos para criar a senha.</p>
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={() => { setOpen(false) }}>Fechar</Button>
+            </DialogFooter>
           </div>
-          <div className="space-y-1.5"><Label>Valor mensal (BRL)</Label><Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" /></div>
-          <DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button><Button type="submit" variant="coral" disabled={enviando}>{enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}</Button></DialogFooter>
-        </form>
+        ) : (
+          <form onSubmit={submeter} className="space-y-3">
+            {erro && <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" /> {erro}</div>}
+            <div className="space-y-1.5"><Label>Nome completo</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Dr. João Silva" required /></div>
+            <div className="space-y-1.5"><Label>E-mail</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="joao@clinica.com" required /></div>
+            <div className="space-y-1.5">
+              <Label>Plano</Label>
+              <Select value={plano} onValueChange={setPlano}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{["trial","starter","pro","enterprise"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5"><Label>Valor mensal (BRL)</Label><Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button type="submit" variant="coral" disabled={enviando}>
+                {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar convite"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   )
