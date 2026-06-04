@@ -28,6 +28,10 @@ interface PacienteOpcao {
   numero: number
 }
 
+function horaLocal(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+}
+
 export function NovaConsultaDialog({
   diaInicial,
   onCriada,
@@ -42,8 +46,13 @@ export function NovaConsultaDialog({
 
   const [pacienteId, setPacienteId] = useState("")
   const [data, setData] = useState(diaInicial)
-  const [hora, setHora] = useState("09:00")
   const [modalidade, setModalidade] = useState("presencial")
+
+  // Slots livres (ISO UTC) do médico no dia selecionado.
+  const [slots, setSlots] = useState<string[]>([])
+  const [slot, setSlot] = useState("")
+  const [duracaoMin, setDuracaoMin] = useState(30)
+  const [carregandoSlots, setCarregandoSlots] = useState(false)
 
   useEffect(() => {
     if (!aberto) return
@@ -54,33 +63,50 @@ export function NovaConsultaDialog({
       .catch(() => setPacientes([]))
   }, [aberto, diaInicial])
 
+  // Busca slots sempre que o dia muda (com o dialog aberto).
+  useEffect(() => {
+    if (!aberto || !data) return
+    setCarregandoSlots(true)
+    setSlot("")
+    fetch(`/api/consultas/disponibilidade?data=${data}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        setSlots(Array.isArray(d?.slots) ? d.slots : [])
+        if (typeof d?.duracaoMin === "number") setDuracaoMin(d.duracaoMin)
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setCarregandoSlots(false))
+  }, [aberto, data])
+
   function reset() {
     setEnviando(false)
     setErro(null)
     setPacienteId("")
-    setHora("09:00")
     setModalidade("presencial")
+    setSlots([])
+    setSlot("")
   }
 
   async function submeter(e: React.FormEvent) {
     e.preventDefault()
     setErro(null)
     if (!pacienteId) return setErro("Selecione o paciente.")
-    if (!data || !hora) return setErro("Informe data e hora.")
-
-    // data+hora locais → ISO (UTC) pro gateway.
-    const iniciaEm = new Date(`${data}T${hora}`).toISOString()
+    if (!slot) return setErro("Selecione um horário disponível.")
 
     setEnviando(true)
     try {
       const r = await fetch("/api/consultas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pacienteId, iniciaEm, modalidade }),
+        body: JSON.stringify({ pacienteId, iniciaEm: slot, duracaoMin, modalidade }),
       })
       if (!r.ok) {
         const d = await r.json().catch(() => null)
-        setErro(d?.erro ?? d?.error ?? "Não foi possível agendar.")
+        if (r.status === 409 || d?.erro === "horario_ocupado") {
+          setErro("Esse horário acabou de ser ocupado. Escolha outro.")
+        } else {
+          setErro(d?.erro ?? d?.error ?? "Não foi possível agendar.")
+        }
         return
       }
       onCriada()
@@ -109,7 +135,7 @@ export function NovaConsultaDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-foreground">Agendar consulta</DialogTitle>
-          <DialogDescription>Defina paciente, data e modalidade.</DialogDescription>
+          <DialogDescription>Escolha paciente, dia e um horário livre.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submeter} className="space-y-4">
@@ -142,10 +168,30 @@ export function NovaConsultaDialog({
               <Input id="nc-data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nc-hora">Hora</Label>
-              <Input id="nc-hora" type="time" value={hora} onChange={(e) => setHora(e.target.value)} required />
+              <Label>Horário</Label>
+              <Select value={slot} onValueChange={setSlot} disabled={carregandoSlots || slots.length === 0}>
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      carregandoSlots ? "Carregando…" : slots.length === 0 ? "Sem horários" : "Escolha"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {slots.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {horaLocal(s)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          {!carregandoSlots && slots.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Nenhum horário livre neste dia. Ajuste seu expediente em Configurações ou escolha outra data.
+            </p>
+          )}
 
           <div className="space-y-1.5">
             <Label>Modalidade</Label>
@@ -164,7 +210,11 @@ export function NovaConsultaDialog({
             <Button type="button" variant="outline" onClick={() => setAberto(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={enviando} className="bg-primary hover:bg-purple-dark text-primary-foreground">
+            <Button
+              type="submit"
+              disabled={enviando || !slot}
+              className="bg-primary hover:bg-purple-dark text-primary-foreground"
+            >
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Agendar"}
             </Button>
           </DialogFooter>
