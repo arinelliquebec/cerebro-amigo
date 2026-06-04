@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { BrandWordmark } from "@/components/brand-wordmark"
 import { AuroraBackdrop } from "@/components/landing/aurora-backdrop"
+import { BackButton } from "@/components/back-button"
 import { EntrarForm } from "./entrar-form"
 
 // Tela de entrada do PORTAL DO PACIENTE — distinta do /login do médico.
@@ -19,6 +20,7 @@ export default async function EntrarPage({
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12">
       <AuroraBackdrop />
       <div className="relative w-full max-w-sm space-y-8">
+        <BackButton className="text-noir-text-dim hover:text-foreground" />
         <div className="space-y-3 text-center">
           <BrandWordmark layout="inline" size="lg" className="justify-center" />
           <div>

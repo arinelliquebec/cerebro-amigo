@@ -6,6 +6,7 @@ import { LoginForm } from "@/components/login-form"
 import { NeuralField } from "@/components/landing/neural-field"
 import { AuroraBackdrop } from "@/components/landing/aurora-backdrop"
 import { Eyebrow } from "@/components/landing/eyebrow"
+import { BackButton } from "@/components/back-button"
 import { CheckCircle } from "lucide-react"
 
 export const metadata = {
@@ -56,6 +57,7 @@ export default function LoginPage() {
       {/* Direita — formulário */}
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="w-full max-w-md">
+          <BackButton className="mb-4 text-noir-text-dim hover:text-foreground" />
           <div className="mb-8 flex justify-center lg:hidden">
             <Logo size="lg" variant="light" />
           </div>
