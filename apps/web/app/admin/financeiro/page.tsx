@@ -1,6 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,6 +12,64 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { CreditCard, Plus, Loader2, AlertTriangle, RefreshCw, DollarSign, TrendingUp } from "lucide-react"
 import { cpfMask, cpfValido, cpfDigits } from "@/lib/cpf"
+
+// Máscara de moeda BRL
+function moedaBrlMask(valor: string): string {
+  // Remove tudo que não é dígito
+  const digits = valor.replace(/\D/g, "")
+  // Converte para centavos
+  const cents = parseInt(digits || "0", 10)
+  // Formata como BRL
+  const reais = Math.floor(cents / 100)
+  const centavos = cents % 100
+  return `${reais.toLocaleString("pt-BR")},${centavos.toString().padStart(2, "0")}`
+}
+
+// Converte valor mascarado BRL para número
+function parseBrl(valor: string): number {
+  const clean = valor.replace(/\./g, "").replace(",", ".")
+  return parseFloat(clean) || 0
+}
+
+// Schemas Zod para validação
+const pagamentoSchema = z.object({
+  valor: z.string().min(1, "Valor é obrigatório").refine((v) => {
+    const num = parseFloat(v.replace(",", "."))
+    return !isNaN(num) && num > 0
+  }, "Valor deve ser maior que zero"),
+  referencia: z.string().min(1, "Mês de referência é obrigatório"),
+  metodo: z.enum(["pix", "transferencia", "cartao", "outro"]),
+})
+
+const editarAssinaturaSchema = z.object({
+  plano: z.enum(["trial", "starter", "pro", "enterprise"]),
+  valor: z.string().min(1, "Valor é obrigatório").refine((v) => {
+    const num = parseFloat(v.replace(",", "."))
+    return !isNaN(num)
+  }, "Valor inválido"),
+  status: z.enum(["trial", "ativa", "suspensa", "cancelada"]),
+  notas: z.string().optional(),
+})
+
+const novaAssinaturaSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
+  email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
+  crm: z.string().min(1, "CRM é obrigatório").max(20, "CRM muito longo"),
+  crmUf: z.string().length(2, "UF deve ter 2 caracteres").regex(/^[A-Z]{2}$/, "UF inválida"),
+  cpf: z.string().refine((v) => {
+    if (!v) return true
+    return cpfValido(v)
+  }, "CPF inválido").optional().or(z.literal("")),
+  plano: z.enum(["trial", "starter", "pro", "enterprise"]),
+  valor: z.string().min(1, "Valor é obrigatório").refine((v) => {
+    const num = parseBrl(v)
+    return num > 0
+  }, "Valor deve ser maior que zero"),
+})
+
+type PagamentoFormData = z.infer<typeof pagamentoSchema>
+type EditarAssinaturaFormData = z.infer<typeof editarAssinaturaSchema>
+type NovaAssinaturaFormData = z.infer<typeof novaAssinaturaSchema>
 
 interface Assinatura {
   id: string
@@ -43,33 +104,47 @@ const STATUS_COR: Record<string, string> = {
 
 function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => void }) {
   const [open, setOpen] = useState(false)
-  const [valor, setValor] = useState(String(asn.valorMensal))
-  const [referencia, setReferencia] = useState(new Date().toISOString().slice(0, 7))
-  const [metodo, setMetodo] = useState("pix")
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [ok, setOk] = useState(false)
 
-  async function salvar() {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+  } = useForm<PagamentoFormData>({
+    resolver: zodResolver(pagamentoSchema),
+    defaultValues: {
+      valor: String(asn.valorMensal),
+      referencia: new Date().toISOString().slice(0, 7),
+      metodo: "pix",
+    },
+  })
+
+  const metodo = watch("metodo")
+
+  async function salvar(data: PagamentoFormData) {
     setErro(null)
-    const v = parseFloat(valor.replace(",", "."))
-    if (isNaN(v) || v <= 0) return setErro("Valor inválido")
+    const v = parseFloat(data.valor.replace(",", "."))
     setEnviando(true)
     try {
       const r = await fetch(`/api/admin/assinaturas/${asn.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ valor: v, moeda: asn.moeda, referencia, metodo, pagoEm: new Date().toISOString() }),
+        body: JSON.stringify({ valor: v, moeda: asn.moeda, referencia: data.referencia, metodo: data.metodo, pagoEm: new Date().toISOString() }),
       })
       if (!r.ok) return setErro("Erro ao registrar.")
       setOk(true); onSalvo()
-      setTimeout(() => { setOpen(false); setOk(false) }, 1500)
+      setTimeout(() => { setOpen(false); setOk(false); reset() }, 1500)
     } catch { setErro("Erro de conexão.") }
     finally { setEnviando(false) }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); setErro(null); setOk(false) }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErro(null); setOk(false); reset() } }}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-success hover:text-success hover:bg-success/10">
           <DollarSign className="h-3.5 w-3.5" /> Registrar pagamento
@@ -79,18 +154,20 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
         <DialogHeader><DialogTitle>Pagamento — {asn.medicoNome}</DialogTitle></DialogHeader>
         {erro && <p className="text-sm text-destructive">{erro}</p>}
         {ok && <p className="text-sm text-success">Pagamento registrado!</p>}
-        <div className="space-y-3">
+        <form onSubmit={handleSubmit(salvar)} className="space-y-3">
           <div className="space-y-1.5">
             <Label>Valor ({asn.moeda})</Label>
-            <Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" />
+            <Input {...register("valor")} inputMode="decimal" />
+            {errors.valor && <p className="text-xs text-destructive">{errors.valor.message}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Referência (mês)</Label>
-            <Input type="month" value={referencia} onChange={(e) => setReferencia(e.target.value)} />
+            <Input type="month" {...register("referencia")} />
+            {errors.referencia && <p className="text-xs text-destructive">{errors.referencia.message}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Método</Label>
-            <Select value={metodo} onValueChange={setMetodo}>
+            <Select value={metodo} onValueChange={(v) => setValue("metodo", v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="pix">Pix</SelectItem>
@@ -99,14 +176,15 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
                 <SelectItem value="outro">Outro</SelectItem>
               </SelectContent>
             </Select>
+            {errors.metodo && <p className="text-xs text-destructive">{errors.metodo.message}</p>}
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="coral" onClick={salvar} disabled={enviando}>
-            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="submit" variant="coral" disabled={enviando}>
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
@@ -114,23 +192,38 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
 
 function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => void }) {
   const [open, setOpen] = useState(false)
-  const [plano, setPlano] = useState(asn.plano)
-  const [valor, setValor] = useState(String(asn.valorMensal))
-  const [status, setStatus] = useState(asn.status)
-  const [notas, setNotas] = useState(asn.notas ?? "")
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  async function salvar() {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+  } = useForm<EditarAssinaturaFormData>({
+    resolver: zodResolver(editarAssinaturaSchema),
+    defaultValues: {
+      plano: asn.plano as any,
+      valor: String(asn.valorMensal),
+      status: asn.status as any,
+      notas: asn.notas ?? "",
+    },
+  })
+
+  const plano = watch("plano")
+  const status = watch("status")
+
+  async function salvar(data: EditarAssinaturaFormData) {
     setErro(null)
-    const v = parseFloat(valor.replace(",", "."))
-    if (isNaN(v)) return setErro("Valor inválido")
+    const v = parseFloat(data.valor.replace(",", "."))
     setEnviando(true)
     try {
       const r = await fetch(`/api/admin/assinaturas/${asn.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plano, valorMensal: v, status, notas: notas || null }),
+        body: JSON.stringify({ plano: data.plano, valorMensal: v, status: data.status, notas: data.notas || null }),
       })
       if (!r.ok) return setErro("Erro ao atualizar.")
       onSalvo(); setOpen(false)
@@ -139,7 +232,7 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); setErro(null) }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErro(null); reset() } }}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
           Editar
@@ -148,11 +241,11 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>Assinatura — {asn.medicoNome}</DialogTitle></DialogHeader>
         {erro && <p className="text-sm text-destructive">{erro}</p>}
-        <div className="space-y-3">
+        <form onSubmit={handleSubmit(salvar)} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Plano</Label>
-              <Select value={plano} onValueChange={setPlano}>
+              <Select value={plano} onValueChange={(v) => setValue("plano", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["trial", "starter", "pro", "enterprise"].map((p) => (
@@ -160,10 +253,11 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
                   ))}
                 </SelectContent>
               </Select>
+              {errors.plano && <p className="text-xs text-destructive">{errors.plano.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={(v) => setValue("status", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["trial", "ativa", "suspensa", "cancelada"].map((s) => (
@@ -171,23 +265,26 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
                   ))}
                 </SelectContent>
               </Select>
+              {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
             </div>
           </div>
           <div className="space-y-1.5">
             <Label>Valor mensal (BRL)</Label>
-            <Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" />
+            <Input {...register("valor")} inputMode="decimal" />
+            {errors.valor && <p className="text-xs text-destructive">{errors.valor.message}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Notas (opcional)</Label>
-            <Input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Observações internas" />
+            <Input {...register("notas")} placeholder="Observações internas" />
+            {errors.notas && <p className="text-xs text-destructive">{errors.notas.message}</p>}
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="coral" onClick={salvar} disabled={enviando}>
-            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="submit" variant="coral" disabled={enviando}>
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
@@ -195,37 +292,65 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
 
 function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
   const [open, setOpen] = useState(false)
-  const [nome, setNome] = useState("")
-  const [email, setEmail] = useState("")
-  const [crm, setCrm] = useState("")
-  const [crmUf, setCrmUf] = useState("")
-  const [cpf, setCpf] = useState("")
-  const [plano, setPlano] = useState("trial")
-  const [valor, setValor] = useState("0")
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [ok, setOk] = useState(false)
   const [ativarUrl, setAtivarUrl] = useState<string | null>(null)
 
-  function reset() { setNome(""); setEmail(""); setCrm(""); setCrmUf(""); setCpf(""); setPlano("trial"); setValor("0"); setErro(null); setOk(false); setAtivarUrl(null) }
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+    setError,
+  } = useForm<NovaAssinaturaFormData>({
+    resolver: zodResolver(novaAssinaturaSchema),
+    defaultValues: {
+      nome: "",
+      email: "",
+      crm: "",
+      crmUf: "",
+      cpf: "",
+      plano: "trial",
+      valor: "0",
+    },
+  })
 
-  async function submeter(e: React.FormEvent) {
-    e.preventDefault(); setErro(null)
-    if (!nome.trim()) return setErro("Informe o nome do médico")
-    if (!email.trim()) return setErro("Informe o e-mail")
-    if (!crm.trim()) return setErro("Informe o CRM")
-    if (cpf && !cpfValido(cpf)) return setErro("CPF inválido")
-    const v = parseFloat(valor.replace(",", "."))
-    if (isNaN(v)) return setErro("Valor inválido")
+  const cpfValue = watch("cpf")
+  const crmUfValue = watch("crmUf")
+  const planoValue = watch("plano")
+  const valorValue = watch("valor")
+
+  function handleReset() {
+    reset()
+    setErro(null)
+    setOk(false)
+    setAtivarUrl(null)
+  }
+
+  async function submeter(data: NovaAssinaturaFormData) {
+    setErro(null)
+    const v = parseFloat(data.valor.replace(",", "."))
     setEnviando(true)
     try {
       const r = await fetch("/api/admin/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, email, crm, crmUf, cpf: cpfDigits(cpf), plano, valorMensal: v }),
+        body: JSON.stringify({ nome: data.nome, email: data.email, crm: data.crm, crmUf: data.crmUf, cpf: cpfDigits(data.cpf || ""), plano: data.plano, valorMensal: v }),
       })
       const d = await r.json().catch(() => ({}))
-      if (!r.ok) return setErro(d?.error === "email_em_uso" ? "E-mail já cadastrado." : "Erro ao criar convite.")
+      if (!r.ok) {
+        if (d?.error === "email_em_uso") {
+          setError("email", { message: "E-mail já cadastrado" })
+          setErro("E-mail já cadastrado.")
+        } else {
+          setErro("Erro ao criar convite.")
+        }
+        setEnviando(false)
+        return
+      }
       setOk(true)
       if (!d?.emailEnviado && d?.ativarContaUrl) setAtivarUrl(d.ativarContaUrl)
       onCriado()
@@ -234,7 +359,7 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset() }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) handleReset() }}>
       <DialogTrigger asChild>
         <Button variant="coral" className="gap-2"><Plus className="h-4 w-4" /> Convidar médico</Button>
       </DialogTrigger>
@@ -279,34 +404,68 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
             </DialogFooter>
           </div>
         ) : (
-          <form onSubmit={submeter} className="space-y-3">
+          <form onSubmit={handleSubmit(submeter)} className="space-y-3">
             {erro && <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" /> {erro}</div>}
-            <div className="space-y-1.5"><Label>Nome completo</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Dr. João Silva" required /></div>
-            <div className="space-y-1.5"><Label>E-mail</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="joao@clinica.com" required /></div>
+            <div className="space-y-1.5">
+              <Label>Nome completo</Label>
+              <Input {...register("nome")} placeholder="Dr. João Silva" />
+              {errors.nome && <p className="text-xs text-destructive">{errors.nome.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>E-mail</Label>
+              <Input type="email" {...register("email")} placeholder="joao@clinica.com" />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
             <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2 space-y-1.5"><Label>CRM (número)</Label><Input value={crm} onChange={(e) => setCrm(e.target.value)} placeholder="123456" required /></div>
-              <div className="space-y-1.5"><Label>UF</Label><Input value={crmUf} onChange={(e) => setCrmUf(e.target.value.toUpperCase().slice(0, 2))} maxLength={2} placeholder="SP" /></div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>CRM (número)</Label>
+                <Input {...register("crm")} placeholder="123456" />
+                {errors.crm && <p className="text-xs text-destructive">{errors.crm.message}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>UF</Label>
+                <Select value={crmUfValue} onValueChange={(v) => setValue("crmUf", v)}>
+                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                  <SelectContent>
+                    {["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map((uf) => (
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.crmUf && <p className="text-xs text-destructive">{errors.crmUf.message}</p>}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>CPF do médico</Label>
               <Input
-                value={cpf}
-                onChange={(e) => setCpf(cpfMask(e.target.value))}
+                value={cpfValue}
+                onChange={(e) => setValue("cpf", cpfMask(e.target.value))}
                 placeholder="000.000.000-00"
                 inputMode="numeric"
                 maxLength={14}
-                className={cpf && !cpfValido(cpf) ? "border-destructive" : ""}
+                className={errors.cpf ? "border-destructive" : ""}
               />
-              {cpf && !cpfValido(cpf) && <p className="text-xs text-destructive">CPF inválido</p>}
+              {errors.cpf && <p className="text-xs text-destructive">{errors.cpf.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Plano</Label>
-              <Select value={plano} onValueChange={setPlano}>
+              <Select value={planoValue} onValueChange={(v) => setValue("plano", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{["trial","starter","pro","enterprise"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
               </Select>
+              {errors.plano && <p className="text-xs text-destructive">{errors.plano.message}</p>}
             </div>
-            <div className="space-y-1.5"><Label>Valor mensal (BRL)</Label><Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" /></div>
+            <div className="space-y-1.5">
+              <Label>Valor mensal (BRL)</Label>
+              <Input
+                value={valorValue}
+                onChange={(e) => setValue("valor", moedaBrlMask(e.target.value))}
+                placeholder="0,00"
+                inputMode="numeric"
+                className={errors.valor ? "border-destructive" : ""}
+              />
+              {errors.valor && <p className="text-xs text-destructive">{errors.valor.message}</p>}
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" variant="coral" disabled={enviando}>

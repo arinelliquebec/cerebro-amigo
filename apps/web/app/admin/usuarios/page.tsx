@@ -1,6 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,6 +11,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { AlertTriangle, Plus, Loader2, Key, Shield, Users, RefreshCw, Trash2 } from "lucide-react"
+
+// Schemas Zod para validação
+const novoUsuarioSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
+  email: z.string().email("E-mail inválido"),
+  senha: z.string().min(8, "Senha deve ter pelo menos 8 caracteres").max(100, "Senha muito longa"),
+  role: z.enum(["medico", "admin", "owner"]),
+})
+
+const roleSchema = z.object({
+  role: z.enum(["medico", "admin", "owner"]),
+})
+
+type NovoUsuarioFormData = z.infer<typeof novoUsuarioSchema>
+type RoleFormData = z.infer<typeof roleSchema>
 
 interface Usuario {
   id: string
@@ -37,33 +55,56 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
   const [open, setOpen] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
-  const [nome, setNome] = useState("")
-  const [email, setEmail] = useState("")
-  const [senha, setSenha] = useState("")
-  const [role, setRole] = useState("medico")
 
-  async function submeter(e: React.FormEvent) {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+    setError,
+  } = useForm<NovoUsuarioFormData>({
+    resolver: zodResolver(novoUsuarioSchema),
+    defaultValues: {
+      nome: "",
+      email: "",
+      senha: "",
+      role: "medico",
+    },
+  })
+
+  const role = watch("role")
+
+  async function submeter(data: NovoUsuarioFormData) {
     setErro(null)
-    if (senha.length < 8) return setErro("Senha mínima: 8 caracteres")
     setEnviando(true)
     try {
       const r = await fetch("/api/admin/usuarios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, email, senha, role }),
+        body: JSON.stringify(data),
       })
       const d = await r.json().catch(() => ({}))
-      if (!r.ok) return setErro(d?.error === "email_em_uso" ? "E-mail já cadastrado." : "Erro ao criar usuário.")
+      if (!r.ok) {
+        if (d?.error === "email_em_uso") {
+          setError("email", { message: "E-mail já cadastrado" })
+          setErro("E-mail já cadastrado.")
+        } else {
+          setErro("Erro ao criar usuário.")
+        }
+        setEnviando(false)
+        return
+      }
       onCriado()
       setOpen(false)
-      setNome(""); setEmail(""); setSenha(""); setRole("medico")
+      reset()
     } catch { setErro("Erro de conexão.") }
     finally { setEnviando(false) }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); setErro(null) }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErro(null); reset() } }}>
       <DialogTrigger asChild>
         <Button variant="coral" className="gap-2">
           <Plus className="h-4 w-4" /> Novo usuário
@@ -73,7 +114,7 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
         <DialogHeader>
           <DialogTitle>Criar usuário</DialogTitle>
         </DialogHeader>
-        <form onSubmit={submeter} className="space-y-4">
+        <form onSubmit={handleSubmit(submeter)} className="space-y-4">
           {erro && (
             <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {erro}
@@ -81,19 +122,22 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
           )}
           <div className="space-y-1.5">
             <Label>Nome</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} required />
+            <Input {...register("nome")} />
+            {errors.nome && <p className="text-xs text-destructive">{errors.nome.message}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>E-mail</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input type="email" {...register("email")} />
+            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Senha (mín. 8 chars)</Label>
-            <Input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+            <Input type="password" {...register("senha")} />
+            {errors.senha && <p className="text-xs text-destructive">{errors.senha.message}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Role</Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={(v) => setValue("role", v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="medico">Médico</SelectItem>
@@ -101,6 +145,7 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
                 <SelectItem value="owner">Owner (master)</SelectItem>
               </SelectContent>
             </Select>
+            {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -116,18 +161,30 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
 
 function RoleDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
   const [open, setOpen] = useState(false)
-  const [role, setRole] = useState(u.role)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  async function salvar() {
+  const {
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+  } = useForm<RoleFormData>({
+    resolver: zodResolver(roleSchema),
+    defaultValues: { role: u.role as any },
+  })
+
+  const role = watch("role")
+
+  async function salvar(data: RoleFormData) {
     setErro(null)
     setEnviando(true)
     try {
       const r = await fetch(`/api/admin/usuarios/${u.id}?action=role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role: data.role }),
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) return setErro(d?.error ?? "Erro ao atualizar.")
@@ -137,7 +194,7 @@ function RoleDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); setErro(null); setRole(u.role) }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErro(null); reset({ role: u.role as any }) } }}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Mudar role">
           <Shield className="h-3.5 w-3.5" />
@@ -146,20 +203,23 @@ function RoleDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
       <DialogContent className="max-w-xs">
         <DialogHeader><DialogTitle>Mudar role — {u.nome}</DialogTitle></DialogHeader>
         {erro && <p className="text-sm text-destructive">{erro}</p>}
-        <Select value={role} onValueChange={setRole}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="medico">Médico</SelectItem>
-            <SelectItem value="admin">Admin geral</SelectItem>
-            <SelectItem value="owner">Owner (master)</SelectItem>
-          </SelectContent>
-        </Select>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="coral" onClick={salvar} disabled={enviando}>
-            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-          </Button>
-        </DialogFooter>
+        <form onSubmit={handleSubmit(salvar)} className="space-y-3">
+          <Select value={role} onValueChange={(v) => setValue("role", v as any)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="medico">Médico</SelectItem>
+              <SelectItem value="admin">Admin geral</SelectItem>
+              <SelectItem value="owner">Owner (master)</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="submit" variant="coral" disabled={enviando}>
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
