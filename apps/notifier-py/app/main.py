@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from app.core.config import get_settings
 from app.core.db import acquire, close_pool, init_pool
 from app.core.observability import redact_pii_processor
+from app.consulta_lembretes import despachar_lembretes_consultas
 from app.dispatcher import dispatch_for_patient, dispatch_pending, test_push_to_sub
 from app.medico_notify import despachar_crise_medico
 from app.scheduler import shutdown_scheduler, start_scheduler
@@ -117,6 +118,12 @@ class TestPushRequest(BaseModel):
 async def notificar_crise_medico() -> dict:
     """Envia e-mail de crise aos médicos opt-in (sem detalhe clínico)."""
     return await despachar_crise_medico()
+
+
+@app.post("/internal/consultas/lembretes", dependencies=[Depends(_check_token)])
+async def disparar_lembretes_consultas() -> dict:
+    """Força um ciclo de lembretes de consulta (push/email 24h e 1h antes)."""
+    return await despachar_lembretes_consultas()
 
 
 @app.post("/internal/push/test", dependencies=[Depends(_check_token)])
