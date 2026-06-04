@@ -69,6 +69,31 @@ public static class ConsultasEndpoints
             return Results.Ok(resultado);
         });
 
+        // Próximas consultas + status do lembrete (alimenta /dashboard/lembretes).
+        g.MapGet("/lembretes", async (AppDbContext db, ClaimsPrincipal user) =>
+        {
+            var medicoId = await GetMedicoIdAsync(db, user);
+            if (medicoId is null) return Results.Forbid();
+
+            var rows = await db.Database.SqlQueryRaw<LembreteItem>(@"
+                SELECT co.id, cl.nome AS paciente_nome, co.inicia_em, co.status,
+                       EXISTS(SELECT 1 FROM consulta_lembretes l
+                              WHERE l.consulta_id = co.id AND l.tipo = '24h') AS lembrete_dia,
+                       EXISTS(SELECT 1 FROM consulta_lembretes l
+                              WHERE l.consulta_id = co.id AND l.tipo = '1h')  AS lembrete_hora
+                FROM consultas co
+                JOIN clientes cl ON cl.id = co.paciente_id
+                JOIN pacientes p ON p.cliente_id = co.paciente_id
+                WHERE p.medico_responsavel_id = {0}
+                  AND co.inicia_em > NOW()
+                  AND co.status IN ('agendada', 'confirmada')
+                ORDER BY co.inicia_em
+                LIMIT 100",
+                medicoId.Value).ToListAsync();
+
+            return Results.Ok(rows);
+        });
+
         // Detalhe de uma consulta (resolve paciente — usado pelo briefing).
         g.MapGet("/{id:guid}", async (Guid id, AppDbContext db, ClaimsPrincipal user) =>
         {
@@ -374,3 +399,7 @@ public record DisponibilidadeDto(int DuracaoMin, string[] Slots);
 public record MedicoAgendaCfg(string? Timezone, string? HorarioTrabalho);
 
 public record ConsultaOcupada(DateTime IniciaEm, int DuracaoMin);
+
+public record LembreteItem(
+    Guid Id, string? PacienteNome, DateTime IniciaEm, string Status,
+    bool LembreteDia, bool LembreteHora);

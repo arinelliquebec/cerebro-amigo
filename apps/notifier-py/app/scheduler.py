@@ -7,6 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.core.config import get_settings
+from app.consulta_lembretes import despachar_lembretes_consultas
 from app.dispatcher import dispatch_pending
 from app.medico_notify import despachar_crise_medico
 
@@ -29,6 +30,13 @@ async def _tick_medico_crise() -> None:
         logger.exception("scheduler.medico_crise.failed", error=str(exc))
 
 
+async def _tick_consulta_lembretes() -> None:
+    try:
+        await despachar_lembretes_consultas()
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("scheduler.consulta_lembretes.failed", error=str(exc))
+
+
 def start_scheduler() -> AsyncIOScheduler:
     global _scheduler
     if _scheduler is not None:
@@ -48,6 +56,14 @@ def start_scheduler() -> AsyncIOScheduler:
         _tick_medico_crise,
         trigger=IntervalTrigger(seconds=settings.scheduler_interval_seconds),
         id="tick:medico_crise",
+        replace_existing=True,
+        coalesce=True,
+        max_instances=1,
+    )
+    sched.add_job(
+        _tick_consulta_lembretes,
+        trigger=IntervalTrigger(seconds=settings.scheduler_interval_seconds),
+        id="tick:consulta_lembretes",
         replace_existing=True,
         coalesce=True,
         max_instances=1,

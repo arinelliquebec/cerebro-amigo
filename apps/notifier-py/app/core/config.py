@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     email_from: str = Field(default="Cérebro Amigo <noreply@cerebroamigo.com.br>", validation_alias="EMAIL_FROM")
     email_fallback_enabled: bool = Field(default=False)
 
+    # Lembretes de consulta (push/email 24h e 1h antes). Desligar = não despacha.
+    consulta_lembretes_enabled: bool = Field(default=True)
+
 
 @lru_cache
 def get_settings() -> Settings:
