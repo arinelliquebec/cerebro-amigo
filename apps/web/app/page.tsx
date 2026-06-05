@@ -4,13 +4,16 @@ import { NeuralField } from "@/components/landing/neural-field"
 import { AuroraBackdrop } from "@/components/landing/aurora-backdrop"
 import { Eyebrow } from "@/components/landing/eyebrow"
 import { Reveal } from "@/components/landing/reveal"
-import { HeartHandshake, Stethoscope, ArrowRight, LifeBuoy } from "lucide-react"
+import { HeartHandshake, Stethoscope, ArrowRight, LifeBuoy, Users } from "lucide-react"
 
 export const metadata = {
   title: "Cérebro Amigo — Acompanhamento entre consultas",
   description:
     "Cérebro Amigo: acompanhamento entre consultas para psiquiatria. Entre como paciente ou como médico.",
 }
+
+const MYBESTBRAIN_URL =
+  process.env.NEXT_PUBLIC_MYBESTBRAIN_URL || "http://15.228.179.212:3000"
 
 const opcoes = [
   {
@@ -71,6 +74,28 @@ export default function ChooserPage() {
             </Reveal>
           ))}
         </div>
+
+        <Reveal delay={0.24} className="mt-5">
+          <a
+            href={MYBESTBRAIN_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center gap-5 rounded-3xl border border-noir-line glass-noir p-6 transition-all duration-300 hover:-translate-y-1 hover:glow-purple-lg"
+          >
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary">
+              <Users className="h-7 w-7" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-foreground">MyBestBrain</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                A rede dos melhores cérebros — conecte-se com outros médicos. Basta se cadastrar.
+              </p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-accent-on-dark transition-transform group-hover:translate-x-0.5">
+              Entrar <ArrowRight className="h-4 w-4" />
+            </span>
+          </a>
+        </Reveal>
 
         <Reveal delay={0.28} className="mt-10 text-center">
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
