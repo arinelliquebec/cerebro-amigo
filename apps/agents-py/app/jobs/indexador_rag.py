@@ -300,7 +300,7 @@ class IndexadorRagJob(BaseJob):
                 s.bedrock_embed_model,
                 p.fonte_hash,
             )
-            for p, v in zip(pendentes, vecs)
+            for p, v in zip(pendentes, vecs, strict=True)
         ]
         await conn.executemany(
             "INSERT INTO conhecimento "

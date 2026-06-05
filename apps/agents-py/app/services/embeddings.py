@@ -35,7 +35,7 @@ _COHERE_MAX_BATCH = 96  # limite de textos por chamada da API Cohere embed
 _client = None  # cache do client boto3
 
 
-class EmbeddingsDisabled(RuntimeError):
+class EmbeddingsDisabledError(RuntimeError):
     """EMBEDDINGS_ENABLED=false — busca/indexação semântica indisponível."""
 
 
@@ -88,7 +88,7 @@ async def embed_texts(
     """
     s = get_settings()
     if not s.embeddings_enabled:
-        raise EmbeddingsDisabled(
+        raise EmbeddingsDisabledError(
             "EMBEDDINGS_ENABLED=false — habilite e configure credenciais AWS (IAM role)."
         )
     if not texts:
