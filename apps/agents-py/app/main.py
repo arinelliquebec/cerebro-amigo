@@ -18,7 +18,6 @@ from app.core.config import get_settings
 from app.core.db import acquire, close_pool, init_pool
 from app.core.observability import configure_observability, redact_pii_processor
 from app.jobs.indexador_rag import reindexar_kb, reindexar_paciente
-from app.services.retrieval import buscar as rag_buscar_service
 from app.scheduler import (
     run_for_patient,
     run_once,
@@ -32,6 +31,7 @@ from app.services.crisis import (
     detectar_crise,
 )
 from app.services.crisis_copy import CRISIS_COPY
+from app.services.retrieval import buscar as rag_buscar_service
 from app.services.transcricao import transcrever_audio
 
 
