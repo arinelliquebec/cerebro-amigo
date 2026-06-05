@@ -60,8 +60,8 @@ export function proxy(req: NextRequest) {
     return next()
   }
 
-  // ── Doctor dashboard ──
-  if (pathname.startsWith("/dashboard")) {
+  // ── Doctor dashboard + rede social (médico) ──
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/rede")) {
     const token = req.cookies.get("auth_token")?.value
     if (!token) {
       const loginUrl = new URL("/login", req.url)
@@ -75,5 +75,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/p/:path*"],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/rede/:path*", "/p/:path*"],
 }
