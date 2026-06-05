@@ -5,6 +5,7 @@
  */
 
 import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? "http://localhost:5050"
 
@@ -46,9 +47,26 @@ async function request<T>(
   return (texto ? JSON.parse(texto) : null) as T
 }
 
+/**
+ * Mapeia um erro do gateway para uma resposta JSON do BFF.
+ * Repassa status e corpo de erros de domínio (400/403/404/409/422) e
+ * normaliza 401/403 de auth. Para erros de conexão, devolve 502.
+ */
+export function gatewayErrorResponse(err: unknown): Response {
+  if (err instanceof GatewayError) {
+    if (err.status === 401)
+      return NextResponse.json({ error: "sessao_expirada" }, { status: 401 })
+    if ([400, 403, 404, 409, 422].includes(err.status))
+      return NextResponse.json(err.body ?? { error: "erro" }, { status: err.status })
+  }
+  return NextResponse.json({ error: "erro_conexao" }, { status: 502 })
+}
+
 export const gateway = {
   post: <T>(path: string, body: unknown, token?: string) =>
     request<T>(path, { method: "POST", body: JSON.stringify(body) }, token),
+  put: <T>(path: string, body: unknown, token?: string) =>
+    request<T>(path, { method: "PUT", body: JSON.stringify(body) }, token),
   patch: <T>(path: string, body: unknown, token?: string) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }, token),
   get: <T>(path: string) => request<T>(path, { method: "GET" }),

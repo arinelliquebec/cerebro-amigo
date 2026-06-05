@@ -180,6 +180,8 @@ builder.Services.AddHttpClient("agents-py", client =>
 // -----------------------------------------------------------------------------
 // OpenAPI 3.1 (nativo no .NET 10)
 // -----------------------------------------------------------------------------
+builder.Services.AddSignalR();
+
 builder.Services.AddOpenApi("v1", options =>
 {
     options.AddDocumentTransformer((document, _, _) =>
@@ -293,6 +295,10 @@ ComunicacaoEndpoints.Map(app);
 MensagensEndpoints.Map(app);
 PromptsEndpoints.Map(app);
 AdminEndpoints.Map(app);
+SocialEndpoints.Map(app);
+ChatEndpoints.Map(app);
+ModeracaoEndpoints.Map(app);
+app.MapHub<ApiGateway.Hubs.ChatHub>("/hubs/chat");
 SeedEndpoint.Map(app);
 
 app.Run();
