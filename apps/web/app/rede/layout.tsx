@@ -12,7 +12,18 @@ function SidebarWrapper() {
   )
 }
 
-export default async function RedeLayout({ children }: { children: React.ReactNode }) {
+export default function RedeLayout({ children }: { children: React.ReactNode }) {
+  // O acesso a headers() é dado dinâmico (não-cacheável). Com cacheComponents
+  // (Next 16) ele PRECISA viver dentro de <Suspense>, senão o prerender de
+  // todas as /rede pages falha no build. Isolado em RedeShell abaixo.
+  return (
+    <Suspense fallback={<div className="theme-noir min-h-screen bg-background" />}>
+      <RedeShell>{children}</RedeShell>
+    </Suspense>
+  )
+}
+
+async function RedeShell({ children }: { children: React.ReactNode }) {
   // Páginas públicas de auth da rede (médico ainda não logado) não têm sidebar.
   const pathname = (await headers()).get("x-pathname") ?? ""
   if (pathname === "/rede/login" || pathname === "/rede/cadastro") {
