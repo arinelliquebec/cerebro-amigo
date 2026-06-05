@@ -283,6 +283,7 @@ ComunicacaoEndpoints.Map(app);
 MensagensEndpoints.Map(app);
 PromptsEndpoints.Map(app);
 AdminEndpoints.Map(app);
+SocialEndpoints.Map(app);
 SeedEndpoint.Map(app);
 
 app.Run();

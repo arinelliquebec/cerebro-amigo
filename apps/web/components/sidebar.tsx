@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Heart,
   TrendingUp,
+  Globe,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -30,6 +31,7 @@ const navigation = [
   { name: "Prontuários", href: "/dashboard/prontuarios", icon: FileText },
   { name: "Evolução", href: "/dashboard/evolucao", icon: TrendingUp },
   { name: "Check-ins", href: "/dashboard/checkins", icon: Heart },
+  { name: "Comunidade", href: "/rede", icon: Globe },
 ]
 
 const secondaryNavigation = [
