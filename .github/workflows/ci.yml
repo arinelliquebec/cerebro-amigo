@@ -51,3 +51,53 @@ jobs:
       - name: Pytest
         working-directory: apps/${{ matrix.service }}
         run: pytest -q
+
+  # Build .NET — pega erro de compilação do gateway no PR (antes era só no
+  # deploy: ex. CS0101 de tipo duplicado pós-merge passou despercebido).
+  dotnet:
+    name: api-gateway — build (.NET)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        working-directory: apps/api-gateway
+        run: dotnet restore
+
+      - name: Build
+        working-directory: apps/api-gateway
+        run: dotnet build --no-restore --configuration Release
+
+  # Build Next.js — pega erro de compilação/TS do web no PR (antes só no deploy
+  # ou no Vercel preview). Espelha o Dockerfile: Node 24 + pnpm 10 + next build.
+  web:
+    name: web — build (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.15.0"
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@10.33.3 --activate
+
+      - name: Install
+        run: pnpm install --frozen-lockfile --filter "./apps/web..."
+
+      - name: Build
+        working-directory: apps/web
+        run: pnpm build
