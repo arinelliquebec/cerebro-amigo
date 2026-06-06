@@ -1,5 +1,7 @@
 import { Suspense } from "react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import { Toaster } from "@/components/ui/sonner"
+import { CommandPalette } from "@/components/admin/command-palette"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +17,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Suspense>{children}</Suspense>
         </div>
       </main>
+      <Toaster />
+      <CommandPalette />
     </div>
   )
 }

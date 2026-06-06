@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Cpu, Loader2, RefreshCw, TrendingDown } from "lucide-react"
+import { Cpu, Loader2, RefreshCw, DollarSign, Download } from "lucide-react"
+import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { baixarCsv } from "@/lib/csv"
 
 interface CustoMes {
   mes: string
@@ -23,12 +25,20 @@ function fmtNum(n: number | null) {
 export default function CustosPage() {
   const [rows, setRows] = useState<CustoMes[]>([])
   const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
-    setLoading(true)
-    const r = await fetch("/api/admin/custos-llm")
-    if (r.ok) setRows(await r.json())
-    setLoading(false)
+    setLoading(true); setErro(null)
+    try {
+      const r = await fetch("/api/admin/custos-llm")
+      if (r.status === 401) { window.location.href = "/login"; return }
+      if (!r.ok) { setErro("Não foi possível carregar os custos de IA."); return }
+      setRows(await r.json())
+    } catch {
+      setErro("Erro de conexão ao carregar os custos de IA.")
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { carregar() }, [carregar])
@@ -44,6 +54,14 @@ export default function CustosPage() {
   const totalGeral = rows.reduce((s, r) => s + r.custoTotalUsd, 0)
   const execucoesGeral = rows.reduce((s, r) => s + r.execucoes, 0)
 
+  function exportarCsv() {
+    baixarCsv(
+      `custos-ia-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Mês", "Agente", "Execuções", "Tokens entrada", "Tokens saída", "Custo USD"],
+      rows.map((r) => [r.mes?.slice(0, 7), r.agente, r.execucoes, r.tokensInTotal, r.tokensOutTotal, r.custoTotalUsd]),
+    )
+  }
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -52,15 +70,20 @@ export default function CustosPage() {
           <h1 className="text-2xl font-semibold text-foreground">Custos de IA</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Últimos 12 meses · Agentes Python (Anthropic)</p>
         </div>
-        <Button variant="glass" size="sm" onClick={carregar} disabled={loading} className="gap-1.5">
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="glass" size="sm" onClick={carregar} disabled={loading} className="gap-1.5">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Atualizar
+          </Button>
+          <Button variant="glass" size="sm" onClick={exportarCsv} disabled={!rows.length} className="gap-1.5">
+            <Download className="h-4 w-4" /> CSV
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Total 12 meses", value: fmt4(totalGeral), icon: TrendingDown, cls: "text-warning" },
+          { label: "Total 12 meses", value: fmt4(totalGeral), icon: DollarSign, cls: "text-warning" },
           { label: "Execuções", value: execucoesGeral.toLocaleString("pt-BR"), icon: Cpu, cls: "text-primary" },
           { label: "Agentes distintos", value: String(new Set(rows.map((r) => r.agente)).size), icon: Cpu, cls: "text-accent-on-dark" },
         ].map((k) => (
@@ -76,6 +99,8 @@ export default function CustosPage() {
 
       {loading ? (
         <div className="flex justify-center py-16 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
+      ) : erro ? (
+        <ErroCarregar mensagem={erro} onRetry={carregar} />
       ) : Object.keys(porMes).length === 0 ? (
         <div className="rounded-2xl border border-dashed border-noir-line bg-noir-surface p-16 text-center text-sm text-muted-foreground">
           Sem execuções de agentes registradas ainda.
@@ -97,8 +122,8 @@ export default function CustosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-noir-line">
-                  {agentes.map((a, i) => (
-                    <tr key={i} className="hover:bg-noir-surface-raised/40 transition-colors">
+                  {agentes.map((a) => (
+                    <tr key={a.agente} className="hover:bg-noir-surface-raised/40 transition-colors">
                       <td className="px-5 py-2.5 font-mono text-xs text-foreground">{a.agente}</td>
                       <td className="px-5 py-2.5 text-muted-foreground">{a.execucoes.toLocaleString("pt-BR")}</td>
                       <td className="px-5 py-2.5 text-muted-foreground">{fmtNum(a.tokensInTotal)}</td>
