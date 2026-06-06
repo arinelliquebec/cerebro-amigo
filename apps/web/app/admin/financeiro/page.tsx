@@ -10,9 +10,15 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { CreditCard, Plus, Loader2, AlertTriangle, RefreshCw, DollarSign, TrendingUp } from "lucide-react"
+import { CreditCard, Plus, Loader2, AlertTriangle, RefreshCw, DollarSign, TrendingUp, Download, Search } from "lucide-react"
+import { baixarCsv } from "@/lib/csv"
 import { cpfMask, cpfValido, cpfDigits } from "@/lib/cpf"
 import { crmMask, crmValido } from "@/lib/crm"
+import { toast } from "sonner"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 // Máscara de moeda BRL
 function moedaBrlMask(valor: string): string {
@@ -32,11 +38,15 @@ function parseBrl(valor: string): number {
   return parseFloat(clean) || 0
 }
 
+// Número (reais) → string mascarada BRL ("1.234,56") para popular inputs de valor.
+function valorParaMask(reais: number): string {
+  return moedaBrlMask(String(Math.round((reais ?? 0) * 100)))
+}
+
 // Schemas Zod para validação
 const pagamentoSchema = z.object({
   valor: z.string().min(1, "Valor é obrigatório").refine((v) => {
-    const num = parseFloat(v.replace(",", "."))
-    return !isNaN(num) && num > 0
+    return parseBrl(v) > 0
   }, "Valor deve ser maior que zero"),
   referencia: z.string().min(1, "Mês de referência é obrigatório"),
   metodo: z.enum(["pix", "transferencia", "cartao", "outro"]),
@@ -45,8 +55,7 @@ const pagamentoSchema = z.object({
 const editarAssinaturaSchema = z.object({
   plano: z.enum(["trial", "starter", "pro", "enterprise"]),
   valor: z.string().min(1, "Valor é obrigatório").refine((v) => {
-    const num = parseFloat(v.replace(",", "."))
-    return !isNaN(num)
+    return parseBrl(v) >= 0
   }, "Valor inválido"),
   status: z.enum(["trial", "ativa", "suspensa", "cancelada"]),
   notas: z.string().optional(),
@@ -122,17 +131,18 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
   } = useForm<PagamentoFormData>({
     resolver: zodResolver(pagamentoSchema),
     defaultValues: {
-      valor: (asn.valorMensal ?? 0).toString(),
+      valor: valorParaMask(asn.valorMensal ?? 0),
       referencia: new Date().toISOString().slice(0, 7),
       metodo: "pix",
     },
   })
 
   const metodo = watch("metodo")
+  const valorValue = watch("valor")
 
   async function salvar(data: PagamentoFormData) {
     setErro(null)
-    const v = parseFloat(data.valor.replace(",", "."))
+    const v = parseBrl(data.valor)
     setEnviando(true)
     try {
       const r = await fetch(`/api/admin/assinaturas/${asn.id}`, {
@@ -140,10 +150,15 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ valor: v, moeda: asn.moeda, referencia: data.referencia, metodo: data.metodo, pagoEm: new Date().toISOString() }),
       })
-      if (!r.ok) return setErro("Erro ao registrar.")
-      setOk(true); onSalvo()
+      if (!r.ok) {
+        const d = await r.json().catch(() => null)
+        const msg = d?.detalhe || d?.error || "Erro ao registrar."
+        setErro(msg); toast.error(msg)
+        return
+      }
+      setOk(true); toast.success("Pagamento registrado."); onSalvo()
       setTimeout(() => { setOpen(false); setOk(false); reset() }, 1500)
-    } catch { setErro("Erro de conexão.") }
+    } catch { setErro("Erro de conexão."); toast.error("Erro de conexão.") }
     finally { setEnviando(false) }
   }
 
@@ -164,7 +179,7 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
         <form onSubmit={handleSubmit(salvar)} className="space-y-3">
           <div className="space-y-1.5">
             <Label>Valor ({asn.moeda})</Label>
-            <Input {...register("valor")} inputMode="decimal" />
+            <Input value={valorValue} onChange={(e) => setValue("valor", moedaBrlMask(e.target.value))} placeholder="0,00" inputMode="numeric" />
             {errors.valor && <p className="text-xs text-destructive">{errors.valor.message}</p>}
           </div>
           <div className="space-y-1.5">
@@ -213,7 +228,7 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
     resolver: zodResolver(editarAssinaturaSchema),
     defaultValues: {
       plano: asn.plano as any,
-      valor: (asn.valorMensal ?? 0).toString(),
+      valor: valorParaMask(asn.valorMensal ?? 0),
       status: asn.status as any,
       notas: asn.notas ?? "",
       cpf: asn.cpf ? cpfMask(asn.cpf) : "",
@@ -222,10 +237,11 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
 
   const plano = watch("plano")
   const status = watch("status")
+  const valorValue = watch("valor")
 
   async function salvar(data: EditarAssinaturaFormData) {
     setErro(null)
-    const v = parseFloat(data.valor.replace(",", "."))
+    const v = parseBrl(data.valor)
     setEnviando(true)
     try {
       const r = await fetch(`/api/admin/assinaturas/${asn.id}`, {
@@ -233,9 +249,15 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plano: data.plano, valorMensal: v, status: data.status, notas: data.notas || null, cpf: data.cpf ? cpfDigits(data.cpf) : null }),
       })
-      if (!r.ok) return setErro("Erro ao atualizar.")
+      if (!r.ok) {
+        const d = await r.json().catch(() => null)
+        const msg = d?.detalhe || d?.error || "Erro ao atualizar."
+        setErro(msg); toast.error(msg)
+        return
+      }
+      toast.success("Assinatura atualizada.")
       onSalvo(); setOpen(false)
-    } catch { setErro("Erro de conexão.") }
+    } catch { setErro("Erro de conexão."); toast.error("Erro de conexão.") }
     finally { setEnviando(false) }
   }
 
@@ -281,7 +303,7 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
           </div>
           <div className="space-y-1.5">
             <Label>Valor mensal (BRL)</Label>
-            <Input {...register("valor")} inputMode="decimal" />
+            <Input value={valorValue} onChange={(e) => setValue("valor", moedaBrlMask(e.target.value))} placeholder="0,00" inputMode="numeric" />
             {errors.valor && <p className="text-xs text-destructive">{errors.valor.message}</p>}
           </div>
           <div className="space-y-1.5">
@@ -350,7 +372,7 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
 
   async function submeter(data: NovaAssinaturaFormData) {
     setErro(null)
-    const v = parseFloat(data.valor.replace(",", "."))
+    const v = parseBrl(data.valor)
     setEnviando(true)
     try {
       const r = await fetch("/api/admin/onboarding", {
@@ -543,12 +565,21 @@ function AsaasCobrancaButton({ asn, onMudou }: { asn: Assinatura; onMudou: () =>
     finally { setEnviando(false) }
   }
 
-  async function cancelar() {
-    if (!confirm("Cancelar a cobrança recorrente deste médico no Asaas?")) return
-    setEnviando(true)
+  async function executarCancelamento() {
+    setErro(null); setEnviando(true)
     try {
-      await fetch(`/api/admin/assinaturas/${asn.id}/cobranca-asaas`, { method: "DELETE" })
+      const r = await fetch(`/api/admin/assinaturas/${asn.id}/cobranca-asaas`, { method: "DELETE" })
+      if (!r.ok) {
+        const d = await r.json().catch(() => null)
+        const msg = d?.detalhe || d?.error || "Falha ao cancelar a cobrança no Asaas."
+        setErro(msg); toast.error(msg)
+        return
+      }
+      toast.success("Cobrança recorrente cancelada no Asaas.")
       onMudou()
+    } catch {
+      const msg = "Erro de conexão ao cancelar a cobrança."
+      setErro(msg); toast.error(msg)
     } finally { setEnviando(false) }
   }
 
@@ -557,7 +588,23 @@ function AsaasCobrancaButton({ asn, onMudou }: { asn: Assinatura; onMudou: () =>
       {asn.asaasSubscriptionId ? (
         <div className="flex items-center gap-1">
           <Badge className="border font-mono text-[10px] uppercase bg-success/15 text-success border-success/30">Asaas ativo</Badge>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-destructive" onClick={cancelar} disabled={enviando}>Cancelar</Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-destructive" disabled={enviando}>Cancelar</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancelar cobrança recorrente?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isto cancela a assinatura recorrente de {asn.medicoNome ?? "este médico"} no Asaas. Ele deixa de ser cobrado automaticamente. Não afeta pagamentos já registrados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <AlertDialogAction onClick={executarCancelamento}>Cancelar cobrança</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ) : (
         <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10" onClick={ativar} disabled={enviando}>
@@ -590,6 +637,10 @@ function AsaasCobrancaButton({ asn, onMudou }: { asn: Assinatura; onMudou: () =>
 export default function FinanceiroPage() {
   const [assinaturas, setAssinaturas] = useState<Assinatura[]>([])
   const [loading, setLoading] = useState(true)
+  const [busca, setBusca] = useState("")
+  const [statusFiltro, setStatusFiltro] = useState("todos")
+  const [soSemCpf, setSoSemCpf] = useState(false)
+  const [soSemAsaas, setSoSemAsaas] = useState(false)
 
   const carregar = useCallback(async () => {
     try {
@@ -609,6 +660,23 @@ export default function FinanceiroPage() {
   const mrr = assinaturas.filter((a) => a.status === "ativa").reduce((s, a) => s + (typeof a.valorMensal === "number" ? a.valorMensal : 0), 0)
   const receitaTotal = assinaturas.reduce((s, a) => s + (typeof a.totalPago === "number" ? a.totalPago : 0), 0)
 
+  const filtradas = assinaturas.filter((a) => {
+    const q = busca.trim().toLowerCase()
+    if (q && !`${a.medicoNome ?? ""} ${a.medicoEmail ?? ""} ${a.crm ?? ""}`.toLowerCase().includes(q)) return false
+    if (statusFiltro !== "todos" && a.status !== statusFiltro) return false
+    if (soSemCpf && a.cpf) return false
+    if (soSemAsaas && a.asaasSubscriptionId) return false
+    return true
+  })
+
+  function exportarCsv() {
+    baixarCsv(
+      `financeiro-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Médico", "E-mail", "CRM", "Plano", "Valor mensal", "Status", "Total pago", "Pagamentos", "Asaas", "CPF"],
+      filtradas.map((a) => [a.medicoNome, a.medicoEmail, a.crm, a.plano, a.valorMensal, a.status, a.totalPago, a.pagamentosConfirmados, a.asaasSubscriptionId ? "sim" : "não", a.cpf ? "sim" : "não"]),
+    )
+  }
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -619,6 +687,7 @@ export default function FinanceiroPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="glass" size="sm" onClick={carregar} className="gap-1.5"><RefreshCw className="h-4 w-4" /> Atualizar</Button>
+          <Button variant="glass" size="sm" onClick={exportarCsv} disabled={!filtradas.length} className="gap-1.5"><Download className="h-4 w-4" /> CSV</Button>
           <NovaAssinaturaDialog onCriado={carregar} />
         </div>
       </div>
@@ -643,6 +712,24 @@ export default function FinanceiroPage() {
       {loading ? (
         <div className="flex justify-center py-16 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : (
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por médico, e-mail ou CRM" className="pl-9" />
+            </div>
+            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["todos", "trial", "ativa", "suspensa", "cancelada"].map((s) => (
+                  <SelectItem key={s} value={s}>{s === "todos" ? "Todos os status" : s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant={soSemCpf ? "coral" : "glass"} size="sm" onClick={() => setSoSemCpf((v) => !v)}>sem CPF</Button>
+            <Button variant={soSemAsaas ? "coral" : "glass"} size="sm" onClick={() => setSoSemAsaas((v) => !v)}>sem Asaas</Button>
+            <span className="ml-auto text-xs text-muted-foreground">{filtradas.length} de {assinaturas.length}</span>
+          </div>
         <div className="rounded-2xl border border-noir-line bg-noir-surface overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -653,7 +740,9 @@ export default function FinanceiroPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-noir-line">
-              {assinaturas.map((a) => (
+              {filtradas.length === 0 ? (
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhuma assinatura para o filtro.</td></tr>
+              ) : filtradas.map((a) => (
                 <tr key={a.id} className="hover:bg-noir-surface-raised/40 transition-colors">
                   <td className="px-5 py-3 font-medium text-foreground">{a.medicoNome ?? "—"}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{a.medicoEmail ?? "—"}</td>
@@ -684,6 +773,7 @@ export default function FinanceiroPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   )

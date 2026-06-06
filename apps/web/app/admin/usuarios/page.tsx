@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
-import { AlertTriangle, Plus, Loader2, Key, Shield, Users, RefreshCw, Stethoscope, Pencil, UserX, UserCheck } from "lucide-react"
+import { AlertTriangle, Plus, Loader2, Key, Shield, Users, RefreshCw, Stethoscope, Pencil, UserX, UserCheck, Search } from "lucide-react"
+import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { toast } from "sonner"
 
 // Schemas Zod para validação
 const novoUsuarioSchema = z.object({
@@ -190,7 +192,25 @@ function RoleDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) return setErro(d?.error ?? "Erro ao atualizar.")
+      const anterior = u.role
       onSalvo(); setOpen(false)
+      if (data.role !== anterior) {
+        toast.success(`Role de ${u.nome} alterada para ${data.role}.`, {
+          action: {
+            label: "Desfazer",
+            onClick: async () => {
+              const rr = await fetch(`/api/admin/usuarios/${u.id}?action=role`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role: anterior }),
+              })
+              if (rr.ok) { toast.success(`Role de ${u.nome} revertida para ${anterior}.`); onSalvo() }
+              else toast.error("Não foi possível desfazer.")
+            },
+          },
+        })
+      } else {
+        toast.success("Role atualizada.")
+      }
     } catch { setErro("Erro de conexão.") }
     finally { setEnviando(false) }
   }
@@ -305,6 +325,16 @@ function ExcluirDialog({ u, onExcluido }: { u: Usuario; onExcluido: () => void }
       }
       onExcluido()
       setOpen(false)
+      toast.success(`${u.nome} desativado.`, {
+        action: {
+          label: "Desfazer",
+          onClick: async () => {
+            const rr = await fetch(`/api/admin/usuarios/${u.id}`, { method: "POST" })
+            if (rr.ok) { toast.success(`${u.nome} reativado.`); onExcluido() }
+            else toast.error("Não foi possível desfazer.")
+          },
+        },
+      })
     } catch { setErro("Erro de conexão.") }
     finally { setExcluindo(false) }
   }
@@ -405,6 +435,7 @@ function ReativarDialog({ u, onReativado }: { u: Usuario; onReativado: () => voi
       }
       onReativado()
       setOpen(false)
+      toast.success(`${u.nome} reativado.`)
     } catch { setErro("Erro de conexão.") }
     finally { setReativando(false) }
   }
@@ -447,26 +478,45 @@ export default function UsuariosPage() {
   const [desativados, setDesativados] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingDesativados, setLoadingDesativados] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const [erroDesativados, setErroDesativados] = useState<string | null>(null)
   const [meId, setMeId] = useState<string | null>(null)
   const [isOwner, setIsOwner] = useState(false)
+  const [busca, setBusca] = useState("")
+  const [roleFiltro, setRoleFiltro] = useState("todos")
 
   const carregar = useCallback(async () => {
-    const r = await fetch("/api/admin/usuarios")
-    if (r.ok) setUsuarios(await r.json())
-    setLoading(false)
+    setLoading(true); setErro(null)
+    try {
+      const r = await fetch("/api/admin/usuarios")
+      if (r.status === 401) { window.location.href = "/login"; return }
+      if (!r.ok) { setErro("Não foi possível carregar os usuários."); return }
+      setUsuarios(await r.json())
+    } catch {
+      setErro("Erro de conexão ao carregar os usuários.")
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const carregarDesativados = useCallback(async () => {
-    setLoadingDesativados(true)
-    const r = await fetch("/api/admin/usuarios?desativados=true")
-    if (r.ok) setDesativados(await r.json())
-    setLoadingDesativados(false)
+    setLoadingDesativados(true); setErroDesativados(null)
+    try {
+      const r = await fetch("/api/admin/usuarios?desativados=true")
+      if (r.status === 401) { window.location.href = "/login"; return }
+      if (!r.ok) { setErroDesativados("Não foi possível carregar os usuários desativados."); return }
+      setDesativados(await r.json())
+    } catch {
+      setErroDesativados("Erro de conexão ao carregar os usuários desativados.")
+    } finally {
+      setLoadingDesativados(false)
+    }
   }, [])
 
   useEffect(() => {
     carregar()
     fetch("/api/me").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) { setMeId(d.id); setIsOwner(d.role === "owner") }
+      if (d) { setMeId(d.usuarioId); setIsOwner(d.role === "owner") }
     })
   }, [carregar])
 
@@ -474,6 +524,13 @@ export default function UsuariosPage() {
     setAba(nova)
     if (nova === "desativados") carregarDesativados()
   }
+
+  const usuariosFiltrados = usuarios.filter((u) => {
+    const q = busca.trim().toLowerCase()
+    if (q && !`${u.nome ?? ""} ${u.email ?? ""} ${u.crm ?? ""}`.toLowerCase().includes(q)) return false
+    if (roleFiltro !== "todos" && u.role !== roleFiltro) return false
+    return true
+  })
 
   return (
     <div className="p-8 space-y-6">
@@ -520,7 +577,25 @@ export default function UsuariosPage() {
           <div className="flex justify-center py-16 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
+        ) : erro ? (
+          <ErroCarregar mensagem={erro} onRetry={carregar} />
         ) : (
+          <>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, e-mail ou CRM" className="pl-9" />
+            </div>
+            <Select value={roleFiltro} onValueChange={setRoleFiltro}>
+              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["todos", "owner", "admin", "medico"].map((r) => (
+                  <SelectItem key={r} value={r}>{r === "todos" ? "Todas as roles" : r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="ml-auto text-xs text-muted-foreground">{usuariosFiltrados.length} de {usuarios.length}</span>
+          </div>
           <div className="rounded-2xl border border-noir-line bg-noir-surface overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -533,7 +608,9 @@ export default function UsuariosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-noir-line">
-                {usuarios.map((u) => (
+                {usuariosFiltrados.length === 0 ? (
+                  <tr><td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum usuário para o filtro.</td></tr>
+                ) : usuariosFiltrados.map((u) => (
                   <tr key={u.id} className="hover:bg-noir-surface-raised/40 transition-colors">
                     <td className="px-5 py-3 font-medium text-foreground">{u.nome}</td>
                     <td className="px-5 py-3 text-muted-foreground">{u.email}</td>
@@ -577,12 +654,15 @@ export default function UsuariosPage() {
               </tbody>
             </table>
           </div>
+          </>
         )
       ) : (
         loadingDesativados ? (
           <div className="flex justify-center py-16 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
+        ) : erroDesativados ? (
+          <ErroCarregar mensagem={erroDesativados} onRetry={carregarDesativados} />
         ) : desativados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
             <UserX className="h-8 w-8 opacity-30" />

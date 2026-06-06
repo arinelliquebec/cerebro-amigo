@@ -26,7 +26,11 @@ public static class AdminEndpoints
         g.MapGet("/metricas", async (AppDbContext db) =>
         {
             var agora = DateTime.UtcNow;
-            var inicioMes = new DateTime(agora.Year, agora.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            // Fronteira de "mês atual" no fuso de Brasília (UTC-3, sem DST), não em
+            // UTC: 00:00 BRT do dia 1 = 03:00 UTC. Sem isto, pagamentos/custos das
+            // ~3h finais do último dia do mês (horário BR) cairiam no mês seguinte.
+            var agoraBrt = agora.AddHours(-3);
+            var inicioMes = new DateTime(agoraBrt.Year, agoraBrt.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(3);
             var sete = agora.AddDays(-7);
 
             // Médicos e pacientes
@@ -104,6 +108,217 @@ public static class AdminEndpoints
                 lucroBrutoMes = receitaMes,  // Por enquanto = receita (infra não rastreada aqui)
                 calculadoEm = agora,
             });
+        });
+
+        // ── Cockpit de receita (Fluxo A): MRR, receita/mês, inadimplência, funil ──
+        // Foca na cobrança plataforma→médico (assinaturas + pagamentos_manuais).
+        // NÃO faz decomposição de MRR (Novo/Churn) — exigiria histórico de snapshots.
+        g.MapGet("/cockpit", async (AppDbContext db) =>
+        {
+            // MRR atual = soma das mensalidades das assinaturas ativas.
+            var mrr = await db.Database.ExecuteScalarAsync<decimal?>(
+                "SELECT COALESCE(SUM(valor_mensal),0)::numeric FROM assinaturas WHERE status='ativa'") ?? 0;
+
+            var mrrPorPlano = await db.Database.SqlQueryRaw<MrrPlanoRow>(@"
+                SELECT plano,
+                       COUNT(*)::int AS quantidade,
+                       COALESCE(SUM(valor_mensal),0)::numeric AS valor
+                FROM assinaturas WHERE status='ativa'
+                GROUP BY plano ORDER BY valor DESC").ToListAsync();
+
+            // Receita realizada por mês (12m) — pagamentos confirmados, bucket no fuso BR.
+            var receitaMensal = await db.Database.SqlQueryRaw<ReceitaMesRow>(@"
+                SELECT to_char(date_trunc('month', pago_em AT TIME ZONE 'America/Sao_Paulo'), 'YYYY-MM') AS mes,
+                       COALESCE(SUM(valor),0)::numeric AS valor,
+                       COUNT(*)::int AS pagamentos
+                FROM pagamentos_manuais
+                WHERE status='confirmado' AND pago_em IS NOT NULL
+                  AND pago_em >= (NOW() - INTERVAL '12 months')
+                GROUP BY 1 ORDER BY 1").ToListAsync();
+
+            // Inadimplência (Fluxo A): assinaturas suspensas = pagamento Asaas vencido.
+            var inadimplentes = await db.Database.SqlQueryRaw<InadimplenteRow>(@"
+                SELECT a.id AS assinatura_id, a.medico_id, m.nome AS medico_nome,
+                       u.email AS medico_email, a.valor_mensal, a.atualizado_em AS desde
+                FROM assinaturas a
+                JOIN medicos m ON m.id = a.medico_id
+                JOIN usuarios u ON u.id = m.usuario_id
+                WHERE a.status='suspensa'
+                ORDER BY a.valor_mensal DESC").ToListAsync();
+            var mrrEmRisco = inadimplentes.Sum(x => x.ValorMensal);
+
+            // Trials ativos + os que vencem em ≤7 dias.
+            var trialsAtivos = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM assinaturas WHERE status='trial'") ?? 0;
+            var trialsExpirando = await db.Database.SqlQueryRaw<TrialRow>(@"
+                SELECT a.id AS assinatura_id, a.medico_id, m.nome AS medico_nome, a.trial_ate
+                FROM assinaturas a JOIN medicos m ON m.id = a.medico_id
+                WHERE a.status='trial' AND a.trial_ate IS NOT NULL
+                  AND a.trial_ate <= (NOW() + INTERVAL '7 days')
+                ORDER BY a.trial_ate").ToListAsync();
+
+            // Funil (aproximado): convidados → ativaram conta → em trial → converteram.
+            var convidados = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM medico_invite_tokens") ?? 0;
+            var ativaram = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM medico_invite_tokens WHERE usado_em IS NOT NULL") ?? 0;
+            var convertidos = await db.Database.ExecuteScalarAsync<int?>(@"
+                SELECT COUNT(DISTINCT a.id)::int FROM assinaturas a
+                JOIN pagamentos_manuais pm ON pm.assinatura_id = a.id AND pm.status='confirmado'
+                WHERE a.status='ativa'") ?? 0;
+
+            // Cobráveis ainda sem cobrança Asaas (CPF + valor>0, sem subscription).
+            var cobraveisSemAsaas = await db.Database.SqlQueryRaw<CobravelRow>(@"
+                SELECT a.id AS assinatura_id, a.medico_id, m.nome AS medico_nome,
+                       a.valor_mensal, m.cpf
+                FROM assinaturas a
+                JOIN medicos m ON m.id = a.medico_id
+                WHERE a.status IN ('trial','ativa')
+                  AND a.asaas_subscription_id IS NULL
+                  AND a.valor_mensal > 0
+                  AND m.cpf IS NOT NULL AND m.cpf <> ''
+                ORDER BY a.valor_mensal DESC").ToListAsync();
+
+            return Results.Ok(new
+            {
+                mrr,
+                mrrPorPlano,
+                receitaMensal,
+                inadimplencia = new { mrrEmRisco, itens = inadimplentes },
+                trials = new { ativos = trialsAtivos, expirando = trialsExpirando },
+                funil = new { convidados, ativaram, emTrial = trialsAtivos, convertidos },
+                cobraveisSemAsaas,
+            });
+        });
+
+        // ── Sala de supervisão de crise (governança platform-wide, READ-ONLY) ─────
+        // Lê a trilha imutável protocolos_crise_acionados (clinical-safety regra 5:
+        // NUNCA edita/apaga). Expõe só METADADOS (médico, origem, categoria de
+        // gatilho, SLA de notificação) — sem conteúdo clínico cru e sem PII do
+        // paciente (regra 4 — minimização). Mede a regra "médico no loop".
+        g.MapGet("/crises", async (AppDbContext db) =>
+        {
+            var total30d = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM protocolos_crise_acionados WHERE criado_em >= NOW() - INTERVAL '30 days'") ?? 0;
+            var semNotificacao = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM protocolos_crise_acionados WHERE medico_notificado = FALSE AND criado_em >= NOW() - INTERVAL '30 days'") ?? 0;
+            var slaMedioSegundos = await db.Database.ExecuteScalarAsync<double?>(@"
+                SELECT AVG(EXTRACT(EPOCH FROM (medico_notificado_em - criado_em)))::float8
+                FROM protocolos_crise_acionados
+                WHERE medico_notificado = TRUE AND medico_notificado_em IS NOT NULL
+                  AND criado_em >= NOW() - INTERVAL '30 days'");
+            var automacaoPausada = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM pacientes WHERE automacao_pausada = TRUE") ?? 0;
+
+            var eventos = await db.Database.SqlQueryRaw<CriseEventoRow>(@"
+                SELECT pc.id, pc.criado_em, m.nome AS medico_nome, pc.origem,
+                       pc.gatilho, pc.confianca, pc.medico_notificado,
+                       pc.medico_notificado_em,
+                       COALESCE(p.automacao_pausada, FALSE) AS automacao_pausada
+                FROM protocolos_crise_acionados pc
+                LEFT JOIN medicos m ON m.id = pc.medico_id
+                LEFT JOIN pacientes p ON p.cliente_id = pc.paciente_id
+                WHERE pc.criado_em >= NOW() - INTERVAL '30 days'
+                ORDER BY pc.criado_em DESC
+                LIMIT 100").ToListAsync();
+
+            return Results.Ok(new
+            {
+                total30d,
+                semNotificacao,
+                slaMedioSegundos,
+                automacaoPausada,
+                eventos,
+            });
+        });
+
+        // ── Trilha de acesso a dados sensíveis (LGPD art.37, READ-ONLY) ───────────
+        // Quem-viu-qual-paciente. Detecta acesso cruzado (médico abriu paciente que
+        // não é dele). Só metadados de acesso — nunca conteúdo clínico.
+        g.MapGet("/acessos", async (AppDbContext db, [FromQuery] string? q) =>
+        {
+            var filtro = q ?? "";
+            var total30d = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM acessos_prontuario WHERE criado_em >= NOW() - INTERVAL '30 days'") ?? 0;
+            var cruzados30d = await db.Database.ExecuteScalarAsync<int?>(@"
+                SELECT COUNT(*)::int FROM acessos_prontuario ap
+                LEFT JOIN pacientes p ON p.cliente_id = ap.paciente_id
+                WHERE ap.criado_em >= NOW() - INTERVAL '30 days'
+                  AND p.medico_responsavel_id IS DISTINCT FROM ap.medico_id") ?? 0;
+            var itens = await db.Database.SqlQueryRaw<AcessoRow>(@"
+                SELECT ap.id, ap.criado_em, ap.recurso, m.nome AS medico_nome,
+                       c.nome AS paciente_nome,
+                       (p.medico_responsavel_id IS DISTINCT FROM ap.medico_id) AS acesso_cruzado
+                FROM acessos_prontuario ap
+                JOIN medicos m ON m.id = ap.medico_id
+                JOIN clientes c ON c.id = ap.paciente_id
+                LEFT JOIN pacientes p ON p.cliente_id = ap.paciente_id
+                WHERE ({0} = '' OR m.nome ILIKE '%' || {0} || '%' OR c.nome ILIKE '%' || {0} || '%')
+                ORDER BY ap.criado_em DESC
+                LIMIT 200", filtro).ToListAsync();
+            return Results.Ok(new { total30d, cruzados30d, itens });
+        });
+
+        // ── Solicitações de direitos do titular (LGPD) ───────────────────────────
+        // Registro/acompanhamento das solicitações (acesso, portabilidade,
+        // eliminação, oposição ao tratamento automatizado, correção). É o workflow
+        // do DPO — NÃO executa a operação (export/eliminação são feitos à parte,
+        // com cuidado). DELETE bloqueado no banco (registro de conformidade).
+        g.MapGet("/solicitacoes", async (AppDbContext db, [FromQuery] string? status) =>
+        {
+            var f = status ?? "";
+            var itens = await db.Database.SqlQueryRaw<SolicitacaoRow>(@"
+                SELECT s.id, s.identificacao, s.tipo, s.status, s.notas,
+                       s.criado_em, s.atendido_em,
+                       cp.nome AS criado_por_nome, ap.nome AS atendido_por_nome,
+                       c.nome AS paciente_nome
+                FROM solicitacoes_titular s
+                LEFT JOIN usuarios cp ON cp.id = s.criado_por
+                LEFT JOIN usuarios ap ON ap.id = s.atendido_por
+                LEFT JOIN clientes c ON c.id = s.paciente_id
+                WHERE ({0} = '' OR s.status = {0})
+                ORDER BY (s.status = 'aberta') DESC, s.criado_em DESC
+                LIMIT 200", f).ToListAsync();
+            var abertas = await db.Database.ExecuteScalarAsync<int?>(
+                "SELECT COUNT(*)::int FROM solicitacoes_titular WHERE status = 'aberta'") ?? 0;
+            return Results.Ok(new { abertas, itens });
+        });
+
+        g.MapPost("/solicitacoes", async (
+            [FromBody] CriarSolicitacaoRequest req, AppDbContext db, ClaimsPrincipal user) =>
+        {
+            var tipos = new[] { "acesso", "portabilidade", "eliminacao", "oposicao_ia", "correcao" };
+            if (string.IsNullOrWhiteSpace(req.Identificacao)) return Results.BadRequest(new { error = "identificacao_obrigatoria" });
+            if (!tipos.Contains(req.Tipo)) return Results.BadRequest(new { error = "tipo_invalido" });
+
+            var criadoPor = user.FindFirst("sub")?.Value;
+            var id = Guid.NewGuid();
+            await db.Database.ExecuteRawAsync(@"
+                INSERT INTO solicitacoes_titular (id, identificacao, tipo, notas, criado_por)
+                VALUES ({0}, {1}, {2}, {3}, {4}::uuid)",
+                id, req.Identificacao.Trim(), req.Tipo,
+                (object?)req.Notas ?? DBNull.Value, (object?)criadoPor ?? DBNull.Value);
+            return Results.Created($"/api/v1/admin/solicitacoes/{id}", new { id });
+        });
+
+        g.MapPatch("/solicitacoes/{id:guid}", async (
+            Guid id, [FromBody] AtualizarSolicitacaoRequest req, AppDbContext db, ClaimsPrincipal user) =>
+        {
+            var statuses = new[] { "aberta", "atendida", "recusada" };
+            if (req.Status is not null && !statuses.Contains(req.Status)) return Results.BadRequest(new { error = "status_invalido" });
+
+            var atendidoPor = user.FindFirst("sub")?.Value;
+            var ok = await db.Database.ExecuteRawAsync(@"
+                UPDATE solicitacoes_titular SET
+                    status        = COALESCE({1}, status),
+                    notas         = COALESCE({2}, notas),
+                    atendido_por  = CASE WHEN {1} IN ('atendida','recusada') THEN {3}::uuid ELSE atendido_por END,
+                    atendido_em   = CASE WHEN {1} IN ('atendida','recusada') THEN NOW() ELSE atendido_em END,
+                    atualizado_em = NOW()
+                WHERE id = {0}",
+                id, (object?)req.Status ?? DBNull.Value,
+                (object?)req.Notas ?? DBNull.Value, (object?)atendidoPor ?? DBNull.Value);
+            return ok == 0 ? Results.NotFound() : Results.NoContent();
         });
 
         // Custo LLM por mês (histórico 12 meses)
@@ -501,8 +716,16 @@ public static class AdminEndpoints
         });
 
         g.MapPatch("/assinaturas/{id:guid}", async (
-            Guid id, [FromBody] AtualizarAssinaturaRequest req, AppDbContext db) =>
+            Guid id, [FromBody] AtualizarAssinaturaRequest req, AppDbContext db, AsaasClient asaas) =>
         {
+            // O gateway é a fronteira de confiança: valida os enums também aqui (o
+            // front valida via Zod, mas chamada direta/bug não pode gravar um
+            // plano/status fora do conjunto e corromper o cálculo de MRR).
+            var planos = new[] { "trial", "starter", "pro", "enterprise" };
+            var statuses = new[] { "trial", "ativa", "suspensa", "cancelada" };
+            if (req.Plano is not null && !planos.Contains(req.Plano)) return Results.BadRequest(new { error = "plano invalido" });
+            if (req.Status is not null && !statuses.Contains(req.Status)) return Results.BadRequest(new { error = "status invalido" });
+
             // CPF do médico (opcional) — necessário p/ cobrança Asaas. Valida e grava
             // na tabela medicos (não há outra UI p/ editar CPF pós-onboarding).
             if (!string.IsNullOrWhiteSpace(req.Cpf))
@@ -512,6 +735,29 @@ public static class AdminEndpoints
                 await db.Database.ExecuteRawAsync(@"
                     UPDATE medicos SET cpf = {1}
                     WHERE id = (SELECT medico_id FROM assinaturas WHERE id = {0})", id, cpfDigits);
+            }
+
+            // Cancelar o plano (status='cancelada') tem de encerrar a cobrança
+            // recorrente no Asaas — senão o médico segue sendo cobrado de um plano
+            // que o admin acredita cancelado (Fluxo A, ADR-034). 'suspensa' NÃO
+            // cancela: é o status que o webhook usa em pagamento vencido e a
+            // recorrência deve continuar. Cancela ANTES do UPDATE; se o Asaas não
+            // confirmar, aborta para o banco não dizer "cancelada" com cobrança viva.
+            var cancelarAsaas = string.Equals(req.Status, "cancelada", StringComparison.OrdinalIgnoreCase);
+            string? subIdCancelado = null;
+            if (cancelarAsaas)
+            {
+                var subId = await db.Database.ExecuteScalarAsync<string?>(
+                    "SELECT asaas_subscription_id FROM assinaturas WHERE id = {0}", id);
+                if (!string.IsNullOrWhiteSpace(subId))
+                {
+                    if (!asaas.Configurado)
+                        return Results.Json(new { error = "asaas_nao_configurado" }, statusCode: 503);
+                    var cancelou = await asaas.CancelarAssinaturaAsync(subId);
+                    if (!cancelou)
+                        return Results.Json(new { error = "asaas_cancelar_falhou", detalhe = "Não foi possível confirmar o cancelamento da cobrança no Asaas. Tente novamente." }, statusCode: 502);
+                    subIdCancelado = subId;
+                }
             }
 
             var ok = await db.Database.ExecuteRawAsync(@"
@@ -529,7 +775,15 @@ public static class AdminEndpoints
                 (object?)req.Status ?? DBNull.Value,
                 (object?)req.TrialAte ?? DBNull.Value,
                 (object?)req.Notas ?? DBNull.Value);
-            return ok == 0 ? Results.NotFound() : Results.NoContent();
+
+            if (ok == 0) return Results.NotFound();
+
+            // Recorrência cancelada no Asaas → limpa o vínculo no banco.
+            if (subIdCancelado is not null)
+                await db.Database.ExecuteRawAsync(
+                    "UPDATE assinaturas SET asaas_subscription_id = NULL, atualizado_em = NOW() WHERE id = {0}", id);
+
+            return Results.NoContent();
         });
 
         // Registrar pagamento manual
@@ -620,7 +874,13 @@ public static class AdminEndpoints
                 "SELECT asaas_subscription_id FROM assinaturas WHERE id = {0}", id);
             if (string.IsNullOrWhiteSpace(subId))
                 return Results.NotFound(new { error = "sem_assinatura_asaas" });
-            await asaas.CancelarAssinaturaAsync(subId);
+            if (!asaas.Configurado)
+                return Results.Json(new { error = "asaas_nao_configurado" }, statusCode: 503);
+            // Só limpa o vínculo se o Asaas confirmar o cancelamento — senão o banco
+            // diria "sem cobrança" enquanto a recorrência segue viva e cobrando.
+            var cancelou = await asaas.CancelarAssinaturaAsync(subId);
+            if (!cancelou)
+                return Results.Json(new { error = "asaas_cancelar_falhou", detalhe = "Não foi possível confirmar o cancelamento da cobrança no Asaas. Tente novamente." }, statusCode: 502);
             await db.Database.ExecuteRawAsync(
                 "UPDATE assinaturas SET asaas_subscription_id = NULL, atualizado_em = NOW() WHERE id = {0}", id);
             return Results.NoContent();
@@ -715,4 +975,32 @@ public record AssinaturaAsaasRow(
     Guid AssinaturaId, decimal ValorMensal, DateTime? TrialAte,
     string? AsaasCustomerId, string? AsaasSubscriptionId,
     Guid MedicoId, string MedicoNome, string? Cpf, string? Telefone, string MedicoEmail);
+
+// ── Cockpit de receita ──
+public record MrrPlanoRow(string Plano, int Quantidade, decimal Valor);
+public record ReceitaMesRow(string Mes, decimal Valor, int Pagamentos);
+public record InadimplenteRow(
+    Guid AssinaturaId, Guid MedicoId, string? MedicoNome, string? MedicoEmail,
+    decimal ValorMensal, DateTime Desde);
+public record TrialRow(Guid AssinaturaId, Guid MedicoId, string? MedicoNome, DateTime? TrialAte);
+public record CobravelRow(
+    Guid AssinaturaId, Guid MedicoId, string? MedicoNome, decimal ValorMensal, string? Cpf);
+
+// ── Sala de supervisão de crise (metadados, sem conteúdo clínico) ──
+public record CriseEventoRow(
+    Guid Id, DateTime CriadoEm, string? MedicoNome, string Origem, string Gatilho,
+    double Confianca, bool MedicoNotificado, DateTime? MedicoNotificadoEm, bool AutomacaoPausada);
+
+// ── Trilha de acesso (LGPD art.37) ──
+public record AcessoRow(
+    Guid Id, DateTime CriadoEm, string Recurso, string? MedicoNome,
+    string? PacienteNome, bool AcessoCruzado);
+
+// ── Solicitações de direitos do titular (LGPD) ──
+public record SolicitacaoRow(
+    Guid Id, string Identificacao, string Tipo, string Status, string? Notas,
+    DateTime CriadoEm, DateTime? AtendidoEm, string? CriadoPorNome,
+    string? AtendidoPorNome, string? PacienteNome);
+public record CriarSolicitacaoRequest(string Identificacao, string Tipo, string? Notas);
+public record AtualizarSolicitacaoRequest(string? Status, string? Notas);
 
