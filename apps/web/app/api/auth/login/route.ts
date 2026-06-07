@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 8, // 8h — igual ao TTL do token médico
+      maxAge: 60 * 60 * 8,
     })
     return res
   } catch (err) {

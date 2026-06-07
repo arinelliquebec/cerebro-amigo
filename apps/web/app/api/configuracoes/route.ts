@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 
 // Configurações do próprio médico (timezone, horário, preferências de notificação).
 export async function GET() {
@@ -7,10 +7,7 @@ export async function GET() {
     const data = await gateway.get("/api/v1/me/config")
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof GatewayError) {
-      return NextResponse.json({ error: err.body }, { status: err.status })
-    }
-    return NextResponse.json({ error: "upstream_error" }, { status: 502 })
+    return gatewayErrorResponse(err)
   }
 }
 
@@ -20,9 +17,6 @@ export async function PATCH(req: NextRequest) {
     await gateway.patch("/api/v1/me/config", body)
     return new NextResponse(null, { status: 204 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      return NextResponse.json({ error: err.body }, { status: err.status })
-    }
-    return NextResponse.json({ error: "upstream_error" }, { status: 502 })
+    return gatewayErrorResponse(err)
   }
 }

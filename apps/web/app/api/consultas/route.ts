@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 
 // Agenda do médico no intervalo [de, ate). Default no gateway: hoje..+7d.
 export async function GET(req: NextRequest) {
@@ -15,9 +15,7 @@ export async function GET(req: NextRequest) {
     const data = await gateway.get(`/api/v1/consultas/${sufixo}`)
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof GatewayError && (err.status === 401 || err.status === 403))
-      return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }
 
@@ -29,11 +27,6 @@ export async function POST(req: NextRequest) {
     const data = await gateway.post("/api/v1/consultas/", body)
     return NextResponse.json(data, { status: 201 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-      if (err.status === 400) return NextResponse.json(err.body, { status: 400 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -7,12 +7,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const data = await gateway.get(`/api/v1/consultas/${id}`)
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 404) return NextResponse.json({ error: "não encontrada" }, { status: 404 })
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }
 
@@ -24,12 +19,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await gateway.patch(`/api/v1/consultas/${id}`, body)
     return new NextResponse(null, { status: 204 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 404) return NextResponse.json({ error: "não encontrada" }, { status: 404 })
-      if (err.status === 400) return NextResponse.json(err.body, { status: 400 })
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -11,12 +11,6 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     await gateway.patch(`/api/v1/admin/solicitacoes/${id}`, body)
     return new NextResponse(null, { status: 204 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 400) return NextResponse.json(err.body ?? { error: "erro" }, { status: 400 })
-      if (err.status === 404) return NextResponse.json({ error: "não encontrado" }, { status: 404 })
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }

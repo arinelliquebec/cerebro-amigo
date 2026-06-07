@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 import { promptTravado } from "@/lib/prompts-guard"
 
 /**
@@ -12,11 +12,7 @@ export async function GET() {
     const data = await gateway.get("/api/v1/prompts/")
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }
 
@@ -40,12 +36,6 @@ export async function POST(req: NextRequest) {
     const data = await gateway.post("/api/v1/prompts/", body)
     return NextResponse.json(data, { status: 201 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-      if (err.status === 400 || err.status === 409)
-        return NextResponse.json(err.body, { status: err.status })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }

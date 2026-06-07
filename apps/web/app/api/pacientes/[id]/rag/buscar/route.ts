@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 
 // Busca semântica no prontuário do paciente (RAG, ADR-028). Retrieval-only:
 // devolve trechos citados, sem conduta gerada. O tenant (medico_id) é validado e
@@ -23,12 +23,6 @@ export async function POST(
     })
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-      if (err.status === 503)
-        return NextResponse.json({ error: "busca indisponível" }, { status: 503 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 
 // Importação em lote de pacientes. O array validado vem do client (preview .xlsx).
 // Multi-tenant: o gateway escopa tudo ao médico do JWT (cookie auth_token).
@@ -16,10 +16,6 @@ export async function POST(req: NextRequest) {
     const data = await gateway.post("/api/v1/pacientes/importar", body)
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: 401 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }

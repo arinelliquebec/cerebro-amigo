@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { gateway, GatewayError } from "@/lib/gateway"
+import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -16,14 +16,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     await gateway.patch(path, body)
     return new NextResponse(null, { status: 204 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 409) return NextResponse.json(err.body, { status: 409 })
-      if (err.status === 400) return NextResponse.json(err.body, { status: 400 })
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: err.status })
-      if (err.status === 404) return NextResponse.json({ error: "não encontrado" }, { status: 404 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }
 
@@ -33,11 +26,7 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
     await gateway.post(`/api/v1/admin/usuarios/${id}/reativar`, {})
     return new NextResponse(null, { status: 204 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 403) return NextResponse.json({ error: "não autorizado" }, { status: 403 })
-      if (err.status === 404) return NextResponse.json({ error: "não encontrado" }, { status: 404 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }
 
@@ -47,12 +36,6 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     await gateway.delete(`/api/v1/admin/usuarios/${id}`)
     return new NextResponse(null, { status: 204 })
   } catch (err) {
-    if (err instanceof GatewayError) {
-      if (err.status === 400) return NextResponse.json(err.body, { status: 400 })
-      if (err.status === 401 || err.status === 403)
-        return NextResponse.json({ error: "não autorizado" }, { status: err.status })
-      if (err.status === 404) return NextResponse.json({ error: "não encontrado" }, { status: 404 })
-    }
-    return NextResponse.json({ error: "erro interno" }, { status: 500 })
+    return gatewayErrorResponse(err)
   }
 }
