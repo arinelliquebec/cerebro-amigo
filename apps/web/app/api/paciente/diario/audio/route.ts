@@ -3,12 +3,10 @@ import { cookies } from "next/headers"
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? "http://localhost:5050"
 
+// Multipart upload — não usa gatewayPaciente (que é JSON-only).
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get("paciente_token")?.value
-  if (!token) {
-    return NextResponse.json({ erro: "não autenticado" }, { status: 401 })
-  }
+  const token = (await cookies()).get("paciente_token")?.value
+  if (!token) return NextResponse.json({ erro: "não autenticado" }, { status: 401 })
 
   let form: FormData
   try {
@@ -22,7 +20,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: "campo 'audio' obrigatório" }, { status: 400 })
   }
 
-  // Encaminha multipart para o gateway (que converte base64 e chama agents-py)
   const gatewayForm = new FormData()
   gatewayForm.append("audio", audio)
 
