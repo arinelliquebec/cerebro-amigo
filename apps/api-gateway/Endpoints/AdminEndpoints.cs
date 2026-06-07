@@ -528,7 +528,8 @@ public static class AdminEndpoints
         g.MapPost("/onboarding/medico", async (
             [FromBody] OnboardingMedicoRequest req,
             AppDbContext db, IPasswordHasher hasher,
-            ResendClient resend, CfmClient cfm, IConfiguration cfg) =>
+            ResendClient resend, CfmClient cfm, IConfiguration cfg,
+            ILogger<Program> logger) =>
         {
             var email = (req.Email ?? "").Trim().ToLowerInvariant();
             var nome  = (req.Nome  ?? "").Trim();
