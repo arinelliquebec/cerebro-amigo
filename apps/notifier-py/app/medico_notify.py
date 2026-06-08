@@ -24,6 +24,7 @@ Duas entradas:
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -122,12 +123,59 @@ def _idade_segundos(criado_em: datetime) -> float:
     return (agora - criado_em).total_seconds()
 
 
-async def _processar_protocolo(row) -> str:
-    """Avalia um protocolo aberto e executa a próxima ação devida.
+@dataclass(frozen=True)
+class _EstadoAlerta:
+    """Estado derivado dos eventos já gravados de um protocolo de crise."""
 
-    Idempotente por tick: cada estágio age uma única vez, consultando os
-    eventos já gravados. Retorna um rótulo do que foi feito (para métricas).
+    email_enviado: bool
+    email_falhas: int
+    ops_sem_email: bool
+    ops_email_indispo: bool
+    ops_estagio1: bool
+    ops_estagio2: bool
+    reforco_enviado: bool
+
+
+def _estado_de_eventos(eventos) -> _EstadoAlerta:
+    """Reduz as linhas de crise_alerta_eventos ao estado da escada."""
+    return _EstadoAlerta(
+        email_enviado=any(e["canal"] == "email" and e["evento"] == "enviado" for e in eventos),
+        email_falhas=sum(1 for e in eventos if e["canal"] == "email" and e["evento"] == "falhou"),
+        ops_sem_email=any(e["canal"] == "ops" and e["detalhe"] == "sem_email" for e in eventos),
+        ops_email_indispo=any(
+            e["canal"] == "ops" and e["detalhe"] == "email_indisponivel" for e in eventos
+        ),
+        ops_estagio1=any(e["canal"] == "ops" and e["estagio"] == 1 for e in eventos),
+        ops_estagio2=any(e["canal"] == "ops" and e["estagio"] == 2 for e in eventos),
+        reforco_enviado=any(e["canal"] == "email" and e["estagio"] == 1 for e in eventos),
+    )
+
+
+def _proxima_etapa(
+    idade_s: float, st: _EstadoAlerta, *, ack_timeout_s: int, ops_timeout_s: int
+) -> str:
+    """Próxima etapa da escada (PURA — sem I/O, fácil de testar).
+
+    Ordem: garantir e-mail inicial → reforço após ack_timeout → OPS após
+    ops_timeout. Cada etapa só dispara se ainda não foi cumprida (idempotente).
+    Protocolos já confirmados (ack) são filtrados na SQL antes de chegar aqui.
+    Retorna: 'email_inicial' | 'reforco_estagio1' | 'ops_estagio2' | 'aguardando'.
     """
+    if not st.email_enviado:
+        return "email_inicial"
+    if idade_s >= ack_timeout_s and not st.reforco_enviado:
+        return "reforco_estagio1"
+    if idade_s >= ops_timeout_s and not st.ops_estagio2:
+        return "ops_estagio2"
+    return "aguardando"
+
+
+async def _processar_protocolo(row) -> str:
+    """Avalia um protocolo aberto e executa a próxima ação da escada.
+
+    Idempotente por tick: a decisão vem de `_proxima_etapa` (pura) sobre os
+    eventos já gravados; cada etapa age uma única vez. Retorna um rótulo do que
+    foi feito (para métricas/log)."""
     settings = get_settings()
     protocolo_id: UUID = row["protocolo_id"]
     medico_id: UUID | None = row["medico_id"]
@@ -141,21 +189,19 @@ async def _processar_protocolo(row) -> str:
             "WHERE protocolo_id = $1",
             protocolo_id,
         )
-    email_enviado = any(e["canal"] == "email" and e["evento"] == "enviado" for e in eventos)
-    email_falhas = sum(1 for e in eventos if e["canal"] == "email" and e["evento"] == "falhou")
-    ops_sem_email = any(e["canal"] == "ops" and e["detalhe"] == "sem_email" for e in eventos)
-    ops_email_indispo = any(
-        e["canal"] == "ops" and e["detalhe"] == "email_indisponivel" for e in eventos
+    st = _estado_de_eventos(eventos)
+    etapa = _proxima_etapa(
+        idade,
+        st,
+        ack_timeout_s=settings.crise_ack_timeout_segundos,
+        ops_timeout_s=settings.crise_ops_timeout_segundos,
     )
-    ops_estagio1 = any(e["canal"] == "ops" and e["estagio"] == 1 for e in eventos)
-    ops_estagio2 = any(e["canal"] == "ops" and e["estagio"] == 2 for e in eventos)
-    reforco_enviado = any(e["canal"] == "email" and e["estagio"] == 1 for e in eventos)
 
     # ── Estágio 0: garantir o e-mail inicial ──
-    if not email_enviado:
+    if etapa == "email_inicial":
         if not medico_email:
             # Falha que hoje passa em silêncio: médico sem e-mail cadastrado.
-            if not ops_sem_email:
+            if not st.ops_sem_email:
                 logger.critical(
                     "crise.alerta.sem_email",
                     protocolo_id=str(protocolo_id),
@@ -176,11 +222,11 @@ async def _processar_protocolo(row) -> str:
         if ok:
             return "email_enviado"
         # Resend indisponível: torna a falha VISÍVEL após o teto de tentativas.
-        if email_falhas + 1 >= settings.crise_email_max_tentativas and not ops_email_indispo:
+        if st.email_falhas + 1 >= settings.crise_email_max_tentativas and not st.ops_email_indispo:
             logger.critical(
                 "crise.alerta.email_indisponivel",
                 protocolo_id=str(protocolo_id),
-                tentativas=email_falhas + 1,
+                tentativas=st.email_falhas + 1,
             )
             await _registrar_evento(
                 protocolo_id, medico_id, canal="ops", evento="falhou",
@@ -189,7 +235,7 @@ async def _processar_protocolo(row) -> str:
         return "email_falhou"
 
     # ── Estágio 1: sem ack após o timeout → reforço + OPS ──
-    if idade >= settings.crise_ack_timeout_segundos and not reforco_enviado:
+    if etapa == "reforco_estagio1":
         if medico_email:
             assunto, corpo = _corpo_email(paciente_nome, reforco=True)
             ok, detalhe = await _enviar_email(medico_email, assunto=assunto, corpo=corpo)
@@ -197,12 +243,10 @@ async def _processar_protocolo(row) -> str:
                 protocolo_id, medico_id, canal="email",
                 evento="enviado" if ok else "falhou", estagio=1, detalhe=detalhe,
             )
-        if not ops_estagio1:
+        if not st.ops_estagio1:
             logger.critical(
                 "crise.alerta.sem_ack",
-                protocolo_id=str(protocolo_id),
-                idade_s=int(idade),
-                estagio=1,
+                protocolo_id=str(protocolo_id), idade_s=int(idade), estagio=1,
             )
             await _registrar_evento(
                 protocolo_id, medico_id, canal="ops", evento="enfileirado",
@@ -211,12 +255,10 @@ async def _processar_protocolo(row) -> str:
         return "estagio1"
 
     # ── Estágio 2: ainda sem ack → OPS crítico ──
-    if idade >= settings.crise_ops_timeout_segundos and not ops_estagio2:
+    if etapa == "ops_estagio2":
         logger.critical(
             "crise.alerta.sem_ack",
-            protocolo_id=str(protocolo_id),
-            idade_s=int(idade),
-            estagio=2,
+            protocolo_id=str(protocolo_id), idade_s=int(idade), estagio=2,
         )
         await _registrar_evento(
             protocolo_id, medico_id, canal="ops", evento="falhou",
