@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 from uuid import UUID
 
 import structlog
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
+from app.consulta_lembretes import despachar_lembretes_consultas
 from app.core.config import get_settings
 from app.core.db import acquire, close_pool, init_pool
 from app.core.observability import redact_pii_processor
-from app.consulta_lembretes import despachar_lembretes_consultas
 from app.dispatcher import dispatch_for_patient, dispatch_pending, test_push_to_sub
 from app.medico_notify import despachar_crise_medico, despachar_crise_protocolo
 from app.scheduler import shutdown_scheduler, start_scheduler
