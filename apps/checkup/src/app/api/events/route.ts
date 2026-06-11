@@ -34,8 +34,13 @@ export async function POST(req: NextRequest) {
         eventType: parsed.data.event,
         scaleId: parsed.data.scaleId ?? null,
       })
-      .catch(() => {
-        // silently fail — eventos são analytics, não bloqueia fluxo
+      .catch((err: unknown) => {
+        // Analytics NÃO bloqueia o fluxo (retorna ok mesmo assim), mas o erro é
+        // LOGADO p/ não ficar invisível (CK-2 — foi o que mascarou o bug de SSL).
+        // stderr → CloudWatch → metric filter/alarme (CK-1). Sem PII: só a mensagem
+        // do erro + tipo de evento (não o session_id nem payload).
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`Error: falha ao gravar funnel_event (${parsed.data.event}): ${msg}`);
       });
   }
 
