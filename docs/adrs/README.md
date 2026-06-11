@@ -36,6 +36,7 @@ contexto regulatório, sem dependência da memória do autor.
 | [018](018-cifragem-em-repouso.md) | Cifragem em repouso de dados clínicos (application-level) | Accepted | Segurança clínica / Compliance |
 | [026](026-rede-social-medicos.md) | Rede Social Cérebro Amigo (médicos verificados) — Onda 0 + feed | Proposed | Produto / Arquitetura / Compliance |
 | [045](ADR-045-validacao-escalas-checkup.md) | Validação e fidelidade das escalas do Check-up (PHQ-9, GAD-7, ASRS-18) | Accepted | Segurança clínica / Produto |
+| [046](ADR-046-checkup-no-ec2-nao-vercel.md) | Check-up no EC2 (não Vercel): quem conecta direto no RDS vive na VPC | Accepted | Arquitetura / Infra / Compliance |
 
 ## Status possíveis
 
