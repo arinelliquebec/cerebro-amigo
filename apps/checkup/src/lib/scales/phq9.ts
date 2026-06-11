@@ -29,7 +29,7 @@ export const phq9: Scale = {
     { index: 5, text: "Falta de apetite ou comendo demais" },
     { index: 6, text: "Se sentir mal consigo mesmo(a) — ou achar que você é um fracasso ou que decepcionou sua família ou você mesmo(a)" },
     { index: 7, text: "Dificuldade para se concentrar nas coisas, como ler o jornal ou ver televisão" },
-    { index: 8, text: "Lentidão para se movimentar ou falar a ponto das outras pessoas perceberem, ou o oposto: estar tão agitado(a) ou irrequieto(a) que você fica andando de um lado para o outro mais do que de costume" },
+    { index: 8, text: "Lentidão para se movimentar ou falar a ponto das outras pessoas perceberem, ou o oposto: estar tão agitado(a) ou irrequieto(a) que você fica andando de um lado para o outro muito mais do que de costume" },
     { index: 9, text: "Pensar em se ferir de alguma maneira ou que seria melhor estar morto(a)", isCrisisItem: true },
   ],
   bands: [
@@ -39,7 +39,11 @@ export const phq9: Scale = {
     { min: 15, max: 19, band: "moderately_severe", bandLabel: "sintomas moderadamente graves" },
     { min: 20, max: 27, band: "severe", bandLabel: "sintomas graves" },
   ],
-  validated: false, // TODO(validar): conferir contra PDF oficial phqscreeners "Portuguese for Brazil"
+  // Conferido char-a-char contra PDF oficial phqscreeners "Portuguese for Brazil" (2026-06-11):
+  // conteúdo bate (itens 1-7,9 e opções idênticos; item 8 corrigido — faltava "muito").
+  // Falta SÓ decisão cosmética antes do flip (com Patrick): notação de gênero /a vs (a),
+  // ortografia "freqüência"(trema) vs "frequência", pontuação do item 8. Não é mudança de conteúdo.
+  validated: false, // TODO(validar): decidir cosmética acima e então virar true
   source: "PHQ-9 oficial PT-BR, autorrelato (tradução Pfizer/MapiTrust; back-translation Fraguas Jr. et al., J Affect Disord 2006; phqscreeners.com)",
 };
 
