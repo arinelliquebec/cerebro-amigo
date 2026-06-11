@@ -1,4 +1,4 @@
-import { pgSchema, bigserial, text, boolean, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgSchema, bigserial, integer, text, boolean, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const checkupSchema = pgSchema("checkup");
 
@@ -14,7 +14,8 @@ export const testResults = checkupSchema.table("test_results", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   sessionId: uuid("session_id").notNull().unique(),
   scaleId: text("scale_id").notNull(),
-  totalScore: bigserial("total_score", { mode: "number" }).notNull(),
+  // INT na migration 0039 — NÃO bigserial (era bug: drizzle omitia no insert → viola NOT NULL).
+  totalScore: integer("total_score").notNull(),
   band: text("band").notNull(),
   crisisFlag: boolean("crisis_flag").notNull().default(false),
   consented: boolean("consented").notNull().default(false),
