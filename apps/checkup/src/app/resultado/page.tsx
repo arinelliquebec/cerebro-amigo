@@ -52,6 +52,31 @@ function ResultContent() {
 
   const [devolutiva, setDevolutiva] = useState<Devolutiva | null>(null);
   const [loading, setLoading] = useState(true);
+  const [consented, setConsented] = useState(false);
+  const [consentSaved, setConsentSaved] = useState(false);
+
+  // Consentimento LGPD: grava test_results SÓ quando o usuário marca (default off).
+  // Anônimo — só escala/escore/faixa, sem PII. Não-bloqueante.
+  const handleConsent = (checked: boolean) => {
+    setConsented(checked);
+    if (!checked || consentSaved || !sid || !scale || !band) return;
+    fetch("/api/result", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: sid,
+        scaleId: scale,
+        totalScore: score,
+        band,
+        crisisFlag: isCrisis,
+        consented: true,
+      }),
+    })
+      .then((r) => {
+        if (r.ok) setConsentSaved(true);
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     if (!scale || !band) {
@@ -143,6 +168,27 @@ function ResultContent() {
           </div>
         </div>
       ) : null}
+
+      {/* Consentimento (LGPD) — default desmarcado; só grava se marcar */}
+      {scale && band && (
+        <div className="mt-8 pt-6 border-t border-[--border]">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consented}
+              onChange={(e) => handleConsent(e.target.checked)}
+              className="mt-1 h-4 w-4 accent-[--purple] min-h-[16px]"
+            />
+            <span className="text-sm text-[--muted-foreground]">
+              Guardar meu resultado de forma anônima para ajudar a melhorar o Check-up.
+              Nada que te identifique é salvo — só a escala, o escore e a faixa.
+            </span>
+          </label>
+          {consentSaved && (
+            <p className="text-xs text-[--purple] mt-2">✓ Resultado guardado anonimamente. Obrigado.</p>
+          )}
+        </div>
+      )}
 
       {/* PDF download — omitido em modo crise */}
       {!isCrisis && (
