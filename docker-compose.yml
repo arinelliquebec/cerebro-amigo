@@ -185,3 +185,12 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    # CK-1: logs do checkup → CloudWatch (sa-east-1, dado fica no Brasil/LGPD).
+    # Metric filter "checkup-errors" + alarme "checkup-erros-5xx" → SNS pegam o 500
+    # silencioso (ex.: o do PDF). awslogs usa a role do EC2 (CerebroAmigoCloudWatchLogs).
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: sa-east-1
+        awslogs-group: /cerebro-amigo/checkup
+        awslogs-stream-prefix: checkup
