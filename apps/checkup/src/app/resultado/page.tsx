@@ -11,12 +11,19 @@ const SCALE_NAMES: Record<string, string> = {
   phq9: "PHQ-9 — Depressão",
   gad7: "GAD-7 — Ansiedade",
   asrs18: "ASRS-18 — TDAH",
+  audit: "AUDIT — Uso de Álcool",
+  mdq: "MDQ — Bipolaridade",
+  fagerstrom: "Fagerström — Nicotina",
+  msi_bpd: "MSI-BPD — Traços Borderline",
 };
 
-// Escore máximo por escala (p/ o medidor). ASRS-18 é qualitativo (sem gauge).
+// Escore máximo por escala (p/ o medidor). ASRS-18 e MSI-BPD são qualitativos
+// (sem gauge); MDQ mostra chip de triagem, sem gauge.
 const SCALE_MAX: Record<string, number> = {
   phq9: 27,
   gad7: 21,
+  audit: 40,
+  fagerstrom: 10,
 };
 
 // Chips de faixa sobre o noir: tinta translúcida + texto claro (AA no fundo escuro).
@@ -28,6 +35,20 @@ const BAND_CHIP: Record<string, string> = {
   severe: "border-red-400/40 bg-red-400/15 text-red-200",
   crisis: "border-slate-400/30 bg-slate-400/10 text-slate-300",
   informative: "border-slate-400/30 bg-slate-400/10 text-slate-300",
+  // AUDIT (zonas OMS)
+  low_risk: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  risky_use: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  harmful_use: "border-orange-400/30 bg-orange-400/10 text-orange-300",
+  probable_dependence: "border-red-400/40 bg-red-400/15 text-red-200",
+  // Fagerström (graus de dependência)
+  very_low: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  low: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  medium: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  high: "border-orange-400/30 bg-orange-400/10 text-orange-300",
+  very_high: "border-red-400/40 bg-red-400/15 text-red-200",
+  // MDQ (triagem)
+  negative: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  positive: "border-orange-400/30 bg-orange-400/10 text-orange-300",
 };
 
 const BAND_RING: Record<string, string> = {
@@ -36,6 +57,15 @@ const BAND_RING: Record<string, string> = {
   moderate: "#FB923C",
   moderately_severe: "#F87171",
   severe: "#F87171",
+  low_risk: "#34D399",
+  risky_use: "#FBBF24",
+  harmful_use: "#FB923C",
+  probable_dependence: "#F87171",
+  very_low: "#34D399",
+  low: "#34D399",
+  medium: "#FBBF24",
+  high: "#FB923C",
+  very_high: "#F87171",
 };
 
 // Medidor circular do escore (SVG puro, determinístico — a IA nunca calcula escore).
@@ -135,7 +165,12 @@ function ResultContent() {
       return;
     }
 
-    const input = { scaleId: scale as "phq9" | "gad7" | "asrs18", totalScore: score, band, bandLabel: label };
+    const input = {
+      scaleId: scale as import("@/lib/scales/types").ScaleId,
+      totalScore: score,
+      band,
+      bandLabel: label,
+    };
 
     fetch("/api/devolutiva", {
       method: "POST",

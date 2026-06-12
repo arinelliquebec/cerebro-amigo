@@ -4,7 +4,7 @@ import { generateDevolutiva } from "@/lib/ai/devolutiva";
 import { checkDevolutivaLimit } from "@/lib/ratelimit";
 
 const BodySchema = z.object({
-  scaleId: z.enum(["phq9", "gad7", "asrs18"]),
+  scaleId: z.enum(["phq9", "gad7", "asrs18", "audit", "mdq", "fagerstrom", "msi_bpd"]),
   totalScore: z.number().int().min(0).max(50),
   band: z.string().min(1),
   bandLabel: z.string().min(1),

@@ -111,8 +111,13 @@ Função de negócio: é o motor de aquisição do lançamento do Cérebro Amigo
 
 ## Fora de escopo do MVP (não implementar)
 
-Contas/login, histórico de testes, comparação temporal, mais escalas, versão B2B/empresas,
+Contas/login, histórico de testes, comparação temporal, versão B2B/empresas,
 gamificação, chat livre com IA, notificações push, i18n.
+
+> **Escalas (ADR-048, 2026-06-12):** o escopo foi expandido pelo dono — AUDIT,
+> MDQ, Fagerström e MSI-BPD estão no motor com `validated: false` (gate "Em
+> breve") aguardando conferência char-a-char das fontes oficiais. ASSIST
+> (drogas) foi adiado. Regras por escala em `src/lib/scales/CLAUDE.md`.
 
 ## Definition of Done do MVP
 

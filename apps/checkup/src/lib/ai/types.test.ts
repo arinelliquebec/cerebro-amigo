@@ -60,6 +60,16 @@ describe("fallbacks estáticos × guardrail (nunca podem cair no GENERIC por reg
       scaleId: "gad7" as const, totalScore: 10, band, bandLabel: band,
     })),
     { scaleId: "asrs18" as const, totalScore: 30, band: "informative", bandLabel: "informativo" },
+    ...["low_risk", "risky_use", "harmful_use", "probable_dependence"].map((band) => ({
+      scaleId: "audit" as const, totalScore: 12, band, bandLabel: band,
+    })),
+    ...["very_low", "low", "medium", "high", "very_high"].map((band) => ({
+      scaleId: "fagerstrom" as const, totalScore: 5, band, bandLabel: band,
+    })),
+    ...["negative", "positive"].map((band) => ({
+      scaleId: "mdq" as const, totalScore: 8, band, bandLabel: band,
+    })),
+    { scaleId: "msi_bpd" as const, totalScore: 6, band: "informative", bandLabel: "informativo" },
   ];
 
   it.each(inputs.map((i) => [`${i.scaleId}/${i.band}`, i] as const))(

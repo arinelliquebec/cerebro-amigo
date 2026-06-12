@@ -1,7 +1,14 @@
 // src/lib/scales/types.ts
 // Tipos do motor de instrumentos. Mantenha este arquivo livre de dependências.
 
-export type ScaleId = "phq9" | "gad7" | "asrs18";
+export type ScaleId =
+  | "phq9"
+  | "gad7"
+  | "asrs18"
+  | "audit"
+  | "mdq"
+  | "fagerstrom"
+  | "msi_bpd";
 
 export interface ResponseOption {
   value: number;
@@ -12,21 +19,33 @@ export interface ScaleItem {
   /** 1-based, na ordem oficial do instrumento */
   index: number;
   text: string;
-  /** Item cuja resposta > 0 dispara o fluxo de crise (PHQ-9 item 9) */
+  /** Item cuja resposta > 0 dispara o fluxo de crise (PHQ-9 item 9; MSI-BPD item 2) */
   isCrisisItem?: boolean;
   /**
    * ASRS Parte A: valores que contam como "célula sombreada" para este item.
    * Ausente nos demais instrumentos.
    */
   shadedValues?: number[];
+  /**
+   * Opções específicas deste item, quando o instrumento não tem opções
+   * uniformes (AUDIT, Fagerström, MDQ itens 14/15). Ausente = usa as da escala.
+   * O `value` de cada opção é a PONTUAÇÃO oficial do item (o scoring soma values).
+   */
+  options?: ResponseOption[];
 }
 
 export interface ScoreBand {
   min: number;
   max: number;
   /** chave neutra usada pela camada de devolutiva; não exibir crua na UI.
-   *  "informative" = sem verdict (ASRS-18: Mattos 2006 não tem cutoff validado p/ BR). */
-  band: "minimal" | "mild" | "moderate" | "moderately_severe" | "severe" | "positive" | "negative" | "informative";
+   *  "informative" = sem verdict (ASRS-18 e MSI-BPD: sem cutoff validado p/ BR).
+   *  low_risk..probable_dependence = zonas do AUDIT (OMS).
+   *  very_low..very_high = graus de dependência do Fagerström. */
+  band:
+    | "minimal" | "mild" | "moderate" | "moderately_severe" | "severe"
+    | "positive" | "negative" | "informative"
+    | "low_risk" | "risky_use" | "harmful_use" | "probable_dependence"
+    | "very_low" | "low" | "medium" | "high" | "very_high";
   bandLabel: string;
 }
 

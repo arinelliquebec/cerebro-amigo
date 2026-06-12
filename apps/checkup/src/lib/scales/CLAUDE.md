@@ -63,3 +63,46 @@ Este diretório é o coração clínico do produto. Regras absolutas:
 O motor devolve `band` (faixa) e `bandLabel` neutros. Quem transforma isso em texto
 acolhedor é a camada de devolutiva (`src/lib/ai`), nunca este módulo. Este módulo
 não conhece UI, IA nem PDF.
+
+## Instrumentos da expansão (ADR-048 — aguardando conferência char-a-char)
+
+> Os 4 instrumentos abaixo estão com `validated: false` + `TODO(validar)`: o gate
+> (`isScaleAvailable`) os mantém fora do ar ("Em breve") até o responsável clínico
+> conferir o texto contra a fonte oficial e virar a flag — mesmo processo do PHQ-9.
+
+### AUDIT (uso de álcool) — `audit.ts`
+- OMS (Babor et al.); versão BR validada (Lima et al. 2005; Méndez 1999) — a do
+  material SUPERA/SENAD-MS. 10 itens, últimos 12 meses; itens 1–8 valem 0–4,
+  itens 9–10 valem 0/2/4 (opções POR ITEM — `ScaleItem.options`). Escore 0–40.
+- Zonas OMS: 0–7 baixo risco · 8–15 uso de risco · 16–19 uso nocivo ·
+  20–40 possível dependência. Cutoff clássico de triagem: ≥8.
+- Fonte p/ conferência: PDF "bloco_Audit" do SUPERA (supera.org.br) / roteiro OPAS.
+- Uso livre (OMS). Devolutiva: caminho LLM normal (entrada estruturada).
+
+### MDQ (bipolaridade) — `mdq.ts`
+- Hirschfeld et al. 2000; versão BR validada por Castelo et al. 2010 (Rev Bras Psiquiatr).
+- 13 itens sim/não + item 14 (simultaneidade) + item 15 (prejuízo, 4 níveis).
+  Triagem positiva = ≥7 "sim" E simultaneidade E prejuízo moderado/sério —
+  as TRÊS condições (itens 14/15 não somam pontos).
+- **Devolutiva SEMPRE estática (sem LLM)** — bipolaridade é rótulo sensível;
+  texto revisado à mão em `fallbacks.ts`. Reabrir só por decisão registrada.
+- Fonte p/ conferência: instrumento publicado na validação de Castelo et al. 2010.
+
+### Fagerström / FTND (nicotina) — `fagerstrom.ts`
+- Heatherton et al. 1991; versão BR validada (Carmo & Pueschel 2002; materiais INCA/MS).
+- 6 itens com PESOS PRÓPRIOS por item (0–10): 0–2 muito baixa · 3–4 baixa ·
+  5 média · 6–7 elevada · 8–10 muito elevada dependência.
+- Fonte p/ conferência: protocolo de tratamento do tabagismo do INCA/MS.
+
+### MSI-BPD (traços borderline) — `msi_bpd.ts`
+- Zanarini et al. 2003. 10 itens sim/não. **SEM VERDICT** (igual ASRS-18): cutoff ≥7
+  é da amostra americana; sem validação BR com corte publicado → banda única
+  `informative`, devolutiva SEMPRE estática. Reabrir por ADR se surgir cutoff BR.
+- **ITEM 2 É ITEM DE CRISE** (autolesão/tentativas): `isCrisisItem: true` —
+  "sim" desvia para /crise antes do escore, igual ao item 9 do PHQ-9.
+- Fonte p/ conferência: versão pt-BR publicada do MSI-BPD (confirmar existência
+  de validação brasileira antes de qualquer verdict).
+
+### ASSIST (drogas) — NÃO implementado (decisão ADR-048)
+- Fluxo matricial por substância, incompatível com o motor atual sem refactor de UX;
+  encurtar/parafrasear é proibido. Reavaliar em fase própria.
