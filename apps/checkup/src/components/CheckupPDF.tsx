@@ -13,6 +13,10 @@ const SCALE_NAMES: Record<string, string> = {
   phq9: "PHQ-9 — Triagem de Depressão",
   gad7: "GAD-7 — Triagem de Ansiedade Generalizada",
   asrs18: "ASRS-18 — Triagem de TDAH (adulto)",
+  audit: "AUDIT — Triagem de Uso de Álcool (OMS)",
+  mdq: "MDQ — Triagem de Transtorno Bipolar",
+  fagerstrom: "Teste de Fagerström — Dependência de Nicotina",
+  msi_bpd: "MSI-BPD — Triagem de Traços Borderline",
 };
 
 // Escore máximo possível por instrumento (fato aritmético, não interpretação).
@@ -20,12 +24,20 @@ const SCALE_MAX: Record<string, number> = {
   phq9: 27,
   gad7: 21,
   asrs18: 72,
+  audit: 40,
+  mdq: 13,
+  fagerstrom: 10,
+  msi_bpd: 10,
 };
 
 const SCALE_TIMEFRAME: Record<string, string> = {
   phq9: "últimas 2 semanas",
   gad7: "últimas 2 semanas",
   asrs18: "últimos 6 meses",
+  audit: "últimos 12 meses",
+  mdq: "ao longo da vida",
+  fagerstrom: "hábito atual",
+  msi_bpd: "padrões ao longo da vida adulta",
 };
 
 // Cores da faixa (impressão clara; tons suaves, sem alarme visual).
@@ -37,6 +49,20 @@ const BAND_COLORS: Record<string, { bg: string; border: string; text: string }> 
   severe: { bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D" },
   crisis: { bg: "#F1F5F9", border: "#CBD5E1", text: "#334155" },
   informative: { bg: "#F1F5F9", border: "#CBD5E1", text: "#334155" },
+  // AUDIT (zonas OMS)
+  low_risk: { bg: "#ECFDF5", border: "#A7F3D0", text: "#065F46" },
+  risky_use: { bg: "#FFFBEB", border: "#FDE68A", text: "#92400E" },
+  harmful_use: { bg: "#FFF7ED", border: "#FED7AA", text: "#9A3412" },
+  probable_dependence: { bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D" },
+  // Fagerström
+  very_low: { bg: "#ECFDF5", border: "#A7F3D0", text: "#065F46" },
+  low: { bg: "#ECFDF5", border: "#A7F3D0", text: "#065F46" },
+  medium: { bg: "#FFFBEB", border: "#FDE68A", text: "#92400E" },
+  high: { bg: "#FFF7ED", border: "#FED7AA", text: "#9A3412" },
+  very_high: { bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D" },
+  // MDQ
+  negative: { bg: "#ECFDF5", border: "#A7F3D0", text: "#065F46" },
+  positive: { bg: "#FFF7ED", border: "#FED7AA", text: "#9A3412" },
 };
 
 const CRISIS_RESOURCES = [

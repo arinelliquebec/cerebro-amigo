@@ -23,6 +23,8 @@ function buildUserMessage(input: DevolutivaInput): string {
     phq9: "PHQ-9 (depressão)",
     gad7: "GAD-7 (ansiedade generalizada)",
     asrs18: "ASRS-18 (TDAH adulto)",
+    audit: "AUDIT (uso de álcool, OMS)",
+    fagerstrom: "Teste de Fagerström (dependência de nicotina)",
   };
   const parts = [
     `Escala: ${scaleNames[input.scaleId] ?? input.scaleId}`,
@@ -36,9 +38,14 @@ function buildUserMessage(input: DevolutivaInput): string {
 }
 
 export async function generateDevolutiva(input: DevolutivaInput): Promise<Devolutiva> {
-  // ASRS-18: devolutiva fixa, sem verdict. Não enviamos escore ao LLM — evita que ele
-  // infira "triagem positiva" (sem cutoff validado p/ BR) e reforça a minimização (LGPD).
-  if (input.scaleId === "asrs18") return getFallback(input);
+  // Devolutiva fixa (sem LLM) para:
+  //  - asrs18 e msi_bpd: sem verdict (sem cutoff validado p/ BR) — não enviar
+  //    escore ao LLM evita que ele infira "triagem positiva" + minimização (LGPD);
+  //  - mdq: bipolaridade é rótulo sensível — texto estático revisado à mão,
+  //    nunca geração (decisão registrada no ADR-048; reabrir só com aprovação).
+  if (input.scaleId === "asrs18" || input.scaleId === "msi_bpd" || input.scaleId === "mdq") {
+    return getFallback(input);
+  }
 
   const client = getAnthropicClient();
   if (!client) return getFallback(input);

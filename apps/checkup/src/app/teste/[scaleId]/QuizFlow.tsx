@@ -7,12 +7,20 @@ import type { Scale, ScaleResult } from "@/lib/scales/types";
 import { scorePhq9 } from "@/lib/scales/phq9";
 import { scoreGad7 } from "@/lib/scales/gad7";
 import { scoreAsrs18 } from "@/lib/scales/asrs18";
+import { scoreAudit } from "@/lib/scales/audit";
+import { scoreMdq } from "@/lib/scales/mdq";
+import { scoreFagerstrom } from "@/lib/scales/fagerstrom";
+import { scoreMsiBpd } from "@/lib/scales/msi_bpd";
 import { cn } from "@/lib/utils";
 
 function getScoreFn(scaleId: string) {
   if (scaleId === "phq9") return scorePhq9;
   if (scaleId === "gad7") return scoreGad7;
   if (scaleId === "asrs18") return scoreAsrs18;
+  if (scaleId === "audit") return scoreAudit;
+  if (scaleId === "mdq") return scoreMdq;
+  if (scaleId === "fagerstrom") return scoreFagerstrom;
+  if (scaleId === "msi_bpd") return scoreMsiBpd;
   throw new Error(`No score function for ${scaleId}`);
 }
 
@@ -44,6 +52,8 @@ export function QuizFlow({ scale }: Props) {
 
   const totalItems = scale.items.length;
   const currentItem = scale.items[step];
+  // AUDIT/MDQ/Fagerström têm opções específicas por item; o resto usa as da escala.
+  const currentOptions = currentItem?.options ?? scale.options;
   const isLastStep = step === totalItems - 1;
   const progress = step < 0 ? 0 : Math.round(((step + 1) / totalItems) * 100);
 
@@ -102,16 +112,16 @@ export function QuizFlow({ scale }: Props) {
   // Navegação por teclado no radiogroup (padrão WAI-ARIA): setas movem foco E seleção.
   const handleOptionKeyDown = useCallback(
     (e: React.KeyboardEvent, idx: number) => {
-      const n = scale.options.length;
+      const n = currentOptions.length;
       let target = -1;
       if (e.key === "ArrowDown" || e.key === "ArrowRight") target = (idx + 1) % n;
       else if (e.key === "ArrowUp" || e.key === "ArrowLeft") target = (idx - 1 + n) % n;
       if (target < 0) return;
       e.preventDefault();
-      setSelected(scale.options[target].value);
+      setSelected(currentOptions[target].value);
       optionRefs.current[target]?.focus();
     },
-    [scale.options]
+    [currentOptions]
   );
 
   // Intro screen
@@ -214,7 +224,7 @@ export function QuizFlow({ scale }: Props) {
 
         {/* Options */}
         <div className="space-y-3" role="radiogroup" aria-label="Selecione uma opção">
-          {scale.options.map((opt, idx) => {
+          {currentOptions.map((opt, idx) => {
             const isSelected = selected === opt.value;
             return (
               <button

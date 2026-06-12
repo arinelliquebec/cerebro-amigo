@@ -137,6 +137,167 @@ const ASRS_FALLBACK: Devolutiva = {
   ],
 };
 
+// AUDIT — zonas da OMS. Linguagem de uso/risco, nunca "alcoolismo" como rótulo da pessoa.
+const AUDIT_FALLBACKS: Record<string, Devolutiva> = {
+  low_risk: {
+    acolhimento: "Parar para olhar com honestidade para o próprio consumo já é um cuidado importante.",
+    leitura: [
+      "Seus resultados sugerem um padrão de consumo de álcool de baixo risco nos últimos 12 meses.",
+      "O AUDIT é um instrumento de triagem da OMS — ele estima risco, não é um diagnóstico.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Continue atento(a) a mudanças no seu padrão de consumo, especialmente em períodos de estresse.",
+      "Se em algum momento o álcool começar a pesar, conversar com um profissional ajuda.",
+    ],
+  },
+  risky_use: {
+    acolhimento: "Responder com sinceridade sobre o próprio consumo exige coragem — você fez isso.",
+    leitura: [
+      "Seus resultados sugerem um padrão de consumo de risco nos últimos 12 meses.",
+      "Consumo de risco significa que o padrão atual aumenta a chance de problemas de saúde — e que reduzir agora é mais fácil do que depois.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Conversar com seu médico sobre o seu consumo é um próximo passo concreto.",
+      "Observe as situações em que você mais bebe — esse registro ajuda muito na consulta.",
+    ],
+  },
+  harmful_use: {
+    acolhimento: "O que você está enfrentando tem caminho de cuidado — e começa com um passo como este.",
+    leitura: [
+      "Seus resultados sugerem um padrão de consumo nocivo nos últimos 12 meses.",
+      "Nesse nível, o álcool provavelmente já está afetando sua saúde, suas relações ou suas responsabilidades.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Procure uma avaliação profissional — seu médico, um psiquiatra ou o CAPS AD (atendimento gratuito pelo SUS).",
+      "Conte para alguém de confiança que você quer cuidar disso — apoio próximo faz diferença.",
+    ],
+  },
+  probable_dependence: {
+    acolhimento: "Chegar até o fim deste teste com honestidade é um ato de coragem. Você não está sozinho(a) nisso.",
+    leitura: [
+      "Seus resultados sugerem sinais compatíveis com possível dependência de álcool.",
+      "Dependência é uma condição de saúde — tem tratamento e tem equipe preparada para ajudar, sem julgamento.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Procure avaliação o quanto antes: CAPS AD (gratuito pelo SUS), seu médico ou um psiquiatra.",
+      "Evite parar de beber abruptamente por conta própria — a avaliação profissional orienta a forma segura.",
+      "O CVV (188) oferece escuta 24h se você precisar conversar agora.",
+    ],
+  },
+};
+
+// Fagerström — graus de dependência de nicotina.
+const FAGERSTROM_FALLBACKS: Record<string, Devolutiva> = {
+  very_low: {
+    acolhimento: "Olhar para o próprio hábito de fumar é o primeiro movimento de quem quer mudança.",
+    leitura: [
+      "Seus resultados sugerem um grau muito baixo de dependência de nicotina.",
+      "Esse é um momento favorável: quanto menor a dependência, maior a chance de sucesso ao parar.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Se quiser parar, seu médico ou a UBS podem orientar o caminho — o SUS tem programa gratuito de tratamento do tabagismo.",
+      "Defina uma data para parar — ter um marco aumenta a chance de conseguir.",
+    ],
+  },
+  low: {
+    acolhimento: "Você deu um passo real ao medir o seu hábito — isso já muda a relação com ele.",
+    leitura: [
+      "Seus resultados sugerem um grau baixo de dependência de nicotina.",
+      "Com apoio adequado, a maioria das pessoas nesse nível consegue parar.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Procure o programa de tratamento do tabagismo do SUS (UBS) ou converse com seu médico.",
+      "Identifique seus gatilhos — café, bebida, estresse — e planeje substitutos.",
+    ],
+  },
+  medium: {
+    acolhimento: "Reconhecer o tamanho do hábito é o que permite enfrentá-lo de verdade.",
+    leitura: [
+      "Seus resultados sugerem um grau médio de dependência de nicotina.",
+      "Nesse nível, o apoio profissional aumenta bastante a chance de parar com sucesso.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Procure seu médico ou a UBS — o tratamento do tabagismo pelo SUS é gratuito e funciona.",
+      "Conte para pessoas próximas que você está tentando parar — apoio social pesa a favor.",
+    ],
+  },
+  high: {
+    acolhimento: "Você foi honesto(a) com algo difícil — e é exatamente assim que a mudança começa.",
+    leitura: [
+      "Seus resultados sugerem um grau elevado de dependência de nicotina.",
+      "Dependência elevada não é falta de força de vontade — é uma condição que responde a tratamento.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Procure avaliação profissional — seu médico ou o programa de tabagismo do SUS na UBS.",
+      "Leve este resultado à consulta: ele ajuda o profissional a planejar o tratamento com você.",
+    ],
+  },
+  very_high: {
+    acolhimento: "Chegar até aqui já mostra que uma parte de você quer cuidar disso. Ela merece apoio.",
+    leitura: [
+      "Seus resultados sugerem um grau muito elevado de dependência de nicotina.",
+      "Nesse nível, tentar parar sozinho(a) costuma ser muito difícil — e o acompanhamento profissional muda esse jogo.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Procure seu médico ou a UBS o quanto antes — o SUS oferece tratamento gratuito e estruturado para o tabagismo.",
+      "Marque a consulta antes de marcar a data de parar: o plano certo vem primeiro.",
+    ],
+  },
+};
+
+// MDQ — bipolaridade: rótulo sensível. SEMPRE estático (sem LLM, decisão ADR-048).
+const MDQ_FALLBACKS: Record<string, Devolutiva> = {
+  negative: {
+    acolhimento: "Você dedicou um tempo para se conhecer melhor — isso tem valor em si.",
+    leitura: [
+      "Suas respostas não atingiram os critérios de triagem do MDQ.",
+      "O MDQ rastreia períodos marcantes de humor e energia elevados — uma triagem negativa não descarta outras questões de humor que mereçam atenção.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Se algo no seu humor ou energia ainda te preocupa, vale conversar com um profissional — mesmo com a triagem negativa.",
+      "Considere fazer também a triagem de depressão (PHQ-9), se ainda não fez.",
+    ],
+  },
+  positive: {
+    acolhimento: "Você acaba de dar um passo importante — e o que vem agora tem caminho claro.",
+    leitura: [
+      "Suas respostas atingiram os critérios de triagem do MDQ, o que sugere que vale investigar variações de humor e energia com um especialista.",
+      "Uma triagem positiva NÃO é um diagnóstico: só uma avaliação completa, com sua história de vida, pode esclarecer o que esses períodos significam.",
+    ],
+    limites: "Esta triagem não substitui uma avaliação por profissional de saúde.",
+    proximos_passos: [
+      "Procure um psiquiatra para uma avaliação completa — leve este resultado para a consulta.",
+      "Anote exemplos dos períodos em que você se sentiu assim (quando, quanto tempo, o que aconteceu).",
+      "Se estiver passando por um momento difícil agora, o CVV (188) oferece escuta 24h.",
+    ],
+  },
+};
+
+// MSI-BPD — sem cutoff validado p/ BR: fallback único, sem verdict (igual ASRS).
+const MSI_BPD_FALLBACK: Devolutiva = {
+  acolhimento: "Responder a perguntas tão pessoais com honestidade é um gesto de coragem e de autocuidado.",
+  leitura: [
+    "O MSI-BPD organiza padrões de emoções intensas, relações e impulsividade que merecem atenção quando causam sofrimento.",
+    "Ele é um ponto de partida para uma conversa, não um diagnóstico: padrões como esses só podem ser compreendidos numa avaliação completa, com sua história de vida.",
+  ],
+  limites:
+    "Esta triagem não substitui uma avaliação por profissional de saúde, que considera contexto, história e outros critérios.",
+  proximos_passos: [
+    "Leve suas respostas a um psiquiatra ou psicólogo para uma avaliação completa.",
+    "Se as emoções estiverem muito intensas agora, o CVV (188) oferece escuta 24h, todos os dias.",
+  ],
+};
+
 const GENERIC_FALLBACK: Devolutiva = {
   acolhimento: "Você deu um passo importante ao parar para verificar como está.",
   leitura: [
@@ -152,6 +313,13 @@ const GENERIC_FALLBACK: Devolutiva = {
 
 export function getFallback(input: DevolutivaInput): Devolutiva {
   if (input.scaleId === "asrs18") return ASRS_FALLBACK;
-  const map = input.scaleId === "phq9" ? PHQ9_FALLBACKS : GAD7_FALLBACKS;
-  return map[input.band] ?? GENERIC_FALLBACK;
+  if (input.scaleId === "msi_bpd") return MSI_BPD_FALLBACK;
+  const maps: Record<string, Record<string, Devolutiva>> = {
+    phq9: PHQ9_FALLBACKS,
+    gad7: GAD7_FALLBACKS,
+    audit: AUDIT_FALLBACKS,
+    fagerstrom: FAGERSTROM_FALLBACKS,
+    mdq: MDQ_FALLBACKS,
+  };
+  return maps[input.scaleId]?.[input.band] ?? GENERIC_FALLBACK;
 }

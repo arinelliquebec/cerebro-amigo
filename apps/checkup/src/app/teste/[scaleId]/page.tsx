@@ -1,18 +1,26 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { phq9, gad7, asrs18 } from "@/lib/scales";
+import { phq9, gad7, asrs18, audit, mdq, fagerstrom, msiBpd } from "@/lib/scales";
 import { isScaleAvailable } from "@/lib/scales/gate";
 import { QuizFlow } from "./QuizFlow";
 
 export function generateStaticParams() {
-  return [{ scaleId: "phq9" }, { scaleId: "gad7" }, { scaleId: "asrs18" }];
+  return [
+    { scaleId: "phq9" },
+    { scaleId: "gad7" },
+    { scaleId: "asrs18" },
+    { scaleId: "audit" },
+    { scaleId: "mdq" },
+    { scaleId: "fagerstrom" },
+    { scaleId: "msi_bpd" },
+  ];
 }
 
 interface Props {
   params: Promise<{ scaleId: string }>;
 }
 
-const SCALES = { phq9, gad7, asrs18 };
+const SCALES = { phq9, gad7, asrs18, audit, mdq, fagerstrom, msi_bpd: msiBpd };
 const SCALE_METADATA: Record<string, { title: string; description: string }> = {
   phq9: {
     title: "Triagem de Depressão — PHQ-9",
@@ -25,6 +33,22 @@ const SCALE_METADATA: Record<string, { title: string; description: string }> = {
   asrs18: {
     title: "Triagem de TDAH Adulto — ASRS-18",
     description: "Responda 18 perguntas sobre como você se sentiu nos últimos 6 meses.",
+  },
+  audit: {
+    title: "Triagem de Uso de Álcool — AUDIT",
+    description: "Responda 10 perguntas sobre o seu consumo de álcool nos últimos 12 meses.",
+  },
+  mdq: {
+    title: "Triagem de Bipolaridade — MDQ",
+    description: "Responda 15 perguntas sobre períodos de humor e energia fora do habitual.",
+  },
+  fagerstrom: {
+    title: "Dependência de Nicotina — Teste de Fagerström",
+    description: "Responda 6 perguntas sobre o seu hábito de fumar.",
+  },
+  msi_bpd: {
+    title: "Triagem de Traços Borderline — MSI-BPD",
+    description: "Responda 10 perguntas sobre padrões de sentimentos e relações.",
   },
 };
 
