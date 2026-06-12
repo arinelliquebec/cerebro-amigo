@@ -7,6 +7,7 @@ import {
   Link,
   Image,
 } from "@react-pdf/renderer";
+import { BRAND_LOGO_PNG } from "@/lib/brand-logo";
 
 const SCALE_NAMES: Record<string, string> = {
   phq9: "PHQ-9 — Triagem de Depressão",
@@ -23,7 +24,9 @@ const CRISIS_RESOURCES = [
 const styles = StyleSheet.create({
   page: { fontFamily: "Helvetica", padding: 48, fontSize: 10, color: "#0F2137" },
   header: { marginBottom: 24 },
-  brand: { fontSize: 8, color: "#5E4B8B", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 },
+  brandRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
+  brandLogo: { width: 22, height: 22, marginRight: 6 },
+  brand: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#5E4B8B", textTransform: "uppercase", letterSpacing: 1 },
   title: { fontSize: 18, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   date: { fontSize: 8, color: "#64748B" },
   disclaimer: {
@@ -74,7 +77,10 @@ export function CheckupPDF({ scale, score, band, label, crisis, rid }: CheckupPD
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.brand}>Cérebro Amigo · Check-up Mental</Text>
+          <View style={styles.brandRow}>
+            <Image src={BRAND_LOGO_PNG} style={styles.brandLogo} />
+            <Text style={styles.brand}>Cérebro Amigo · Check-up Mental</Text>
+          </View>
           <Text style={styles.title}>{SCALE_NAMES[scale] ?? "Triagem de Saúde Mental"}</Text>
           <Text style={styles.date}>{today}</Text>
         </View>
