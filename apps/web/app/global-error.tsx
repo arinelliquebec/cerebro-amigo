@@ -1,6 +1,5 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
 export default function GlobalError({
@@ -11,7 +10,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error("[global-error]", error);
   }, [error]);
 
   // Boundary raiz: fica fora do layout do app (renderiza o proprio <html>/<body>),
