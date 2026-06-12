@@ -107,24 +107,25 @@ public static class PromptsEndpoints
                 ?? throw new InvalidOperationException("claim 'sub' ausente");
 
             // Calcula próxima versão
-            // SqlQueryRaw<primitivo> materializado exige a coluna "Value"
-            // (ver Data/DbExtensions.cs) — sem o alias, 42703 em runtime.
-            var ultimaVersao = await db.Database.SqlQueryRaw<int>(@"
-                SELECT COALESCE(MAX(versao), 0) AS ""Value""
+            // ADO.NET puro (DbExtensions): SqlQueryRaw<primitivo> + First*
+            // compõe LIMIT sobre SQL não-composável (INSERT/agg) e quebra em
+            // runtime — bug pego pela suite de integração (G-6).
+            var ultimaVersao = await db.Database.ExecuteScalarAsync<int>(@"
+                SELECT COALESCE(MAX(versao), 0)
                 FROM prompts
-                WHERE agente = {0} AND nome = {1}", req.Agente, req.Nome).FirstOrDefaultAsync();
+                WHERE agente = {0} AND nome = {1}", req.Agente, req.Nome);
 
             var novaVersao = ultimaVersao + 1;
 
-            var id = await db.Database.SqlQueryRaw<Guid>(@"
+            var id = await db.Database.ExecuteScalarAsync<Guid>(@"
                 INSERT INTO prompts
                     (agente, nome, versao, conteudo, metadata, criado_por)
                 VALUES ({0}, {1}, {2}, {3}, {4}::jsonb, {5}::uuid)
-                RETURNING id AS ""Value""",
+                RETURNING id",
                 req.Agente, req.Nome, novaVersao,
                 req.Conteudo,
                 string.IsNullOrEmpty(req.Metadata) ? "{}" : req.Metadata,
-                criadoPor).FirstAsync();
+                criadoPor);
 
             return Results.Ok(new { id, versao = novaVersao });
         })
