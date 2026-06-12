@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { NavHeader } from "@/components/landing/nav-header"
 import { HeroSection } from "@/components/landing/hero-section"
 import { ProblemBar } from "@/components/landing/problem-bar"
@@ -22,14 +23,7 @@ export const metadata = {
   alternates: { canonical: "https://www.cerebroamigo.com.br/medico" },
 }
 
-export default async function MedicoLandingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ src?: string; rid?: string }>
-}) {
-  const sp = await searchParams
-  const fromCheckup = sp.src === "checkup" && typeof sp.rid === "string" && sp.rid.length > 0
-
+export default function MedicoLandingPage() {
   return (
     // `.theme-noir` escopa o tema dark espacial só à landing — dashboard e
     // portal têm seus próprios layouts e seguem o :root (light).
@@ -37,7 +31,9 @@ export default async function MedicoLandingPage({
       <Schema data={softwareSchema} />
       <Schema data={websiteSchema} />
       <NavHeader />
-      {fromCheckup && <CheckupQrBanner rid={sp.rid!} />}
+      <Suspense fallback={null}>
+        <CheckupQrBanner />
+      </Suspense>
       <HeroSection />
       <ProblemBar />
 
