@@ -10,10 +10,21 @@ variable "TAG" {
   default = "latest"
 }
 
-// Grupo "default" constrói e pusha os 6 serviços em paralelo.
-// bake-action sem target explícito resolve este grupo.
+// Grupos por destino de deploy (ADR-045): o clínico vai pro box EC2 via SSM;
+// o checkup vai pro ASG próprio. deploy.yml builda só o grupo que mudou.
+//   "clinical" → box clínico (compose/SSM)
+//   "checkup"  → ASG cerebro-checkup-asg (instance refresh)
+//   "default"  → os 6 (build completo manual)
 group "default" {
   targets = ["web", "api-gateway", "orchestrator-py", "agents-py", "notifier-py", "checkup"]
+}
+
+group "clinical" {
+  targets = ["web", "api-gateway", "orchestrator-py", "agents-py", "notifier-py"]
+}
+
+group "checkup" {
+  targets = ["checkup"]
 }
 
 target "web" {

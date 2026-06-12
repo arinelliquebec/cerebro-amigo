@@ -15,31 +15,56 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   ECR: 004177894935.dkr.ecr.sa-east-1.amazonaws.com
 
+# ─── Topologia de deploy (ADR-045) ───────────────────────────────────────────
+#
+# Dois destinos independentes, deploy condicional por path (não recria o que não
+# mudou; push só-docs não deploya nada):
+#   • CLÍNICO  (web, api-gateway, 3 py) → box EC2 i-057860cd97edafefb via SSM compose.
+#   • CHECKUP  (apps/checkup)           → ASG `cerebro-checkup-asg` via instance refresh.
+#
 # ─── Rollback ──────────────────────────────────────────────────────────────
-#
-# Para reverter para um SHA anterior, conecte na EC2 via SSM e execute:
-#
-#   export IMAGE_TAG=<sha-anterior>
-#   aws ecr get-login-password --region sa-east-1 \
-#     | docker login --username AWS --password-stdin \
-#       004177894935.dkr.ecr.sa-east-1.amazonaws.com
-#   cd /opt/cerebro-amigo-v3
-#   git checkout <sha-anterior> -- docker-compose.yml
-#   docker compose pull
-#   docker compose up -d --remove-orphans
-#
-# As imagens de SHAs anteriores ficam disponíveis no ECR enquanto a lifecycle
-# policy (keep last 10) não as apagar. Ver infra/aws/setup-ecr.sh.
+# Clínico: SSM na EC2 → IMAGE_TAG=<sha-anterior>; docker compose pull && up -d --remove-orphans.
+# Checkup: SSM put /cerebro-amigo/checkup/image-tag=<sha-anterior> + start-instance-refresh do ASG.
+# Imagens de SHAs anteriores ficam no ECR (lifecycle keep last 10). Ver infra/aws/setup-ecr.sh.
 
 jobs:
-  # ─── Job 0: gate de testes (BLOQUEIA o deploy se falhar) ─────────────────
-  #
-  # Tier 0 de segurança clínica: nenhuma imagem é buildada/deployada sem que
-  # os testes dos serviços Python passem. Inclui o gate de fail-safe do
-  # classificador de crise (ADR-006) e a integridade do dataset de crise.
-  # Ver também .github/workflows/ci.yml (mesmo gate em pull requests).
+  # ─── Detecta o que mudou (gate de path) ──────────────────────────────────
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      clinical: ${{ steps.filter.outputs.clinical }}
+      checkup: ${{ steps.filter.outputs.checkup }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            clinical:
+              - 'apps/web/**'
+              - 'apps/api-gateway/**'
+              - 'apps/orchestrator-py/**'
+              - 'apps/agents-py/**'
+              - 'apps/notifier-py/**'
+              - 'docker-compose.yml'
+              - '.github/docker-bake.hcl'
+              - '.github/workflows/deploy.yml'
+              - 'pnpm-lock.yaml'
+            checkup:
+              - 'apps/checkup/**'
+              - '.github/docker-bake.hcl'
+              - '.github/workflows/deploy.yml'
+              - 'pnpm-lock.yaml'
+
+  # ─── Gate de testes do clínico (Tier 0 segurança clínica) ────────────────
+  # Nenhuma imagem clínica deploya sem os testes Python passarem (classificador
+  # de crise ADR-006 + integridade do dataset). Espelho do gate em ci.yml.
   test:
     name: Tests — ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.clinical == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -65,14 +90,11 @@ jobs:
           ruff check .
           pytest -q
 
-  # ─── Job 0.5: smoke do checkup (BLOQUEIA o deploy se falhar) ─────────────
-  #
-  # Builda o checkup, sobe o servidor e roda apps/checkup/scripts/smoke.sh contra
-  # localhost — pega regressão de RUNTIME que o build não vê (ex.: o 500 do
-  # /api/pdf quando o @react-pdf/renderer era bundlado pelo Turbopack, CK-1/CK-7).
-  # CI-safe: sem DB/Anthropic → devolutiva no fallback, events ok, PDF é puro SSR.
+  # ─── Gate de smoke do checkup (RUNTIME) ──────────────────────────────────
   smoke-checkup:
     name: Smoke — checkup
+    needs: changes
+    if: needs.changes.outputs.checkup == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -112,55 +134,81 @@ jobs:
           kill $SV 2>/dev/null || true
           exit $R
 
-  # ─── Job 1: build e push das 5 imagens para o ECR (paralelo + cache) ─────
-  build:
-    name: Build & push to ECR
-    needs: [test, smoke-checkup]
+  # ─── Build clínico (5 imagens) → ECR ─────────────────────────────────────
+  build-clinical:
+    name: Build clínico → ECR
+    needs: [changes, test]
+    if: needs.changes.outputs.clinical == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      image_tag: ${{ github.sha }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: sa-east-1
-
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: private
-
-      # Buildx para suporte a cache inline (type=gha)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      # Builds paralelos via buildx bake. Cada serviço usa a camada de cache
-      # do GitHub Actions — deps inalteradas não são baixadas/compiladas.
-      - name: Build and push all images
+      - name: Build and push (clinical)
         uses: docker/bake-action@v6
         env:
           TAG: ${{ github.sha }}
         with:
           files: .github/docker-bake.hcl
+          targets: clinical
           push: true
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
 
-  # ─── Job 2: deploy via SSM (pull + up, sem build na EC2) ─────────────────
-  deploy:
-    name: SSM deploy
-    needs: build
+  # ─── Build checkup (1 imagem) → ECR ──────────────────────────────────────
+  build-checkup:
+    name: Build checkup → ECR
+    needs: [changes, smoke-checkup]
+    if: needs.changes.outputs.checkup == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: private
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push (checkup)
+        uses: docker/bake-action@v6
+        env:
+          TAG: ${{ github.sha }}
+        with:
+          files: .github/docker-bake.hcl
+          targets: checkup
+          push: true
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
 
+  # ─── Deploy clínico via SSM (box EC2) ────────────────────────────────────
+  deploy-clinical:
+    name: Deploy clínico (SSM)
+    needs: [changes, build-clinical]
+    if: needs.changes.outputs.clinical == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -190,7 +238,6 @@ jobs:
               "for i in $(seq 1 30); do curl -sf http://localhost:8081/health | grep -q ok && curl -sf http://localhost:8081/ready | grep -q ready && break; [ $i -lt 30 ] && sleep 3 || { echo orchestrator-py nao saudavel; exit 1; }; done && echo orchestrator-py ok",
               "for i in $(seq 1 30); do curl -sf http://localhost:8082/health | grep -q ok && curl -sf http://localhost:8082/ready | grep -q ready && break; [ $i -lt 30 ] && sleep 3 || { echo agents-py nao saudavel; exit 1; }; done && echo agents-py ok",
               "for i in $(seq 1 30); do curl -sf http://localhost:8083/health | grep -q ok && curl -sf http://localhost:8083/ready | grep -q ready && break; [ $i -lt 30 ] && sleep 3 || { echo notifier-py nao saudavel; exit 1; }; done && echo notifier-py ok",
-              "for i in $(seq 1 30); do curl -sf http://localhost:3001/api/health | grep -q ok && break; [ $i -lt 30 ] && sleep 3 || { echo checkup nao saudavel; exit 1; }; done && echo checkup ok",
               "echo deploy ok"
             ]' \
             --timeout-seconds 1200 \
@@ -236,3 +283,44 @@ jobs:
 
           echo "Timed out waiting for deploy"
           exit 1
+
+  # ─── Deploy checkup no ASG (instance refresh) ────────────────────────────
+  deploy-checkup:
+    name: Deploy checkup (ASG)
+    needs: [changes, build-checkup]
+    if: needs.changes.outputs.checkup == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
+
+      - name: Bump image-tag + instance refresh
+        run: |
+          set -euo pipefail
+          ASG=cerebro-checkup-asg
+          aws ssm put-parameter --region sa-east-1 \
+            --name /cerebro-amigo/checkup/image-tag --type String --overwrite \
+            --value "${{ github.sha }}"
+          RID=$(aws autoscaling start-instance-refresh --region sa-east-1 \
+            --auto-scaling-group-name "$ASG" \
+            --preferences '{"MinHealthyPercentage":100,"MaxHealthyPercentage":200,"InstanceWarmup":60}' \
+            --query InstanceRefreshId --output text)
+          echo "instance refresh: $RID"
+          # zero-downtime (launch antes de terminar); espera concluir
+          for i in $(seq 1 45); do
+            ST=$(aws autoscaling describe-instance-refreshes --region sa-east-1 \
+              --auto-scaling-group-name "$ASG" --instance-refresh-ids "$RID" \
+              --query "InstanceRefreshes[0].Status" --output text)
+            echo "[$i/45] $ST"
+            case "$ST" in
+              Successful) echo "checkup ASG atualizado"; exit 0;;
+              Failed|Cancelled|RollbackSuccessful|RollbackFailed) echo "refresh terminou em $ST"; exit 1;;
+            esac
+            sleep 20
+          done
+          echo "timeout aguardando instance refresh"; exit 1

@@ -1,6 +1,6 @@
 # ADR-045 — Desacoplar o Check-up para infra própria (ALB + Auto Scaling Group)
 
-- **Status:** Proposed
+- **Status:** Accepted (em produção desde 2026-06-12)
 - **Data:** 2026-06-11
 - **Contexto relacionado:** ADR-009 (isolamento de recurso no compose), ADR-042 (RLS de tenant),
   ADR-044 (LLM Anthropic), CLAUDE.md (isolamento clínico⇄público), `apps/checkup/CLAUDE.md`.
