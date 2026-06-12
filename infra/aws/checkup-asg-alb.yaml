@@ -44,7 +44,7 @@ Resources:
   AlbSg:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: checkup ALB — entrada publica 80/443
+      GroupDescription: checkup ALB - entrada publica 80/443
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - { IpProtocol: tcp, FromPort: 80,  ToPort: 80,  CidrIp: 0.0.0.0/0, Description: HTTP (redirect 443) }
@@ -55,7 +55,7 @@ Resources:
   InstanceSg:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: checkup instancias — so do ALB na 3001; gestao via SSM
+      GroupDescription: checkup instancias - so do ALB na 3001; gestao via SSM
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
