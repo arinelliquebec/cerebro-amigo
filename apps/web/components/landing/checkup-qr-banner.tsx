@@ -1,25 +1,34 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 // Banner exibido no /medico quando o médico chega pelo QR do PDF do Check-up
-// (?src=checkup&rid=...). Dispara `qr_scanned` (atribuição, ADR-046) e leva ao
-// cadastro carregando src/rid adiante. Isolamento: o evento vai pra API pública do
-// checkup via BFF (/api/checkup-event); o web nunca escreve o schema checkup.
-export function CheckupQrBanner({ rid }: { rid: string }) {
+// (?src=checkup&rid=...). Lê o searchParams AQUI (client) — em Next 16 com
+// cacheComponents/PPR, dado dinâmico tem que ficar sob <Suspense>, então a página
+// /medico permanece estática e só este componente é dinâmico. Dispara `qr_scanned`
+// (atribuição, ADR-046) e leva ao cadastro carregando src/rid. Isolamento: o evento
+// vai pra API pública do checkup via BFF (/api/checkup-event); o web não escreve o schema.
+export function CheckupQrBanner() {
+  const params = useSearchParams()
+  const src = params.get("src")
+  const rid = params.get("rid")
+  const fromCheckup = src === "checkup" && !!rid
   const fired = useRef(false)
 
   useEffect(() => {
-    if (fired.current) return
+    if (!fromCheckup || fired.current) return
     fired.current = true
     fetch("/api/checkup-event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ event: "qr_scanned", rid }),
     }).catch(() => {})
-  }, [rid])
+  }, [fromCheckup, rid])
+
+  if (!fromCheckup) return null
 
   return (
     <div className="border-b border-border/40 bg-primary/10">
@@ -28,7 +37,7 @@ export function CheckupQrBanner({ rid }: { rid: string }) {
           Você recebeu um relatório do Check-up Mental. Crie sua conta para acompanhar os pacientes que chegam até você.
         </p>
         <Button asChild size="sm" className="shrink-0">
-          <Link href={`/medicos/cadastro?src=checkup&rid=${encodeURIComponent(rid)}`}>
+          <Link href={`/medicos/cadastro?src=checkup&rid=${encodeURIComponent(rid!)}`}>
             Criar conta grátis
           </Link>
         </Button>
