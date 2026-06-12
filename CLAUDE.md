@@ -54,6 +54,8 @@ _v2-ref/          espelho somente-leitura do V2 — não editar, não usar em bu
 
 web `:3000` · api-gateway `:5050`→`:5000` · orchestrator-py `:8081` · agents-py `:8082` · notifier-py `:8083` · checkup `:3001`. Serviços Python e .NET expõem `GET /health` e `GET /ready`; checkup expõe `GET /api/health`. Postgres é **externo** (não vai no docker-compose).
 
+> **Prod (ADR-045):** o checkup **não roda mais no box clínico** — vive em infra própria (ALB + Auto Scaling Group `cerebro-checkup-asg`, t3.small). O `:3001` vale só pra dev local. Deploy do checkup = build no CI → ECR → bump SSM `/cerebro-amigo/checkup/image-tag` + instance refresh do ASG (job `deploy-checkup`); o box clínico (compose/SSM) só roda os 5 serviços clínicos. RDS é privado (não-público) — admin do DB via box (Session Manager), não direto do laptop.
+
 ## Comandos
 
 - Dev (tudo): `docker compose up -d --build` (precisa de `.env` preenchido)
