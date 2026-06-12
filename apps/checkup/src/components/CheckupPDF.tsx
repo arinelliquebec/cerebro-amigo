@@ -64,7 +64,9 @@ interface CheckupPDFProps {
 }
 
 export function CheckupPDF({ scale, score, band, label, crisis, rid }: CheckupPDFProps) {
-  const qrUrl = `https://cerebroamigo.com.br/medicos?src=checkup&rid=${rid}`;
+  // Landing do médico = /medico (singular). www direto evita o hop apex->www no QR escaneado.
+  // src=checkup + rid permitem atribuição (qr_scanned / médicos por 1000 testes) sem identificar o paciente.
+  const qrUrl = `https://www.cerebroamigo.com.br/medico?src=checkup&rid=${rid}`;
   const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
   return (
