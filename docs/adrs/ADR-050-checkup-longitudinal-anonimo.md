@@ -4,9 +4,9 @@
 
 - **Status:** Parte 1 (Cockpit de Aquisição) **Accepted — implementado** (PR #38 mergeado/deployado 2026-06-13);
   Parte 2 (Check-up longitudinal pseudonimizado) **Proposed — design** (revisão clinical-safety CONDICIONAL
-  aplicada 2026-06-13). Fases 1–3 (migration `0044` + opt-in `/api/tracking` + envio/unsubscribe/erasure) **implementadas
-  (dark/inerte, flag `NEXT_PUBLIC_CHECKUP_TRACKING_ENABLED` off; envio só com SES prod-access CK-4)**;
-  Fase 4+ (tela de evolução, job de retenção, smoke E2E) pendente.
+  aplicada 2026-06-13). Fases 1–4 (migration `0044` + opt-in `/api/tracking` + envio/unsubscribe/erasure + tela de evolução/re-rastreio)
+  **implementadas (dark/inerte, flag `NEXT_PUBLIC_CHECKUP_TRACKING_ENABLED` off; envio só com SES prod-access
+  CK-4)**; Fase 5+ (job de retenção, smoke E2E + revisão clinical-safety final) pendente.
 - **Data:** 2026-06-13
 - **Relacionados:** ADR-046 (signup externo + atribuição do Check-up), ADR-045 (Check-up em ASG/ALB próprio),
   ADR-042 (RLS de tenant), ADR-036 (least-privilege roles — schema `checkup` isolado), ADR-044 (LLM Anthropic),
@@ -210,7 +210,12 @@ CREATE TABLE checkup.tracking_reminders (
    real com CASCADE — erasure LGPD). Links keyed por `series_token` (sem coluna nova). **Só envia** com
    flag on + `CHECKUP_CRON_TOKEN` + `CHECKUP_ENCRYPTION_KEY` + **SES production-access (CK-4)** — até lá
    o envio falha e não marca `sent_at` (retenta), sem efeito colateral.
-4. Tela de evolução por `series_token` (só dados + faixas; `noindex`/`no-store`; gate de crise no re-rastreio).
+4. **Tela de evolução + re-rastreio** ✅ **implementada**: `/evolucao?t=` (server `noindex` + client) lê
+   `GET /api/tracking/series?t=` (escore+faixa por data, `no-store`, marca `last_seen_at`) e plota um
+   gráfico SVG **só de dados — sem narrativa de tendência, sem diagnóstico, zero LLM**. Botão "refazer"
+   → `/teste/<scale>?series=<token>`; o `QuizFlow` repassa o token ao `/resultado` (só no caminho normal,
+   **nunca** no de crise), que anexa o ponto via `POST /api/tracking/point` (rejeita `crisis=true`,
+   rate-limit, 404 se série apagada, atualiza `last_seen_at`). Token-gated (não depende da flag nem de SES).
 5. Job de retenção (purga por `last_seen_at`) + runbook (TTL, erasure manual).
 6. Smoke E2E + **revisão `clinical-safety` final** (gera texto visto pelo usuário).
 
