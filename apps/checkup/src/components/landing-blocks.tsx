@@ -138,6 +138,7 @@ const TODAS_TRIAGENS = [
   { href: "/borderline", titulo: "Traços borderline", instrumento: "MSI-BPD", duracao: "~2 min" },
   { href: "/alcool", titulo: "Uso de álcool", instrumento: "AUDIT (OMS)", duracao: "~3 min" },
   { href: "/tabagismo", titulo: "Dependência de nicotina", instrumento: "Fagerström", duracao: "~1 min" },
+  { href: "/drogas", titulo: "Uso de substâncias", instrumento: "ASSIST (OMS)", duracao: "2–5 min" },
 ] as const
 
 export function OutrasTriagens({ current }: { current: string }) {

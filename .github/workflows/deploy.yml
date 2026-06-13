@@ -327,9 +327,23 @@ jobs:
 
       - name: Invalidar cache CF (novo build Next.js)
         run: |
+          set -euo pipefail
+          # ID da distribuição: SSM (preferido) → fallback por alias na API do
+          # CloudFront (cobre a falta de ssm:GetParameter no user do CI — ver
+          # runbook docs/runbooks/cloudfront-checkup.md).
           CF_ID=$(aws ssm get-parameter --region sa-east-1 \
             --name /cerebro-amigo/checkup/cf-distribution-id \
-            --query Parameter.Value --output text)
+            --query Parameter.Value --output text 2>/dev/null) || CF_ID=""
+          if [ -z "$CF_ID" ]; then
+            echo "ssm:GetParameter negado — tentando lookup por alias no CloudFront"
+            CF_ID=$(aws cloudfront list-distributions --query \
+              "DistributionList.Items[?contains(Aliases.Items, 'checkup.cerebroamigo.com.br')].Id | [0]" \
+              --output text 2>/dev/null) || CF_ID=""
+          fi
+          if [ -z "$CF_ID" ] || [ "$CF_ID" = "None" ]; then
+            echo "::error::Sem permissão p/ descobrir o distribution ID (ssm:GetParameter E cloudfront:ListDistributions negados). Cache do CF NÃO invalidado — HTML antigo pode ser servido. Fix: policy no runbook docs/runbooks/cloudfront-checkup.md."
+            exit 1
+          fi
           # Invalida tudo: HTML das páginas pode referenciar chunks de build anterior
           aws cloudfront create-invalidation \
             --distribution-id "$CF_ID" \

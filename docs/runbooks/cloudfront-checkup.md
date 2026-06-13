@@ -20,6 +20,13 @@
 >
 > (Conferir se `cloudfront:CreateInvalidation` já existe; o erro atual é no
 > GetParameter, que roda antes.) Remover este aviso quando o job ficar verde.
+>
+> **Mitigação no pipeline (2026-06-13):** o passo do `deploy.yml` agora tenta,
+> na falta do `ssm:GetParameter`, descobrir o distribution ID por alias via
+> `cloudfront:ListDistributions`. Ou seja: conceder **(a)** `ssm:GetParameter`
+> no parâmetro acima OU **(b)** `cloudfront:ListDistributions` (+
+> `cloudfront:CreateInvalidation`) resolve. Se ambos faltarem, o job continua
+> vermelho com mensagem apontando para este runbook.
 
 ## Visão geral
 

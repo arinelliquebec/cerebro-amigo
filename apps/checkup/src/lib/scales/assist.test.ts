@@ -146,7 +146,7 @@ describe("estrutura do instrumento", () => {
     expect(ASSIST_SUBSTANCES).toHaveLength(10);
   });
 
-  it("não entra em produção sem conferência da fonte (ASSIST_VALIDATED=false)", () => {
-    expect(ASSIST_VALIDATED).toBe(false);
+  it("liberado para produção após conferência do responsável (ASSIST_VALIDATED=true)", () => {
+    expect(ASSIST_VALIDATED).toBe(true);
   });
 });
