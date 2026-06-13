@@ -3,10 +3,9 @@
 // Versão brasileira validada (Henrique IFS et al., Rev Assoc Med Bras, 2004),
 // a mesma adotada pelo material SUPERA (SENAD/Ministério da Saúde).
 //
-// TODO(validar): conferir caractere a caractere contra o instrumento publicado
-// (Henrique et al. 2004 / material SUPERA "bloco ASSIST") antes de marcar
-// `ASSIST_VALIDATED = true`. Enquanto false, a rota /teste/assist mostra
-// "Em breve" — mesmo gate das demais escalas.
+// VALIDADO: texto conferido pelo responsável clínico (Patrick, 2026-06-13).
+// Fonte para re-conferência: Henrique et al. 2004 / material SUPERA
+// ("bloco ASSIST"). Mudança de item exige nova conferência.
 //
 // ESTRUTURA (diferente do motor genérico — por isso módulo próprio, ADR-049):
 //  - Q1: uso NA VIDA por classe de substância (10 classes, multi-seleção);
@@ -305,7 +304,7 @@ export function buildAssistPlan(
   return steps;
 }
 
-// Gate de produção — mesmo processo das demais escalas (conferir fonte → true).
-export const ASSIST_VALIDATED = false;
+// Gate de produção — texto conferido pelo responsável (Patrick, 2026-06-13).
+export const ASSIST_VALIDATED = true;
 export const ASSIST_SOURCE =
   "ASSIST v3.0 (OMS) — versão brasileira validada (Henrique IFS et al., Rev Assoc Med Bras, 2004; material SUPERA/SENAD-MS)";

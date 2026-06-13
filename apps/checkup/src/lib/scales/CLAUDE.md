@@ -115,4 +115,5 @@ não conhece UI, IA nem PDF.
 - Resultado/PDF por substância (serialização `encodeAssistResult`, faixas sempre
   recomputadas pelo motor). **Devolutiva SEMPRE estática** (tema sensível).
 - "Outras" da Q1 sem campo de texto livre (produto não coleta texto livre — LGPD).
-- Gate: `ASSIST_VALIDATED` em `assist.ts` (TODO(validar): Henrique 2004/SUPERA).
+- `ASSIST_VALIDATED: true` — conferido pelo responsável (Patrick, 2026-06-13);
+  landing `/drogas` no ar. Re-conferência: Henrique 2004 / SUPERA.

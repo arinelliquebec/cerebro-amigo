@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Activity, ArrowRight, Cigarette, CloudRain, Heart, Lock, ShieldCheck, Timer, Wind, Wine, Zap } from "lucide-react";
+import { Activity, ArrowRight, Cigarette, CloudRain, Heart, Lock, Pill, ShieldCheck, Timer, Wind, Wine, Zap } from "lucide-react";
 import { ComoFunciona } from "@/components/landing-blocks";
 import { Logo } from "@/components/logo";
 
@@ -80,6 +80,16 @@ const TESTES = [
       "Para medir o grau de dependência de nicotina — o primeiro passo de quem pensa em parar.",
     duracao: "~1 min",
     acao: "Fazer teste de tabagismo",
+  },
+  {
+    href: "/drogas",
+    icon: Pill,
+    titulo: "Uso de substâncias",
+    instrumento: "ASSIST (OMS)",
+    descricao:
+      "Para avaliar, substância por substância, o risco do seu padrão de uso — com perguntas que se adaptam às suas respostas.",
+    duracao: "2–5 min",
+    acao: "Fazer teste de substâncias",
   },
 ] as const;
 
