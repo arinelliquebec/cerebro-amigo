@@ -59,7 +59,9 @@ export async function POST(req: NextRequest) {
       SELECT id FROM checkup.tracking_series WHERE series_token = ${token} AND deleted_at IS NULL
     `;
     if (series.length === 0) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      // série inexistente/apagada: responde ok (anexar é best-effort) — não vaza
+      // validade de token por status (sem enumeração).
+      return NextResponse.json({ ok: true });
     }
     const seriesId = series[0].id;
     await sql.begin(async (tx) => {

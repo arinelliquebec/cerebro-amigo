@@ -185,6 +185,7 @@ function ResultContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sessionId: sid,
+        consent: true,
         email: trackEmail,
         scaleId: scale,
         totalScore: score,

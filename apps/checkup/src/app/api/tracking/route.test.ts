@@ -7,6 +7,7 @@ import { POST } from "./route";
 
 const VALID = {
   sessionId: "11111111-1111-4111-8111-111111111111",
+  consent: true,
   email: "a@b.com",
   scaleId: "phq9",
   totalScore: 12,
@@ -52,6 +53,14 @@ describe("POST /api/tracking — portões", () => {
     const { email: _omit, ...semEmail } = VALID;
     const res = await POST(post(semEmail));
     expect(res.status).toBe(400);
+  });
+
+  it("consentimento explícito obrigatório: sem consent → 400", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CHECKUP_TRACKING_ENABLED", "true");
+    vi.stubEnv("CHECKUP_ENCRYPTION_KEY", "k");
+    const { consent: _c, ...semConsent } = VALID;
+    expect((await POST(post(semConsent))).status).toBe(400);
+    expect((await POST(post({ ...VALID, consent: false }))).status).toBe(400);
   });
 
   it("sem DB (vitest) → 503, nunca finge sucesso", async () => {

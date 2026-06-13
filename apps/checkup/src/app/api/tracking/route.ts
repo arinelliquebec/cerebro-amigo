@@ -26,6 +26,8 @@ const REMINDER_DAYS = 14;
 
 const BodySchema = z.object({
   sessionId: z.string().uuid(),
+  // consentimento explícito validado no servidor (LGPD) — recusa qualquer outro valor.
+  consent: z.literal(true),
   email: z.string().email().max(254),
   scaleId: z.enum(["phq9", "gad7", "asrs18", "audit", "mdq", "fagerstrom", "msi_bpd", "assist"]),
   totalScore: z.number().int().min(0).max(100),
