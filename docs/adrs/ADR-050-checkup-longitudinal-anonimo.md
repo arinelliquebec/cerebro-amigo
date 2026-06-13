@@ -4,8 +4,9 @@
 
 - **Status:** Parte 1 (Cockpit de Aquisição) **Accepted — implementado** (PR #38 mergeado/deployado 2026-06-13);
   Parte 2 (Check-up longitudinal pseudonimizado) **Proposed — design** (revisão clinical-safety CONDICIONAL
-  aplicada 2026-06-13). Fases 1–2 (migration `0044` + opt-in `POST /api/tracking`) **implementadas (dark, flag
-  `NEXT_PUBLIC_CHECKUP_TRACKING_ENABLED` off)**; Fase 3+ (envio SES + erasure + tela de evolução) pendente.
+  aplicada 2026-06-13). Fases 1–3 (migration `0044` + opt-in `/api/tracking` + envio/unsubscribe/erasure) **implementadas
+  (dark/inerte, flag `NEXT_PUBLIC_CHECKUP_TRACKING_ENABLED` off; envio só com SES prod-access CK-4)**;
+  Fase 4+ (tela de evolução, job de retenção, smoke E2E) pendente.
 - **Data:** 2026-06-13
 - **Relacionados:** ADR-046 (signup externo + atribuição do Check-up), ADR-045 (Check-up em ASG/ALB próprio),
   ADR-042 (RLS de tenant), ADR-036 (least-privilege roles — schema `checkup` isolado), ADR-044 (LLM Anthropic),
@@ -201,8 +202,14 @@ CREATE TABLE checkup.tracking_reminders (
    fail-closed sem a chave) + seção opt-in no `/resultado` (só fora de crise). **Não envia e-mail** →
    **não depende de SES**. Atrás da flag `NEXT_PUBLIC_CHECKUP_TRACKING_ENABLED` (default `false`) para
    só coletar e-mail quando a Fase 3 (envio + erasure) estiver no ar.
-3. Job de envio do nudge (template fixo, decifra in-memory) + unsubscribe + **erasure** ("apagar meus dados").
-   **Aqui** entra a dependência de **SES production-access** (CK-4).
+3. **Envio do nudge + unsubscribe + erasure** ✅ **implementada (inerte até SES)**:
+   `POST /api/tracking/cron` (Bearer `CHECKUP_CRON_TOKEN`, scheduler externo) pega reminders vencidos,
+   decifra o e-mail só in-memory (`pgp_sym_decrypt`), envia template **fixo** (sem LLM, sem escore) por SES,
+   marca `sent_at` por linha (idempotente; falha retenta). `GET /api/tracking/unsubscribe?t=` (one-click,
+   não-destrutivo) e `POST /api/tracking/erase` + página `/descadastrar` (confirmação humana; **DELETE**
+   real com CASCADE — erasure LGPD). Links keyed por `series_token` (sem coluna nova). **Só envia** com
+   flag on + `CHECKUP_CRON_TOKEN` + `CHECKUP_ENCRYPTION_KEY` + **SES production-access (CK-4)** — até lá
+   o envio falha e não marca `sent_at` (retenta), sem efeito colateral.
 4. Tela de evolução por `series_token` (só dados + faixas; `noindex`/`no-store`; gate de crise no re-rastreio).
 5. Job de retenção (purga por `last_seen_at`) + runbook (TTL, erasure manual).
 6. Smoke E2E + **revisão `clinical-safety` final** (gera texto visto pelo usuário).
