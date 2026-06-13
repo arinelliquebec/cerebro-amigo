@@ -22,8 +22,6 @@ import { checkTrackingLimit } from "@/lib/ratelimit";
  *  - Sem respostas item-a-item, sem texto livre (minimização).
  */
 
-export const dynamic = "force-dynamic";
-
 const REMINDER_DAYS = 14;
 
 const BodySchema = z.object({
