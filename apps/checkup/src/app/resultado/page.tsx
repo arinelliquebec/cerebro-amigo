@@ -135,6 +135,8 @@ function ResultContent() {
   const band = searchParams.get("band") ?? "";
   const label = searchParams.get("label") ?? band;
   const isCrisis = searchParams.get("crisis") === "true";
+  // Re-rastreio do acompanhamento (ADR-050 Parte 2): token da série vindo do link.
+  const series = searchParams.get("series") ?? "";
 
   const [devolutiva, setDevolutiva] = useState<Devolutiva | null>(null);
   const [loading, setLoading] = useState(true);
@@ -225,6 +227,17 @@ function ResultContent() {
       })
       .finally(() => setLoading(false));
   }, [scale, band, score, label]);
+
+  // Re-rastreio: se o teste veio de um link de acompanhamento (?series=), anexa o novo
+  // ponto à série. NUNCA em crise (crise vai p/ /crise, sem series; e a rota rejeita).
+  useEffect(() => {
+    if (!series || isCrisis || !scale || !band) return;
+    fetch("/api/tracking/point", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: series, totalScore: score, band, crisis: isCrisis }),
+    }).catch(() => {});
+  }, [series, isCrisis, scale, band, score]);
 
   // ASSIST: resultado é POR substância (ADR-049) — decodificado e recomputado
   // deterministicamente do query param (sem PII; faixas vêm do motor).
@@ -417,7 +430,7 @@ function ResultContent() {
 
       {/* Acompanhar evolução (ADR-050 Parte 2) — opt-in, só fora de crise, atrás de flag.
           Cria a série; o e-mail é cifrado no servidor. O envio do lembrete é a Fase 3. */}
-      {trackingEnabled && !loading && !isCrisis && scale && band && (
+      {trackingEnabled && !series && !loading && !isCrisis && scale && band && (
         <section className="glass-noir reveal reveal-3 mt-8 rounded-2xl p-5">
           {trackState === "done" ? (
             <p className="text-sm leading-relaxed text-purple-light">
@@ -474,6 +487,17 @@ function ResultContent() {
         <p className="mt-7 text-center text-xs text-muted-foreground">
           Se precisar de apoio: <a href="tel:188" className="underline underline-offset-2">CVV 188</a> · 24h
         </p>
+      )}
+
+      {series && !isCrisis && (
+        <div className="mt-6 text-center">
+          <Link
+            href={`/evolucao?t=${encodeURIComponent(series)}`}
+            className="text-sm text-purple-light underline-offset-2 hover:underline"
+          >
+            Ver minha evolução →
+          </Link>
+        </div>
       )}
 
       <div className="mt-8 text-center">
