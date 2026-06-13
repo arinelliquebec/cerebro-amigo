@@ -9,7 +9,6 @@ import {
 } from "@/components/landing-blocks";
 import {
   JsonLd,
-  InterpretationSection,
   QuandoProcurarAjuda,
   FaqSection,
   CitationsBlock,
@@ -22,7 +21,6 @@ import {
   breadcrumbJsonLd,
   type FaqItem,
 } from "@/lib/seo/jsonld";
-import { mdq } from "@/lib/scales";
 
 const PAGE_URL = `${SITE_URL}/bipolaridade`;
 
@@ -154,7 +152,31 @@ export default function BipolaridadePage() {
           ]}
         />
 
-        <InterpretationSection scale={mdq} />
+        <section className="mb-12">
+          <h2 className="mb-4 font-display text-2xl font-semibold text-foreground">
+            Como o resultado é apresentado
+          </h2>
+          <p className="mb-4 leading-relaxed text-muted-foreground">
+            O MDQ soma os "sim" nos 13 primeiros itens (escore 0–13), mas o escore
+            sozinho não determina o resultado. A triagem positiva exige as três
+            condições ao mesmo tempo:
+          </p>
+          <ol className="mb-4 list-decimal list-inside space-y-2 text-muted-foreground">
+            <li>
+              <span className="text-foreground font-medium">7 ou mais "sim"</span> nos 13 itens de humor e energia
+            </li>
+            <li>
+              Os comportamentos ocorreram <span className="text-foreground font-medium">no mesmo período</span> (item 14)
+            </li>
+            <li>
+              Causaram <span className="text-foreground font-medium">problemas moderados ou sérios</span> na sua vida (item 15)
+            </li>
+          </ol>
+          <p className="text-sm text-muted-foreground">
+            As faixas são do instrumento, não um veredito: só um profissional de saúde
+            pode interpretar o seu resultado no seu contexto de vida.
+          </p>
+        </section>
 
         <QuandoProcurarAjuda />
 
