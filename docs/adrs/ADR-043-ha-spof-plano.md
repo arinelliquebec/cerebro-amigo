@@ -1,7 +1,8 @@
 # ADR-043: Alta disponibilidade e fim do SPOF — plano
 
-**Status:** Proposed (plano). Wins baratos de observabilidade já feitos (ADR sem
-custo); itens pagos (Multi-AZ, redundância EC2) aguardam decisão do dono.
+**Status:** Em andamento. Observabilidade (Sentry, watchdog) e **alarme de backup
+(item E)** feitos; **Multi-AZ (item A) ATIVO desde 2026-06-14**. Falta: redundância
+de EC2 (item B) e RDS Proxy (item D).
 **Data:** 2026-06-09
 **Decisores:** Rafael Arinelli (responsável / decisão de custo)
 **Categoria:** Infra / disponibilidade
@@ -31,7 +32,9 @@ observabilidade fraca:
 - **Custo:** ~2× o preço da instância RDS (standby cobrado). db.t4g.medium ≈ +US$70/mês.
 - **Downtime p/ habilitar:** ~minutos (modify aplica standby).
 - **Recomendação:** **fazer** — é o maior ganho de resiliência por real gasto. Dado
-  clínico não pode sumir numa falha de AZ.
+  clínico não pode sumir numa falha de AZ. **✅ FEITO 2026-06-14:** `cerebro-postgres`
+  Multi-AZ ativo (standby montado em ~3 min; failover automático; endpoint inalterado,
+  sem mudança no app).
 
 ### B. Redundância de EC2 (matar o SPOF de compute)
 - **Opção B1 — ALB + 2ª instância (ASG 2x):** balanceador + 2 EC2 idênticas atrás.
