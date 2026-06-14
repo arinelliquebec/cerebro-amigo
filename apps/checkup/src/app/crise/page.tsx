@@ -1,15 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { connection } from "next/server";
 import { ContinueButton } from "./ContinueButton";
 
-// Server Component: os recursos de crise (CVV/SAMU/CAPS) renderizam server-side
-// (SSR), aparecendo mesmo se o JS falhar ou demorar. É a página mais crítica do
-// produto — nunca pode depender de hidratação p/ mostrar os canais de ajuda.
-// `connection()` força render DINÂMICO (opt-out do cache estático do cacheComponents
-// do Next 16) → a tela de crise nunca é servida de cache stale na ORIGEM: defesa em
-// profundidade do CK-11 / clinical-safety regra #2 (o CloudFront já tem CachingDisabled
-// em /crise*). Continua 100% SSR; só deixa de ganhar o `s-maxage` de página estática.
+// Server Component: os recursos de crise (CVV/SAMU/CAPS) renderizam ESTATICAMENTE
+// (SSR/prerender), aparecendo mesmo se o JS falhar ou demorar. É a página mais
+// crítica do produto — nunca pode depender de hidratação p/ mostrar os canais de ajuda.
 // Só o botão "continuar" (que lê searchParams) é dinâmico, isolado sob Suspense.
 
 export const metadata = {
@@ -17,9 +12,7 @@ export const metadata = {
   robots: { index: false },
 };
 
-export default async function CrisePage() {
-  // Request-bound => resposta não-cacheável na origem (sem s-maxage).
-  await connection();
+export default function CrisePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16 bg-[#F8FAFC]">
       <div className="max-w-md w-full">
