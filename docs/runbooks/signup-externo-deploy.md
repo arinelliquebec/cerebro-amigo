@@ -46,8 +46,47 @@ Confere (deve listar as colunas novas):
 
 - **Gateway:** `INFOSIMPLES_TOKEN`, `CRM_VALIDATION_ENABLED`, `RESEND_API_KEY`/`EMAIL_FROM`,
   `PORTAL_PACIENTE_URL` (link de ativação) — já usados pelo onboarding admin.
+- **Captcha (ADR-055):** `TURNSTILE_SECRET_KEY` no **gateway** (SSM SecureString) +
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` na **Vercel** (web). As duas andam juntas: sem elas o
+  captcha fica desligado (sem proteção, mas não quebra). Gerar no Cloudflare Turnstile (gratuito).
 - **Vercel (web):** `API_GATEWAY_URL=https://api.cerebroamigo.com.br` (já existe p/ os outros BFF).
   `CHECKUP_EVENTS_URL` — opcional (default `https://checkup.cerebroamigo.com.br/api/events`).
+
+## Fase 1b — Ativar o captcha Turnstile (ADR-055)
+
+Opcional, mas recomendado antes de divulgar o cadastro orgânico. **Flag-gated:** enquanto as
+duas chaves não estiverem setadas, o captcha fica desligado (o signup funciona sem ele). As
+**duas andam juntas**. Gerar o widget no Cloudflare Turnstile (gratuito) → obter a `site key`
+(pública) e a `secret key` (segredo). **Nunca** comitar a secret.
+
+**1. Site key → Vercel** (build-time; exige rebuild)
+- Painel: Project → Settings → Environment Variables → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` =
+  `<SITE_KEY>`, scopes **Production + Preview**. Ou via CLI:
+  ```bash
+  vercel env add NEXT_PUBLIC_TURNSTILE_SITE_KEY production   # repetir p/ preview
+  ```
+- Redeploy o www (a `NEXT_PUBLIC_*` só entra no bundle client num novo build).
+
+**2. Secret → gateway (box)** (runtime; lida via `env_file: .env`)
+```bash
+# box i-057860cd97edafefb via Session Manager
+cd /opt/cerebro-amigo-v3
+grep -q '^TURNSTILE_SECRET_KEY=' .env || echo 'TURNSTILE_SECRET_KEY=<SECRET_KEY>' >> .env
+docker compose up -d api-gateway     # relê o .env e recarrega a secret
+# (opcional) guardar no SSM p/ sobreviver a reprovisionamento do box:
+aws ssm put-parameter --region sa-east-1 --type SecureString \
+  --name /cerebro-amigo/turnstile/secret-key --value '<SECRET_KEY>'
+```
+> O `api-gateway` no compose usa `env_file: .env` → basta a var estar no `.env` do box; sem
+> mudança de compose nem de imagem. O deploy clínico **não regenera** o `.env` (só
+> `git pull && docker compose up`), então editar o `.env` é o passo manual de verdade.
+
+**Desativar / rotacionar:** remover as duas chaves (ou só a secret) volta o captcha ao estado
+desligado. Para rotacionar, gerar novo par no Turnstile e repetir os passos 1 e 2.
+
+> ⚠️ `NEXT_PUBLIC_*` é build-time: o web do **box** (imagem ECR) não embute a site key — ok,
+> porque o `/medicos/cadastro` público é servido pela Vercel. Se um dia o box passar a servir
+> o cadastro público, passar `NEXT_PUBLIC_TURNSTILE_SITE_KEY` como build-arg no `docker-bake`.
 
 ## Fase 2 — Merge → deploy
 
@@ -70,6 +109,8 @@ CI deploy-checkup precisa das perms IAM já concedidas (`CerebroCheckupAsgDeploy
    `crm_situacao='Regular'`; `assinaturas.status='trial'`.
 4. **Anti-fraude:** repetir com nome divergente → 422 `nome_divergente`. CRM cancelado → 422 `crm_invalido`.
    6 tentativas rápidas do mesmo IP → 429.
+   **Captcha (ADR-055, se as chaves Turnstile estiverem setadas):** o widget aparece no form e o
+   POST sem token resolvido → 403 `captcha_invalido`. Sem as chaves, o passo é pulado (desligado).
 5. **Ativação:** abrir o link do e-mail (`/ativar-conta?token=`) → define senha → `/login` entra → JWT ok.
 6. **Métrica:** `SELECT signup_source, count(*) FROM medicos GROUP BY 1;` e junção
    `funnel_events.rid ⇄ medicos.checkup_rid`.
@@ -86,7 +127,8 @@ CI deploy-checkup precisa das perms IAM já concedidas (`CerebroCheckupAsgDeploy
 ## Pendências conhecidas (pós-MVP)
 - Teste xUnit dedicado do endpoint `/auth/medico/signup` (mock CfmClient/Resend) — hoje coberto por build + 44 testes de isolamento.
 - Enumeração de e-mail (409 `email_em_uso`) — risco baixo (CRM é público); avaliar resposta genérica.
-- Spoof de X-Forwarded-For no rate-limit — mitigado por cache 30d do CfmClient + spend limit Infosimples.
+- Spoof de X-Forwarded-For no rate-limit — mitigado por cache 30d do CfmClient + spend limit Infosimples
+  + Turnstile (ADR-055) quando ativo.
 - Teste xUnit dedicado do endpoint `/api/v1/admin/aquisicao` (Cockpit, ADR-050) — hoje coberto por build; read-only.
 
 ---
