@@ -76,6 +76,12 @@ public static class PrescricoesEndpoints
             try { horariosArray = (req.Horarios ?? new()).Select(h => TimeOnly.Parse(h)).ToArray(); }
             catch { return Results.BadRequest(new { error = "horarios_invalidos" }); }
 
+            // Confirmar tem de ligar ao menos uma automação (lembrete OU renovação),
+            // senão a prescrição ativaria com horarios='{}' + validade NULL e voltaria
+            // ao beco sem saída que o ADR-056 elimina. Espelha o gate do front (defense-in-depth).
+            if (horariosArray.Length == 0 && req.ReceitaValidade is null)
+                return Results.BadRequest(new { error = "sem_automacao", message = "Informe ao menos um horário ou a validade para ativar." });
+
             // Tenant: resolve o rascunho já ancorado no médico logado (JOIN pacientes).
             var pacienteId = await db.Database.ExecuteScalarAsync<Guid?>(@"
                 SELECT pr.paciente_id FROM prescricoes pr
@@ -111,7 +117,12 @@ public static class PrescricoesEndpoints
             return Results.NoContent();
         });
 
-        // ---- descartar rascunho MEMED: sai da fila sem virar prescrição ativa ----
+        // ---- descartar rascunho MEMED: remove sem virar prescrição ativa ----
+        // DELETE físico: o rascunho NUNCA foi prescrição ativa nem gravou evento de
+        // auditoria, então não há trilha append a preservar. Marcá-lo só com ativa=FALSE
+        // o deixaria na lista normal de prescrições como "Inativa" fantasma (a lista filtra
+        // por precisa_confirmar=FALSE) — exatamente o que o ADR-056 quer evitar. A receita
+        // legal segue no MEMED e o registro do espelho em receitas_memed permanece.
         g.MapPost("/{id:guid}/descartar", async (Guid id, AppDbContext db, ClaimsPrincipal user) =>
         {
             var medicoId = await ResolveMedicoId(db, user);
@@ -119,8 +130,8 @@ public static class PrescricoesEndpoints
 
             // Tenant: só descarta rascunho de paciente do médico logado.
             var linhas = await db.Database.ExecuteRawAsync(@"
-                UPDATE prescricoes pr SET precisa_confirmar = FALSE, ativa = FALSE
-                FROM pacientes p
+                DELETE FROM prescricoes pr
+                USING pacientes p
                 WHERE pr.id = {0} AND pr.precisa_confirmar = TRUE
                   AND p.cliente_id = pr.paciente_id AND p.medico_responsavel_id = {1}",
                 id, medicoId.Value);
