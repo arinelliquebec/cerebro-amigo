@@ -25,6 +25,7 @@ interface Assinatura {
 }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
+  pendente: { label: "Pendente", cls: "bg-warning/15 text-warning border-warning/30" },
   trial: { label: "Em teste", cls: "bg-warning/15 text-warning border-warning/30" },
   ativa: { label: "Ativa", cls: "bg-success/15 text-success border-success/30" },
   suspensa: { label: "Suspensa", cls: "bg-destructive/15 text-destructive border-destructive/30" },
@@ -54,9 +55,10 @@ export default function MinhaAssinaturaPage() {
   const [criando, setCriando] = useState(false)
   const [erroCheckout, setErroCheckout] = useState<string | null>(null)
 
+  // Só o plano Inicial é self-checkout (mensal). Os planos Consultoria são contrato
+  // de 3 meses com venda assistida — ativados pela equipe (ADR-059).
   const PLANOS = [
-    { key: "pro", nome: "Solo Pro", valor: 197, desc: "Para o consultório individual" },
-    { key: "enterprise", nome: "Clínica", valor: 397, desc: "Para clínicas e equipes" },
+    { key: "pro", nome: "Inicial", valor: 497, desc: "Plano mensal · acompanhamento entre consultas" },
   ]
 
   // Self-checkout (ADR-055 Fase C): cria a cobrança da própria assinatura e abre o
@@ -150,6 +152,10 @@ export default function MinhaAssinaturaPage() {
                     Ativar e pagar <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
                   {erroCheckout && <p role="alert" className="text-xs text-coral">{erroCheckout}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    Planos Consultoria (contrato de 3 meses, features sob medida):{" "}
+                    <a href="/sobre#contato" className="underline underline-offset-2 hover:text-foreground">fale com a equipe</a>.
+                  </p>
                   </div>
                   )}
                 </div>

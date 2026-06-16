@@ -13,76 +13,77 @@ import {
 export const metadata = {
   title: "Preços",
   description:
-    "Planos simples para psiquiatras. Comece grátis por 14 dias, sem cartão de crédito. Ao assinar, período mínimo de 3 meses.",
+    "Planos para psiquiatras. Inicial mensal, sem fidelidade; planos Consultoria com contrato de 3 meses e features sob medida.",
   openGraph: {
     title: "Preços — Cérebro Amigo",
-    description: "Planos simples para psiquiatras. 14 dias grátis, sem cartão.",
+    description: "Inicial mensal; planos Consultoria com contrato de 3 meses + features sob medida.",
   },
   alternates: { canonical: "https://www.cerebroamigo.com.br/precos" },
 }
 
 const planos = [
   {
-    nome: "Início",
-    preco: "Grátis",
-    sub: "por 14 dias",
-    destaque: false,
-    desc: "Para explorar a plataforma sem compromisso.",
-    cor: "border-noir-line bg-noir-surface",
-    features: [
-      "Até 5 pacientes",
-      "Diário por voz",
-      "Check-ins automáticos",
-      "Briefing pré-consulta",
-      "Protocolo de crise",
-      "Suporte por e-mail",
-    ],
-    cta: "Começar grátis",
-    href: "/medico",
-  },
-  {
-    nome: "Solo",
-    preco: "R$ 197",
+    nome: "Inicial",
+    preco: "R$ 497",
     sub: "/mês · 1 médico",
     destaque: true,
-    desc: "Para o psiquiatra que quer acompanhar seus pacientes com mais presença.",
+    desc: "Para o psiquiatra que quer acompanhar seus pacientes entre consultas, com a IA fazendo o trabalho pesado.",
     cor: "border-primary/40 bg-primary/5 glow-purple-lg",
-    badge: "Mais popular",
+    badge: "Comece por aqui",
     features: [
       "Até 60 pacientes",
-      "Tudo do Início",
+      "Diário por voz + check-ins automáticos",
+      "Briefing pré-consulta",
       "Agentes analíticos de IA",
       "Evolução clínica em gráficos",
-      "Editor de prompts",
+      "Protocolo de crise + editor de prompts",
       "Suporte prioritário",
     ],
-    cta: "Criar conta",
+    cta: "Assinar",
     href: "/medicos/cadastro",
   },
   {
-    nome: "Clínica",
-    preco: "R$ 397",
-    sub: "/mês · até 3 médicos",
+    nome: "Solo Consultoria",
+    preco: "R$ 4.023",
+    sub: "/trimestre · 1 médico",
     destaque: false,
-    desc: "Para clínicas que querem escalar o acompanhamento sem perder qualidade.",
+    desc: "Tudo do Inicial + consultoria personalizada: novas features sob medida para o seu consultório.",
+    cor: "border-noir-line bg-noir-surface",
+    features: [
+      "Tudo do Inicial",
+      "Contrato de 3 meses",
+      "Consultoria personalizada",
+      "Features sob medida (roadmap próprio)",
+      "Onboarding dedicado",
+      "Suporte direto",
+    ],
+    cta: "Falar com a equipe",
+    href: "/sobre#contato",
+  },
+  {
+    nome: "Clínica Consultoria",
+    preco: "A partir de R$ 7.830",
+    sub: "/trimestre · vários médicos",
+    destaque: false,
+    desc: "Para clínicas que querem escalar o acompanhamento com features e consultoria dedicadas.",
     cor: "border-noir-line bg-noir-surface",
     features: [
       "Pacientes ilimitados",
-      "Tudo do Solo",
-      "Múltiplos médicos",
-      "Painel da clínica",
+      "Tudo do Solo Consultoria",
+      "Múltiplos médicos + painel da clínica",
       "Relatórios agregados",
-      "Onboarding dedicado",
+      "Consultoria + features sob medida",
+      "Onboarding e suporte dedicados",
     ],
-    cta: "Falar com equipe",
+    cta: "Falar com a equipe",
     href: "/sobre#contato",
   },
 ]
 
 const faqs = [
   {
-    q: "Preciso de cartão de crédito para o trial?",
-    a: "Não. O período de 14 dias é completamente grátis e sem cadastro de pagamento. Você só informa os dados quando decidir continuar.",
+    q: "Como funciona a cobrança?",
+    a: "O plano Inicial é mensal e você assina online. Os planos Consultoria têm contrato de 3 meses (cobrança trimestral) e são fechados junto com a nossa equipe.",
   },
   {
     q: "Quanto tempo leva para configurar?",
@@ -90,7 +91,7 @@ const faqs = [
   },
   {
     q: "E se eu quiser cancelar?",
-    a: "Ao assinar, o plano tem período mínimo de 3 meses. Concluído esse período, você cancela quando quiser e o acesso fica ativo até o fim do ciclo pago. As condições podem variar conforme o contrato.",
+    a: "O plano Inicial é mensal, sem fidelidade — você cancela quando quiser e o acesso fica ativo até o fim do ciclo pago. Os planos Consultoria têm contrato de 3 meses; concluído o período, você renova ou encerra. As condições constam no contrato.",
   },
   {
     q: "Os dados dos meus pacientes são seguros?",
@@ -102,11 +103,11 @@ const faqs = [
   },
   {
     q: "Posso usar numa clínica com vários médicos?",
-    a: "Sim, o plano Clínica suporta até 3 médicos. Para equipes maiores ou hospitais, entre em contato para um plano personalizado.",
+    a: "Sim. Os planos Consultoria atendem clínicas com vários médicos, com painel da clínica e relatórios agregados. Fale com a equipe para desenhar o plano certo para o seu time.",
   },
   {
-    q: "Quando a integração com pagamento online estará disponível?",
-    a: "Em breve. Por ora a assinatura é confirmada manualmente. Você será avisado assim que o checkout online estiver disponível.",
+    q: "O que é a consultoria personalizada?",
+    a: "Nos planos Consultoria, a gente constrói features sob medida para o seu consultório ou clínica — você participa do roadmap. A plataforma e os guardrails clínicos (protocolo de crise, LGPD) permanecem os mesmos; o que muda são as funcionalidades dedicadas a você.",
   },
 ]
 
@@ -182,8 +183,8 @@ export default function PrecosPage() {
               <span className="italic text-accent [text-shadow:0_0_40px_var(--noir-glow-coral)]">sem surpresas</span>.
             </h1>
             <p className="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
-              14 dias grátis, sem cartão de crédito. Ao assinar um plano,
-              período mínimo de 3 meses.
+              Plano Inicial mensal, sem fidelidade. Planos Consultoria com
+              contrato de 3 meses e features sob medida.
             </p>
           </Reveal>
         </div>
@@ -257,7 +258,7 @@ export default function PrecosPage() {
               {[
                 { icon: ShieldCheck, label: "LGPD", sub: "Dados de saúde mental protegidos" },
                 { icon: Lock, label: "AWS Brasil", sub: "Dados armazenados no Brasil (sa-east-1)" },
-                { icon: Zap, label: "Contrato claro", sub: "Período mínimo de 3 meses ao assinar" },
+                { icon: Zap, label: "Contrato claro", sub: "Inicial mensal sem fidelidade; Consultoria com 3 meses" },
                 { icon: Brain, label: "Protocolo fixo", sub: "Crise com texto pré-aprovado, nunca gerado por IA" },
               ].map((t) => (
                 <div key={t.label} className="flex flex-col items-center gap-2">
@@ -292,12 +293,12 @@ export default function PrecosPage() {
         <div className="container relative mx-auto max-w-xl px-6">
           <Reveal>
             <h2 className="font-serif text-4xl font-medium leading-tight text-balance">
-              Pronto para experimentar?
+              Pronto para começar?
             </h2>
-            <p className="mx-auto mt-3 text-muted-foreground">14 dias grátis, sem cartão.</p>
+            <p className="mx-auto mt-3 text-muted-foreground">Assine o plano Inicial em minutos.</p>
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
               <Button variant="coral" size="lg" className="gap-2 px-8 py-6 text-base" asChild>
-                <Link href="/medico">Começar grátis <ArrowRight className="h-5 w-5" /></Link>
+                <Link href="/medicos/cadastro">Criar conta <ArrowRight className="h-5 w-5" /></Link>
               </Button>
               <Button variant="glass" size="lg" className="px-8 py-6 text-base" asChild>
                 <Link href="/login">Já tenho conta</Link>
