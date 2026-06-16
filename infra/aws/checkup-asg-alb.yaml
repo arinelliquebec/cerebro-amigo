@@ -237,6 +237,10 @@ Resources:
             TAG=$(aws ssm get-parameter --region $REGION --name /cerebro-amigo/checkup/image-tag --query Parameter.Value --output text 2>/dev/null || echo "${CheckupImageTag}")
             ANTHROPIC=$(get /cerebro-amigo/checkup/anthropic-api-key)
             DBURL=$(get /cerebro-amigo/checkup/database-url)
+            # Cockpit de Aquisição (ADR-046/ADR-050): Bearer que o BFF clínico usa p/
+            # ler /api/funnel-metrics. Fail-soft (param pode não existir) — a rota é
+            # fail-closed (503) se vazia, então o cockpit só degrada p/ "lado clínico".
+            METRICS=$(get /cerebro-amigo/checkup/metrics-token 2>/dev/null || echo "")
             aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR
             docker rm -f checkup 2>/dev/null || true
             docker run -d --name checkup --restart unless-stopped \
@@ -248,6 +252,7 @@ Resources:
               -e NODE_ENV=production -e PORT=3001 \
               -e ANTHROPIC_API_KEY="$ANTHROPIC" \
               -e CHECKUP_DATABASE_URL="$DBURL" \
+              -e CHECKUP_METRICS_TOKEN="$METRICS" \
               -e NEXT_PUBLIC_SITE_URL=https://checkup.cerebroamigo.com.br \
               $ECR/cerebro-amigo/checkup:$TAG
 
