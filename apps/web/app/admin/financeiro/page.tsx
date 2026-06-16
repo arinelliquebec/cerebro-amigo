@@ -54,7 +54,7 @@ const pagamentoSchema = z.object({
 })
 
 const editarAssinaturaSchema = z.object({
-  plano: z.enum(["trial", "starter", "pro", "enterprise"]),
+  plano: z.enum(["pendente", "trial", "starter", "pro", "enterprise"]),
   valor: z.string().min(1, "Valor é obrigatório").refine((v) => {
     return parseBrl(v) >= 0
   }, "Valor inválido"),
@@ -72,7 +72,7 @@ const novaAssinaturaSchema = z.object({
     if (!v) return true
     return cpfValido(v)
   }, "CPF inválido").optional().or(z.literal("")),
-  plano: z.enum(["trial", "starter", "pro", "enterprise"]),
+  plano: z.enum(["pendente", "trial", "starter", "pro", "enterprise"]),
   valor: z.string().min(1, "Valor é obrigatório").refine((v) => {
     const num = parseBrl(v)
     return num > 0
@@ -104,11 +104,21 @@ interface Assinatura {
 }
 
 const PLANO_COR: Record<string, string> = {
+  pendente: "bg-warning/15 text-warning border-warning/30",
   trial: "bg-warning/15 text-warning border-warning/30",
   starter: "bg-muted/50 text-muted-foreground border-border",
   pro: "bg-primary/15 text-primary border-primary/30",
   enterprise: "bg-accent/15 text-accent border-accent/30",
 }
+// Códigos físicos → rótulos do pricing atual (ADR-059). `trial` = legado.
+const PLANO_LABEL: Record<string, string> = {
+  pendente: "Pendente (sem plano)",
+  trial: "Trial (legado)",
+  pro: "Inicial (Solo Pro)",
+  starter: "Solo Consultoria",
+  enterprise: "Clínica Consultoria",
+}
+const planoLabel = (p?: string | null) => (p ? (PLANO_LABEL[p] ?? p) : "—")
 const STATUS_COR: Record<string, string> = {
   trial: "text-warning",
   pendente: "text-warning",
@@ -285,8 +295,8 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
               <Select value={plano} onValueChange={(v) => setValue("plano", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["trial", "starter", "pro", "enterprise"].map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  {["pendente", "trial", "starter", "pro", "enterprise"].map((p) => (
+                    <SelectItem key={p} value={p}>{planoLabel(p)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -356,7 +366,7 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
       crm: "",
       crmUf: "",
       cpf: "",
-      plano: "trial",
+      plano: "pro",
       valor: "",
     },
   })
@@ -518,7 +528,7 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
               <Label>Plano</Label>
               <Select value={planoValue} onValueChange={(v) => setValue("plano", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{["trial","starter","pro","enterprise"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                <SelectContent>{["pendente","trial","starter","pro","enterprise"].map((p) => <SelectItem key={p} value={p}>{planoLabel(p)}</SelectItem>)}</SelectContent>
               </Select>
               {errors.plano && <p className="text-xs text-destructive">{errors.plano.message}</p>}
             </div>
@@ -763,7 +773,7 @@ export default function FinanceiroPage() {
                   <td className="px-5 py-3 font-medium text-foreground">{a.medicoNome ?? "—"}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{a.medicoEmail ?? "—"}</td>
                   <td className="px-5 py-3">
-                    <Badge className={`border font-mono text-[10px] uppercase ${PLANO_COR[a.plano ?? ""] ?? ""}`}>{a.plano ?? "—"}</Badge>
+                    <Badge className={`border font-mono text-[10px] uppercase ${PLANO_COR[a.plano ?? ""] ?? ""}`}>{planoLabel(a.plano)}</Badge>
                   </td>
                   <td className="px-5 py-3 text-foreground">
                     R$ {(a.valorMensal ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
