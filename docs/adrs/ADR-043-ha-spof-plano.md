@@ -1,7 +1,8 @@
 # ADR-043: Alta disponibilidade e fim do SPOF — plano
 
 **Status:** Em andamento. Observabilidade (Sentry, watchdog) e **alarme de backup
-(item E)** feitos; **Multi-AZ (item A) ATIVO desde 2026-06-14**. Falta: redundância
+(item E)** feitos; **Multi-AZ (item A) ATIVO desde 2026-06-14**; **right-size
+`db.t4g.medium` → `db.t4g.small` em 2026-06-17** (Multi-AZ mantido). Falta: redundância
 de EC2 (item B) e RDS Proxy (item D).
 **Data:** 2026-06-09
 **Decisores:** Rafael Arinelli (responsável / decisão de custo)
@@ -29,7 +30,8 @@ observabilidade fraca:
 
 ### A. RDS Multi-AZ (failover automático do banco)
 - **O quê:** standby síncrono em outra AZ; failover automático (~60–120s) em falha.
-- **Custo:** ~2× o preço da instância RDS (standby cobrado). db.t4g.medium ≈ +US$70/mês.
+- **Custo:** ~2× o preço da instância RDS (standby cobrado). Em `db.t4g.medium` ≈ +US$70/mês;
+  **após o right-size para `db.t4g.small` (2026-06-17) ≈ +US$35/mês** — Multi-AZ mantido.
 - **Downtime p/ habilitar:** ~minutos (modify aplica standby).
 - **Recomendação:** **fazer** — é o maior ganho de resiliência por real gasto. Dado
   clínico não pode sumir numa falha de AZ. **✅ FEITO 2026-06-14:** `cerebro-postgres`
@@ -54,8 +56,10 @@ observabilidade fraca:
   testado é backup que pode não existir. **(Feito — T1-5; restore-drill mensal no CI.)**
 
 ### D. Conexões sob escala-out — RDS Proxy
-- **Problema:** `db.t4g.medium` tem `max_connections` de só ~340–450 (limitado por RAM).
-  Conforme o checkup escala out (ASG, cada instância com pool) somado aos pools do box
+- **Problema:** `db.t4g.small` (após o right-size de 2026-06-17; 2 GB RAM) tem `max_connections`
+  de só **~170–225** — **metade** do teto do antigo `db.t4g.medium` (~340–450), porque o limite é a
+  RAM. O resize barateia a conta mas **aperta** este teto: orçar pools (e o RDS Proxy) passa a importar
+  mais cedo. Conforme o checkup escala out (ASG, cada instância com pool) somado aos pools do box
   clínico (Npgsql do gateway, default 100; orchestrator psycopg3 10 + asyncpg 20; agents
   10), o teto real sob carga vira **conexões**, não CPU.
 - **O quê:** **RDS Proxy** na frente do RDS — multiplexa "muitas instâncias → poucas
