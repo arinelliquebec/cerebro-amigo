@@ -115,6 +115,12 @@ public sealed class TenantIsolationFixture : IAsyncLifetime
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    // Cliente HTTP SEM autenticação (p/ endpoints anônimos, ex.: unsubscribe da newsletter).
+    public HttpClient AnonClient() => _factory.CreateClient();
+
+    // Service provider do host de teste (p/ introspecção de EndpointDataSource — ADR-065 R2).
+    public IServiceProvider Services => _factory.Services;
+
     public async Task<NpgsqlConnection> OpenDbAsync()
     {
         var conn = new NpgsqlConnection(ConnectionString);
@@ -165,6 +171,19 @@ public sealed class TenantIsolationFixture : IAsyncLifetime
             .OrderBy(f => f).ToArray();
         await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync();
+
+        // Migrations recentes (ex.: 0050) fazem GRANT a cerebro_gateway/cerebro_workers —
+        // roles criados em PROD pela 0036 (que o fixture pula). Cria stubs idempotentes só
+        // p/ os GRANTs não falharem; as conexões de teste usam superuser + gw_test (depois).
+        await using (var roleCmd = new NpgsqlCommand(@"
+            DO $$ BEGIN
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='cerebro_gateway') THEN CREATE ROLE cerebro_gateway NOLOGIN; END IF;
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='cerebro_workers') THEN CREATE ROLE cerebro_workers NOLOGIN; END IF;
+            END $$;", conn))
+        {
+            await roleCmd.ExecuteNonQueryAsync();
+        }
+
         foreach (var file in files)
         {
             var sql = await File.ReadAllTextAsync(file);
