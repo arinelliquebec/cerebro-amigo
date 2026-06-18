@@ -148,6 +148,15 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("admin_geral", policy =>
         policy.RequireAssertion(ctx =>
             ctx.User.HasClaim("role", "owner") || ctx.User.HasClaim("role", "admin")));
+
+    // Médico (dashboard clínico). Usada por MensagensAudioEndpoints (ADR-064) e conta;
+    // estava ausente → RequireAuthorization("medico") lançava em runtime. owner/admin
+    // entram também (master). O escopo de dado real continua via GetMedicoIdAsync.
+    options.AddPolicy("medico", policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim("role", "medico")
+            || ctx.User.HasClaim("role", "owner")
+            || ctx.User.HasClaim("role", "admin")));
 });
 
 // -----------------------------------------------------------------------------

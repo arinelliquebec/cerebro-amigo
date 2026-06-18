@@ -5,19 +5,28 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Download, Trash2, Loader2, CheckCircle2, AlertTriangle } from "lucide-react"
 
 export function PrivacidadeTab() {
   const [confirmar, setConfirmar] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [solicitado, setSolicitado] = useState(false)
+  const [senha, setSenha] = useState("")
   const [erro, setErro] = useState<string | null>(null)
 
   async function solicitarExclusao() {
+    if (!senha.trim()) { setErro("Digite sua senha para confirmar."); return }
     setErro(null); setEnviando(true)
     try {
-      const r = await fetch("/api/conta/exclusao", { method: "POST" })
-      if (r.ok || r.status === 202) { setSolicitado(true); setConfirmar(false) }
+      // Reautenticação: a exclusão exige a senha atual (ADR-066 review).
+      const r = await fetch("/api/conta/exclusao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senhaAtual: senha }),
+      })
+      if (r.ok || r.status === 202) { setSolicitado(true); setConfirmar(false); setSenha("") }
+      else if (r.status === 400) setErro("Senha incorreta.")
       else setErro("Não foi possível registrar o pedido. Tente novamente.")
     } catch { setErro("Erro de conexão.") }
     finally { setEnviando(false) }
@@ -51,6 +60,8 @@ export function PrivacidadeTab() {
           ) : confirmar ? (
             <div className="space-y-2">
               <p className="flex items-center gap-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4" /> Tem certeza? Esta ação inicia a exclusão da sua conta.</p>
+              <Input type="password" placeholder="Confirme com sua senha atual" value={senha}
+                onChange={(e) => setSenha(e.target.value)} className="max-w-xs" autoComplete="current-password" />
               <div className="flex items-center gap-2">
                 <Button variant="destructive" className="gap-2" disabled={enviando} onClick={solicitarExclusao}>
                   {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Confirmar pedido

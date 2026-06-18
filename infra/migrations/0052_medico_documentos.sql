@@ -61,11 +61,16 @@ BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'cerebro_gateway') THEN
         GRANT SELECT, INSERT, UPDATE, DELETE ON medico_documentos TO cerebro_gateway;
     END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'cerebro_workers') THEN
+        GRANT ALL ON medico_documentos TO cerebro_workers;
+    END IF;
 END
 $$;
 
 -- ── Foto de perfil do médico (avatar) — S3 presigned no mesmo bucket de docs.
 -- Coluna guarda só a key; o binário vive no S3 (SSE). Aparece na sidebar.
--- Nome SEM underscore antes de "key" (foto_s3key) p/ casar com a convenção
--- snake_case do EF (UseSnakeCaseNamingConvention) sobre a propriedade FotoS3Key.
-ALTER TABLE medicos ADD COLUMN IF NOT EXISTS foto_s3key TEXT;
+-- Nome `foto_s3_key`: é a saída da convenção snake_case do EF (UseSnakeCaseNaming)
+-- p/ a propriedade FotoS3Key (insere _ antes de cada maiúscula: Foto|S3|Key →
+-- foto_s3_key). O nome anterior (foto_s3key, sem _) NÃO casava → /me dava
+-- "column foto_s3key does not exist". Migration ainda não aplicada em prod.
+ALTER TABLE medicos ADD COLUMN IF NOT EXISTS foto_s3_key TEXT;

@@ -75,7 +75,7 @@ Trocar senha (+ esqueci-senha), LGPD export/exclusão, foto de perfil, central d
 - **+** Cofre de docs destrava onboarding/KYC e entrega de NFS-e/contrato sem e-mail solto.
 - **+** Trocar senha fecha um gap real (hoje só na ativação) e esqueci-senha reduz lockout.
 - **−** Novo bucket S3 + política IAM (perímetro público-adjacente: bucket privado, presign curto, key namespaced por `medico/{id}/`).
-- **−** Exclusão LGPD é **soft** (`medicos.desativado_em`) e **respeita trilhas imutáveis** (Regra 5): `protocolos_crise_acionados`/`notificacoes_medico`/`agente_execucoes` **não** são apagados; exclusão anonimiza PII do cadastro, mantém auditoria.
+- **−** Exclusão LGPD é **soft** e **respeita trilhas imutáveis** (Regra 5): `protocolos_crise_acionados`/`notificacoes_medico`/`agente_execucoes` **não** são apagados; o admin processa o pedido (anonimiza PII do cadastro, mantém auditoria). Exige **reautenticação** (senha atual) e seta `medicos.exclusao_solicitada_em` (flag p/ o admin) **+** `usuarios.desativado_em` (bloqueia o login imediatamente — é a coluna que o `/login` checa). Registrado em `eventos_conta` (migration 0054, LGPD art.37).
 - **−** Admin/owner bypassam RLS (P1 do security roadmap) — o upload `disponibilizado` depende disso; quando o escopo admin for apertado, validar que o caminho continua.
 
 ## Fases

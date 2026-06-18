@@ -5,7 +5,7 @@ import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 export async function GET() {
   try {
     const data = await gateway.get("/api/v1/me/exportar")
-    if (data == null) return NextResponse.json({ error: "sem_dados" }, { status: 502 })
+    if (data === null || data === undefined) return NextResponse.json({ error: "sem_dados" }, { status: 502 })
     return new NextResponse(JSON.stringify(data, null, 2), {
       status: 200,
       headers: {

@@ -24,20 +24,31 @@ public static class ContaEndpoints
 
         // ── SEGURANÇA (logado) ───────────────────────────────────────────────
         app.MapPost("/api/v1/me/senha", async (
-            [FromBody] TrocarSenhaReq req, AppDbContext db, IPasswordHasher hasher, ClaimsPrincipal user) =>
+            [FromBody] TrocarSenhaReq req, AppDbContext db, IPasswordHasher hasher,
+            LoginRateLimiter rateLimiter, ClaimsPrincipal user, HttpContext ctx) =>
         {
             var sub = user.FindFirst("sub")?.Value;
             if (!Guid.TryParse(sub, out var userId)) return Results.Forbid();
             if (string.IsNullOrWhiteSpace(req.NovaSenha) || req.NovaSenha.Length < 8)
                 return Results.BadRequest(new { error = "senha_curta" });
 
+            // Rate-limit (ADR-066 review): impede brute-force online da senha ATUAL
+            // por uma sessão (mesmo já autenticada). Mesma política de login (5/15min).
+            var rlKey = "senha:" + userId;
+            if (await rateLimiter.IsBlockedAsync(rlKey)) return Results.StatusCode(429);
+
             var u = await db.Usuarios.FirstOrDefaultAsync(x => x.Id == userId);
             if (u is null) return Results.Forbid();
             if (!hasher.Verify(req.SenhaAtual ?? "", u.SenhaHash))
+            {
+                await rateLimiter.RecordFailureAsync(rlKey);
                 return Results.BadRequest(new { error = "senha_atual_incorreta" });
+            }
 
             u.SenhaHash = hasher.Hash(req.NovaSenha);
             await db.SaveChangesAsync();
+            await rateLimiter.RecordSuccessAsync(rlKey);
+            await RegistrarEventoContaAsync(db, userId, null, "senha_alterada", ctx);
             return Results.NoContent();
         }).WithTags("conta").RequireAuthorization();
 
@@ -90,7 +101,8 @@ public static class ContaEndpoints
         }).AllowAnonymous().WithTags("conta");
 
         app.MapPost("/api/v1/auth/redefinir-senha", async (
-            [FromBody] RedefinirSenhaReq req, AppDbContext db, IPasswordHasher hasher) =>
+            [FromBody] RedefinirSenhaReq req, AppDbContext db, IPasswordHasher hasher,
+            LoginRateLimiter rateLimiter, HttpContext ctx) =>
         {
             if (string.IsNullOrWhiteSpace(req.Token) || string.IsNullOrWhiteSpace(req.NovaSenha))
                 return Results.BadRequest(new { error = "dados_invalidos" });
@@ -109,6 +121,14 @@ public static class ContaEndpoints
                 "UPDATE usuarios SET senha_hash = {0} WHERE id = {1}::uuid", hasher.Hash(req.NovaSenha), row.UsuarioId);
             await db.Database.ExecuteSqlRawAsync(
                 "UPDATE medico_invite_tokens SET usado_em = NOW() WHERE token_hash = {0}", hash);
+
+            // Reset OK: limpa o rate-limit 'reset:<email>' p/ não travar reenvio legítimo
+            // (ADR-066 review) + auditoria.
+            var email = await db.Database.ExecuteScalarAsync<string>(
+                "SELECT email FROM usuarios WHERE id = {0}::uuid", row.UsuarioId);
+            if (!string.IsNullOrEmpty(email)) await rateLimiter.RecordSuccessAsync("reset:" + email);
+            if (Guid.TryParse(row.UsuarioId, out var uid))
+                await RegistrarEventoContaAsync(db, uid, null, "senha_redefinida", ctx);
             return Results.NoContent();
         }).AllowAnonymous().WithTags("conta");
 
@@ -139,12 +159,12 @@ public static class ContaEndpoints
                 || !req.S3Key.StartsWith($"medico/{medicoId.Value}/foto/", StringComparison.Ordinal))
                 return Results.BadRequest(new { error = "s3key_invalida" });
             await db.Database.ExecuteSqlRawAsync(
-                "UPDATE medicos SET foto_s3key = {1} WHERE id = {0}", medicoId.Value, req.S3Key);
+                "UPDATE medicos SET foto_s3_key = {1} WHERE id = {0}", medicoId.Value, req.S3Key);
             return Results.NoContent();
         }).WithTags("conta").RequireAuthorization();
 
         // ── LGPD: exportar meus dados (só do médico; sem conteúdo clínico de paciente) ──
-        app.MapGet("/api/v1/me/exportar", async (AppDbContext db, ClaimsPrincipal user) =>
+        app.MapGet("/api/v1/me/exportar", async (AppDbContext db, ClaimsPrincipal user, HttpContext ctx) =>
         {
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
@@ -162,6 +182,9 @@ public static class ContaEndpoints
             var totalPacientes = await db.Database.ExecuteScalarAsync<long>(
                 "SELECT COUNT(*) FROM pacientes WHERE medico_responsavel_id = {0}", medicoId.Value);
 
+            if (Guid.TryParse(user.FindFirst("sub")?.Value, out var uidExp))
+                await RegistrarEventoContaAsync(db, uidExp, medicoId.Value, "dados_exportados", ctx);
+
             return Results.Ok(new
             {
                 geradoEm = DateTime.UtcNow,
@@ -173,13 +196,30 @@ public static class ContaEndpoints
         }).WithTags("conta").RequireAuthorization();
 
         // ── LGPD: solicitar exclusão (soft — não apaga; admin processa; Regra 5) ──
-        app.MapPost("/api/v1/me/exclusao", async (AppDbContext db, ClaimsPrincipal user) =>
+        app.MapPost("/api/v1/me/exclusao", async (
+            [FromBody] ExclusaoReq req, AppDbContext db, IPasswordHasher hasher,
+            ClaimsPrincipal user, HttpContext ctx) =>
         {
+            var sub = user.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(sub, out var userId)) return Results.Forbid();
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
+
+            // Reautenticação (ADR-066 review): exclusão de conta exige a senha atual —
+            // caminho de alto risco, não pode depender só do cookie de sessão.
+            var u = await db.Usuarios.FirstOrDefaultAsync(x => x.Id == userId);
+            if (u is null) return Results.Forbid();
+            if (!hasher.Verify(req.SenhaAtual ?? "", u.SenhaHash))
+                return Results.BadRequest(new { error = "senha_atual_incorreta" });
+
+            // Soft delete (Regra 5: não apaga nada): marca o pedido E desativa o login
+            // (usuarios.desativado_em é o que o /login checa) — alinha código ⇄ ADR-066.
             await db.Database.ExecuteSqlRawAsync(
                 "UPDATE medicos SET exclusao_solicitada_em = COALESCE(exclusao_solicitada_em, NOW()) WHERE id = {0}",
                 medicoId.Value);
+            await db.Database.ExecuteSqlRawAsync(
+                "UPDATE usuarios SET desativado_em = COALESCE(desativado_em, NOW()) WHERE id = {0}", userId);
+            await RegistrarEventoContaAsync(db, userId, medicoId.Value, "exclusao_solicitada", ctx);
             return Results.Accepted();
         }).WithTags("conta").RequireAuthorization();
     }
@@ -198,11 +238,30 @@ public static class ContaEndpoints
         return await db.Database.ExecuteScalarAsync<Guid?>(
             "SELECT id FROM medicos WHERE usuario_id = {0}", userId);
     }
+
+    // Trilha de auditoria das ações sensíveis de conta (LGPD art.37). Best-effort —
+    // nunca bloqueia a ação. medico_id pode ser null (ex.: troca de senha resolve só
+    // o usuário). Usa ExecuteRawAsync (null-safe; ExecuteSqlRawAsync estoura com DBNull).
+    private static async Task RegistrarEventoContaAsync(
+        AppDbContext db, Guid usuarioId, Guid? medicoId, string acao, HttpContext ctx)
+    {
+        try
+        {
+            var ip = ctx.Request.Headers["X-Forwarded-For"].ToString().Split(',')[0].Trim();
+            if (string.IsNullOrEmpty(ip)) ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "";
+            await db.Database.ExecuteRawAsync(@"
+                INSERT INTO eventos_conta (usuario_id, medico_id, acao, ip)
+                VALUES ({0}, {1}, {2}, NULLIF({3}, ''))",
+                usuarioId, medicoId, acao, ip);
+        }
+        catch { /* best-effort: auditoria não bloqueia a ação */ }
+    }
 }
 
 public record TrocarSenhaReq(string? SenhaAtual, string NovaSenha);
 public record EsqueciSenhaReq(string Email);
 public record RedefinirSenhaReq(string Token, string NovaSenha);
+public record ExclusaoReq(string? SenhaAtual);
 public record FotoUploadReq(string ContentType);
 public record FotoSetReq(string S3Key);
 internal record ResetTokenRow(string UsuarioId, DateTime ExpiraEm, DateTime? UsadoEm);
