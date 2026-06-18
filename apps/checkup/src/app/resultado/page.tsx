@@ -143,6 +143,10 @@ function ResultContent() {
   const [consented, setConsented] = useState(false);
   const [consentSaved, setConsentSaved] = useState(false);
 
+  // Envio do PDF por e-mail (CK-4, ADR-061). E-mail não é gravado bruto — só hash bcrypt.
+  const [emailPdf, setEmailPdf] = useState("");
+  const [emailState, setEmailState] = useState<"idle" | "sending" | "done" | "error">("idle");
+
   // Acompanhamento longitudinal (ADR-050 Parte 2) — opt-in SEPARADO do consentimento
   // anônimo acima. Dark por flag até a Fase 3 (envio/erasure por SES) entrar no ar.
   const trackingEnabled = process.env.NEXT_PUBLIC_CHECKUP_TRACKING_ENABLED === "true";
@@ -171,6 +175,19 @@ function ResultContent() {
         if (r.ok) setConsentSaved(true);
       })
       .catch(() => {});
+  };
+
+  const handleEmailPdf = (e: FormEvent) => {
+    e.preventDefault();
+    if (!emailPdf || emailState === "sending") return;
+    setEmailState("sending");
+    fetch("/api/email-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: sid, email: emailPdf, scale, score, band, label, crisis: isCrisis }),
+    })
+      .then((r) => setEmailState(r.ok ? "done" : "error"))
+      .catch(() => setEmailState("error"));
   };
 
   // Opt-in do acompanhamento: cria a série (e-mail cifrado no servidor). NÃO envia
@@ -404,6 +421,41 @@ function ResultContent() {
             <p className="mt-2.5 text-center text-xs text-muted-foreground">
               Para levar ao seu médico ou psicólogo.
             </p>
+
+            {/* Envio por e-mail (CK-4) */}
+            <hr className="my-5 border-white/10" />
+            {emailState === "done" ? (
+              <p className="text-center text-sm text-purple-light">✓ Relatório enviado para {emailPdf}</p>
+            ) : (
+              <form onSubmit={handleEmailPdf} className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Receber o PDF por e-mail</p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    value={emailPdf}
+                    onChange={(e) => setEmailPdf(e.target.value)}
+                    placeholder="seu@email.com"
+                    autoComplete="email"
+                    disabled={emailState === "sending"}
+                    className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-purple/40 focus:outline-none disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!emailPdf || emailState === "sending"}
+                    className="shrink-0 rounded-xl border border-purple/25 bg-purple/10 px-4 py-2 text-sm font-medium text-purple-light transition hover:bg-purple/20 disabled:opacity-50"
+                  >
+                    {emailState === "sending" ? "Enviando…" : "Enviar"}
+                  </button>
+                </div>
+                {emailState === "error" && (
+                  <p className="text-xs text-amber-300">Não foi possível enviar agora. Tente de novo.</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Seu e-mail não é salvo — usamos só para enviar o PDF.
+                </p>
+              </form>
+            )}
           </div>
         </section>
       )}
