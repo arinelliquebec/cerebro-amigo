@@ -79,8 +79,10 @@ public sealed class TenantIsolationFixture : IAsyncLifetime
         // RESEND_API_KEY: o POST /pacientes injeta ResendClient (resolvido pelo DI ANTES
         // do handler); sem a key o app estoura 500 antes mesmo do cap/validação rodarem.
         // Key dummy só p/ construir o client — os testes retornam (cap/validação/403/400)
-        // antes de qualquer SendAsync, então nenhum e-mail é realmente enviado.
+        // antes de qualquer SendAsync, então nenhum e-mail é realmente enviado. O ctor do
+        // ResendClient exige RESEND_API_KEY E EMAIL_FROM; sem qualquer um → 500.
         Environment.SetEnvironmentVariable("RESEND_API_KEY", "test-resend-key");
+        Environment.SetEnvironmentVariable("EMAIL_FROM", "Cérebro Amigo CI <ci@example.com>");
 
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
