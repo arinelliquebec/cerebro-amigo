@@ -123,7 +123,7 @@ public static class MensagensAudioEndpoints
         // Listar mensagens de áudio do paciente
         m.MapGet("/", async (Guid pacienteId, AppDbContext db, ClaimsPrincipal user) =>
         {
-            var medicoId = MedicoId(user);
+            var medicoId = await MedicoIdAsync(db, user);
             if (medicoId is null) return Results.Unauthorized();
             // RLS garante tenant; verificação explícita extra
             var lista = await db.Database.SqlQueryRaw<MensagemAudioItem>(@"
@@ -141,7 +141,7 @@ public static class MensagensAudioEndpoints
         m.MapGet("/{id:guid}/play-url", async (Guid pacienteId, Guid id,
             AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3) =>
         {
-            var medicoId = MedicoId(user);
+            var medicoId = await MedicoIdAsync(db, user);
             if (medicoId is null) return Results.Unauthorized();
 
             var key = await db.Database.ExecuteScalarAsync<string?>(@"
@@ -168,7 +168,7 @@ public static class MensagensAudioEndpoints
         m.MapPatch("/{id:guid}/ouvido", async (Guid pacienteId, Guid id,
             AppDbContext db, ClaimsPrincipal user) =>
         {
-            var medicoId = MedicoId(user);
+            var medicoId = await MedicoIdAsync(db, user);
             if (medicoId is null) return Results.Unauthorized();
             var rows = await db.Database.ExecuteSqlRawAsync(@"
                 UPDATE mensagens_audio ma
@@ -183,11 +183,18 @@ public static class MensagensAudioEndpoints
         });
     }
 
-    private static Guid? MedicoId(ClaimsPrincipal user)
+    // O claim `sub` do JWT do médico é o usuario_id, NÃO medicos.id. Toda query
+    // aqui filtra por pacientes.medico_responsavel_id (= medicos.id) e a RLS usa
+    // app.current_medico (= medicos.id, resolvido pelo TenantSessionMiddleware).
+    // Precisa resolver usuario_id -> medicos.id, igual ao GetMedicoIdAsync dos
+    // demais endpoints. Sem isso, o WHERE usa o id errado e nunca casa (lista vazia).
+    private static async Task<Guid?> MedicoIdAsync(AppDbContext db, ClaimsPrincipal user)
     {
         var sub = user.FindFirstValue(ClaimTypes.NameIdentifier)
                ?? user.FindFirstValue("sub");
-        return Guid.TryParse(sub, out var g) ? g : null;
+        if (!Guid.TryParse(sub, out var usuarioId)) return null;
+        return await db.Database.ExecuteScalarAsync<Guid?>(
+            "SELECT id FROM medicos WHERE usuario_id = {0}", usuarioId);
     }
 }
 
