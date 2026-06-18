@@ -10,6 +10,7 @@ from uuid import UUID
 import structlog
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
+from structlog.tracebacks import ExceptionDictTransformer
 
 from app.api.portal import router as portal_router
 from app.config import get_settings
@@ -26,7 +27,12 @@ def _configure_logging() -> None:
         processors=[
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.dict_tracebacks,
+            # R4 (clinical-safety): traceback estruturado SEM frame locals — os
+            # locals continham conteúdo clínico cru (mensagem do paciente, estado
+            # da conversa). Mantém type/value/file/line/função p/ debug.
+            structlog.processors.ExceptionRenderer(
+                ExceptionDictTransformer(show_locals=False)
+            ),
             redact_pii_processor,
             structlog.processors.JSONRenderer(),
         ],
