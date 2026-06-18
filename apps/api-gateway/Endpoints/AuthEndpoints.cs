@@ -148,8 +148,11 @@ public static class AuthEndpoints
                 return Results.BadRequest(new { error = "senha minimo 8 caracteres" });
 
             var tokenHash = AuthSha256(req.Token);
+            // Filtra proposito='ativacao' (ADR-066/migration 0053): um token de RESET
+            // de senha não pode ser consumido pelo fluxo de ativação (isolamento por
+            // finalidade). Tokens criados antes da 0053 têm o DEFAULT 'ativacao'.
             var row = await db.Database.SqlQueryRaw<TokenRow>(
-                "SELECT usuario_id::text AS usuario_id, expira_em, usado_em FROM medico_invite_tokens WHERE token_hash = {0}",
+                "SELECT usuario_id::text AS usuario_id, expira_em, usado_em FROM medico_invite_tokens WHERE token_hash = {0} AND proposito = 'ativacao'",
                 tokenHash).FirstOrDefaultAsync();
 
             if (row is null) return Results.BadRequest(new { error = "token_invalido" });

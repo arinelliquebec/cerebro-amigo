@@ -44,15 +44,30 @@ public static class ContaEndpoints
         // ── SEGURANÇA (anônimo): esqueci / redefinir senha ───────────────────
         // Reusa medico_invite_tokens com proposito='reset' (migration 0053).
         app.MapPost("/api/v1/auth/esqueci-senha", async (
-            [FromBody] EsqueciSenhaReq req, AppDbContext db, ResendClient resend) =>
+            [FromBody] EsqueciSenhaReq req, AppDbContext db, ResendClient resend,
+            LoginRateLimiter rateLimiter) =>
         {
             var emailNorm = (req.Email ?? "").Trim().ToLowerInvariant();
             // Anti-enumeração: SEMPRE 202, exista ou não a conta.
             if (string.IsNullOrWhiteSpace(emailNorm)) return Results.Accepted();
 
+            // Rate-limit por e-mail (anti email-bombing / abuso de cota Resend) — mesma
+            // política de login/signup (5/15min). Bloqueado → 202 silencioso (anti-enum).
+            var rlKey = "reset:" + emailNorm;
+            if (await rateLimiter.IsBlockedAsync(rlKey)) return Results.Accepted();
+            await rateLimiter.RecordFailureAsync(rlKey);
+
             var u = await db.Usuarios.FirstOrDefaultAsync(x => x.Email == emailNorm);
-            if (u is not null && u.Role == "medico" && u.DesativadoEm is null)
+            // Não emite reset p/ conta com exclusão LGPD pendente (coerência ADR-066):
+            // exclusão é soft (não seta desativado_em), então checa explicitamente.
+            var exclusao = u is null ? null : await db.Database.ExecuteScalarAsync<DateTime?>(
+                "SELECT exclusao_solicitada_em FROM medicos WHERE usuario_id = {0}", u.Id);
+            if (u is not null && u.Role == "medico" && u.DesativadoEm is null && exclusao is null)
             {
+                // Um link de reset ativo por vez: invalida os anteriores ainda válidos.
+                await db.Database.ExecuteSqlRawAsync(
+                    "UPDATE medico_invite_tokens SET usado_em = NOW() WHERE usuario_id = {0} AND proposito = 'reset' AND usado_em IS NULL",
+                    u.Id);
                 var token = TokenAleatorio();
                 await db.Database.ExecuteSqlRawAsync(@"
                     INSERT INTO medico_invite_tokens (usuario_id, token_hash, expira_em, proposito)

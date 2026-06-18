@@ -23,8 +23,11 @@ export function FotoPerfil() {
   const [enviando, setEnviando] = useState(false)
   const [ok, setOk] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [imgErro, setImgErro] = useState(false)
 
-  const src = preview || me?.fotoUrl || null
+  // preview (objeto local recém-enviado) tem precedência; fotoUrl presigned pode
+  // expirar (60min) e dar 403 → onError cai nas iniciais em vez de imagem quebrada.
+  const src = preview || (imgErro ? null : me?.fotoUrl) || null
 
   async function enviar(file: File) {
     setErro(null); setOk(false)
@@ -56,7 +59,7 @@ export function FotoPerfil() {
       <div className="h-16 w-16 overflow-hidden rounded-full bg-gradient-to-br from-primary to-purple-dark flex items-center justify-center text-primary-foreground font-semibold shadow-sm">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="Foto de perfil" className="h-full w-full object-cover" />
+          <img src={src} alt="Foto de perfil" className="h-full w-full object-cover" onError={() => setImgErro(true)} />
         ) : (
           <span className="text-lg">{iniciais(me?.nome)}</span>
         )}

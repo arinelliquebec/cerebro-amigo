@@ -5,11 +5,14 @@ import { gateway, gatewayErrorResponse } from "@/lib/gateway"
 export async function GET() {
   try {
     const data = await gateway.get("/api/v1/me/exportar")
+    if (data == null) return NextResponse.json({ error: "sem_dados" }, { status: 502 })
     return new NextResponse(JSON.stringify(data, null, 2), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
         "Content-Disposition": 'attachment; filename="meus-dados-cerebro-amigo.json"',
+        // Dado pessoal (CPF) — nunca cachear em CDN/proxy/disco do browser.
+        "Cache-Control": "no-store",
       },
     })
   } catch (e) {

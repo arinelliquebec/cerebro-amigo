@@ -43,13 +43,7 @@ public static class MedicoDocumentosEndpoints
         {
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
-            var lista = await db.Database.SqlQueryRaw<DocumentoItem>(@"
-                SELECT id, direcao, tipo, titulo, status,
-                       content_type, tamanho_bytes, criado_em, observacoes
-                FROM medico_documentos
-                WHERE medico_id = {0}
-                ORDER BY criado_em DESC LIMIT 100", medicoId.Value).ToListAsync();
-            return Results.Ok(lista);
+            return Results.Ok(await ListarAsync(db, medicoId.Value));
         });
 
         // Gerar URL de upload (presigned PUT, 15min). Key namespaced por médico+direção;
@@ -63,13 +57,7 @@ public static class MedicoDocumentosEndpoints
             if (!MimeOk.Contains(req.ContentType ?? "")) return Results.BadRequest(new { error = "tipo_arquivo_invalido" });
 
             var key = $"medico/{medicoId.Value}/enviado/{Guid.NewGuid()}.{Ext(req.ContentType!)}";
-            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
-            {
-                BucketName = bucket, Key = key, Verb = HttpVerb.PUT,
-                Expires = DateTime.UtcNow.AddMinutes(PresignUploadMin),
-                ContentType = req.ContentType,
-            });
-            return Results.Ok(new { uploadUrl = url, s3Key = key });
+            return Results.Ok(new { uploadUrl = PresignPut(s3, bucket, key, req.ContentType!), s3Key = key });
         });
 
         // Registrar após upload concluído. Valida que a key pertence a este médico+direção.
@@ -85,13 +73,7 @@ public static class MedicoDocumentosEndpoints
                 return Results.Forbid();
 
             // RLS WITH CHECK exige medico_id = current_medico (setado pelo middleware).
-            var id = await db.Database.ExecuteScalarAsync<Guid>(@"
-                INSERT INTO medico_documentos
-                    (medico_id, direcao, tipo, titulo, s3_key, content_type, tamanho_bytes, status, enviado_por)
-                VALUES ({0}, 'enviado', {1}, {2}, {3}, NULLIF({4}, ''), {5}, 'pendente', 'medico')
-                RETURNING id",
-                medicoId.Value, req.Tipo!, req.Titulo.Trim(), req.S3Key,
-                req.ContentType ?? "", req.TamanhoBytes > 0 ? req.TamanhoBytes : (long?)null);
+            var id = await InserirAsync(db, medicoId.Value, "enviado", req, "pendente", "medico");
             return Results.Ok(new { id });
         });
 
@@ -101,16 +83,9 @@ public static class MedicoDocumentosEndpoints
         {
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
-            var key = await db.Database.ExecuteScalarAsync<string?>(
-                "SELECT s3_key FROM medico_documentos WHERE id = {0} AND medico_id = {1}",
-                id, medicoId.Value);
+            var key = await KeyDoDocAsync(db, id, medicoId.Value);
             if (key is null) return Results.NotFound();
-            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
-            {
-                BucketName = bucket, Key = key, Verb = HttpVerb.GET,
-                Expires = DateTime.UtcNow.AddMinutes(PresignDownloadMin),
-            });
-            return Results.Ok(new { downloadUrl = url });
+            return Results.Ok(new { downloadUrl = PresignGet(s3, bucket, key) });
         });
 
         // Médico pode remover só os que ELE enviou (não os disponibilizados pela plataforma).
@@ -130,28 +105,14 @@ public static class MedicoDocumentosEndpoints
             .WithTags("admin-documentos").RequireAuthorization("admin_geral");
 
         a.MapGet("/", async (Guid medicoId, AppDbContext db) =>
-        {
-            var lista = await db.Database.SqlQueryRaw<DocumentoItem>(@"
-                SELECT id, direcao, tipo, titulo, status,
-                       content_type, tamanho_bytes, criado_em, observacoes
-                FROM medico_documentos
-                WHERE medico_id = {0}
-                ORDER BY criado_em DESC LIMIT 200", medicoId).ToListAsync();
-            return Results.Ok(lista);
-        });
+            Results.Ok(await ListarAsync(db, medicoId)));
 
         a.MapPost("/upload-url", async (Guid medicoId, [FromBody] DocumentoUploadUrlReq req, IAmazonS3 s3) =>
         {
             if (!TipoAdmin.Contains(req.Tipo ?? "")) return Results.BadRequest(new { error = "tipo_invalido" });
             if (!MimeOk.Contains(req.ContentType ?? "")) return Results.BadRequest(new { error = "tipo_arquivo_invalido" });
             var key = $"medico/{medicoId}/disponibilizado/{Guid.NewGuid()}.{Ext(req.ContentType!)}";
-            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
-            {
-                BucketName = bucket, Key = key, Verb = HttpVerb.PUT,
-                Expires = DateTime.UtcNow.AddMinutes(PresignUploadMin),
-                ContentType = req.ContentType,
-            });
-            return Results.Ok(new { uploadUrl = url, s3Key = key });
+            return Results.Ok(new { uploadUrl = PresignPut(s3, bucket, key, req.ContentType!), s3Key = key });
         });
 
         a.MapPost("/", async (Guid medicoId, [FromBody] DocumentoRegistrarReq req, AppDbContext db) =>
@@ -161,13 +122,7 @@ public static class MedicoDocumentosEndpoints
             if (!TipoAdmin.Contains(req.Tipo ?? "")) return Results.BadRequest(new { error = "tipo_invalido" });
             if (!req.S3Key.StartsWith($"medico/{medicoId}/disponibilizado/", StringComparison.Ordinal))
                 return Results.BadRequest(new { error = "s3key_invalida" });
-            var id = await db.Database.ExecuteScalarAsync<Guid>(@"
-                INSERT INTO medico_documentos
-                    (medico_id, direcao, tipo, titulo, s3_key, content_type, tamanho_bytes, status, enviado_por)
-                VALUES ({0}, 'disponibilizado', {1}, {2}, {3}, NULLIF({4}, ''), {5}, 'disponivel', 'admin')
-                RETURNING id",
-                medicoId, req.Tipo!, req.Titulo.Trim(), req.S3Key,
-                req.ContentType ?? "", req.TamanhoBytes > 0 ? req.TamanhoBytes : (long?)null);
+            var id = await InserirAsync(db, medicoId, "disponibilizado", req, "disponivel", "admin");
             return Results.Ok(new { id });
         });
 
@@ -187,17 +142,51 @@ public static class MedicoDocumentosEndpoints
 
         a.MapGet("/{id:guid}/download-url", async (Guid medicoId, Guid id, AppDbContext db, IAmazonS3 s3) =>
         {
-            var key = await db.Database.ExecuteScalarAsync<string?>(
-                "SELECT s3_key FROM medico_documentos WHERE id = {0} AND medico_id = {1}", id, medicoId);
+            var key = await KeyDoDocAsync(db, id, medicoId);
             if (key is null) return Results.NotFound();
-            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
-            {
-                BucketName = bucket, Key = key, Verb = HttpVerb.GET,
-                Expires = DateTime.UtcNow.AddMinutes(PresignDownloadMin),
-            });
-            return Results.Ok(new { downloadUrl = url });
+            return Results.Ok(new { downloadUrl = PresignGet(s3, bucket, key) });
         });
     }
+
+    // ── Helpers compartilhados médico/admin (dedup ADR-066 review #7) ──────────
+
+    private static Task<List<DocumentoItem>> ListarAsync(AppDbContext db, Guid medicoId) =>
+        db.Database.SqlQueryRaw<DocumentoItem>(@"
+            SELECT id, direcao, tipo, titulo, status,
+                   content_type, tamanho_bytes, criado_em, observacoes
+            FROM medico_documentos
+            WHERE medico_id = {0}
+            ORDER BY criado_em DESC LIMIT 200", medicoId).ToListAsync();
+
+    // INSERT único parametrizado por direção/status/origem (médico=enviado/pendente,
+    // admin=disponibilizado/disponivel). tamanho_bytes nulo se cliente não informou.
+    private static Task<Guid> InserirAsync(AppDbContext db, Guid medicoId, string direcao,
+        DocumentoRegistrarReq req, string status, string enviadoPor) =>
+        db.Database.ExecuteScalarAsync<Guid>(@"
+            INSERT INTO medico_documentos
+                (medico_id, direcao, tipo, titulo, s3_key, content_type, tamanho_bytes, status, enviado_por)
+            VALUES ({0}, {1}, {2}, {3}, {4}, NULLIF({5}, ''), {6}, {7}, {8})
+            RETURNING id",
+            medicoId, direcao, req.Tipo!, req.Titulo.Trim(), req.S3Key,
+            req.ContentType ?? "", req.TamanhoBytes > 0 ? req.TamanhoBytes : (long?)null, status, enviadoPor);
+
+    private static Task<string?> KeyDoDocAsync(AppDbContext db, Guid id, Guid medicoId) =>
+        db.Database.ExecuteScalarAsync<string?>(
+            "SELECT s3_key FROM medico_documentos WHERE id = {0} AND medico_id = {1}", id, medicoId);
+
+    private static string PresignPut(IAmazonS3 s3, string bucket, string key, string contentType) =>
+        s3.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName = bucket, Key = key, Verb = HttpVerb.PUT,
+            Expires = DateTime.UtcNow.AddMinutes(PresignUploadMin), ContentType = contentType,
+        });
+
+    private static string PresignGet(IAmazonS3 s3, string bucket, string key) =>
+        s3.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName = bucket, Key = key, Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.AddMinutes(PresignDownloadMin),
+        });
 
     private static string Ext(string contentType) => contentType.ToLowerInvariant() switch
     {

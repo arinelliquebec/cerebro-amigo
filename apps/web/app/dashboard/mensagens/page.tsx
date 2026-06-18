@@ -76,12 +76,12 @@ export default function MensagensPage() {
   )
 
   return (
-    // h-screen + flex-col em vez de min-h-screen + grid de altura fixa (100vh-4rem):
-    // o número mágico (4rem) não batia com o Header (72px) e quebrava quando o banner
-    // do PaywallGate (read-only/prazo, sticky) empurrava o conteúdo, expondo o fundo
-    // claro do <body> (tema noir vive no wrapper, não no body). bg-background garante
-    // que qualquer área pinte o token escuro. Scrolls internos (inbox/thread) preservados.
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    // flex-1 + min-h-0 (não h-screen): preenche a altura restante do <main> flex-col
+    // do layout, DESCONTANDO o banner do PaywallGate (sticky, in-flow). Antes o h-screen
+    // (100vh) somava ao banner e empurrava o input do thread abaixo da dobra p/ médico
+    // em trial/atrasado (ADR-066 review). bg-background pinta o token escuro (tema noir
+    // vive no wrapper, não no body). Scrolls internos (inbox/thread) preservados.
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
       <Header title="Mensagens" />
 
       <EscalacaoInbox />
