@@ -27,6 +27,33 @@ export function useFeatureUpsell(): FeatureUpsellCtx {
   return useContext(Ctx)
 }
 
+// Subcomponentes extraídos p/ manter a profundidade da árvore JSX ≤ 4 (DeepSource).
+function UpsellHeader({ label, plano }: { label: string; plano: string }) {
+  return (
+    <DialogHeader>
+      <div className="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-primary/12 text-primary">
+        <Sparkles className="h-5 w-5" />
+      </div>
+      <DialogTitle className="text-center">{label} usa a camada de IA</DialogTitle>
+      <DialogDescription className="text-center">
+        Este recurso faz parte da inteligência do Cérebro Amigo e fica disponível a partir do
+        plano <span className="font-semibold text-foreground">{plano}</span>. Assine para liberar
+        a IA e os registros clínicos do painel.
+      </DialogDescription>
+    </DialogHeader>
+  )
+}
+
+function UpsellFooter() {
+  return (
+    <DialogFooter className="sm:justify-center">
+      <Button asChild variant="coral" className="gap-1.5">
+        <Link href="/dashboard/financeiro">Conhecer planos <ArrowRight className="h-4 w-4" /></Link>
+      </Button>
+    </DialogFooter>
+  )
+}
+
 export function FeatureUpsellProvider({ children }: { children: React.ReactNode }) {
   const [feature, setFeature] = useState<string | null>(null)
   const showUpsell = useCallback((f: string) => setFeature(f), [])
@@ -40,22 +67,8 @@ export function FeatureUpsellProvider({ children }: { children: React.ReactNode 
       {children}
       <Dialog open={open} onOpenChange={(o) => { if (!o) setFeature(null) }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-primary/12 text-primary">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <DialogTitle className="text-center">{label} usa a camada de IA</DialogTitle>
-            <DialogDescription className="text-center">
-              Este recurso faz parte da inteligência do Cérebro Amigo e fica disponível a partir do
-              plano <span className="font-semibold text-foreground">{plano}</span>. Assine para liberar
-              a IA e os registros clínicos do painel.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-center">
-            <Button asChild variant="coral" className="gap-1.5">
-              <Link href="/dashboard/financeiro">Conhecer planos <ArrowRight className="h-4 w-4" /></Link>
-            </Button>
-          </DialogFooter>
+          <UpsellHeader label={label} plano={plano} />
+          <UpsellFooter />
         </DialogContent>
       </Dialog>
     </Ctx.Provider>
