@@ -60,6 +60,12 @@ public static class SeedEndpoint
                 VALUES ({0}, {1}, {2}, {3}, NULLIF({4}, ''), 'psiquiatria')",
                 medicoId, usuarioId, req.Nome, req.Crm, req.WaId ?? "");
 
+            // Cria assinatura ativa (dono do sistema — sem cobrança).
+            await db.Database.ExecuteSqlRawAsync(@"
+                INSERT INTO assinaturas (id, medico_id, plano, valor_mensal, status, notas)
+                VALUES ({0}, {1}, 'master', 0, 'ativa', 'owner — seed endpoint')",
+                Guid.NewGuid(), medicoId);
+
             return Results.Created("/login", new
             {
                 usuarioId,
