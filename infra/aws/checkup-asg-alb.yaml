@@ -241,6 +241,7 @@ Resources:
             # ler /api/funnel-metrics. Fail-soft (param pode não existir) — a rota é
             # fail-closed (503) se vazia, então o cockpit só degrada p/ "lado clínico".
             METRICS=$(get /cerebro-amigo/checkup/metrics-token 2>/dev/null || echo "")
+            RESEND=$(get /cerebro-amigo/checkup/resend-api-key 2>/dev/null || echo "")
             aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR
             docker rm -f checkup 2>/dev/null || true
             docker run -d --name checkup --restart unless-stopped \
@@ -253,6 +254,7 @@ Resources:
               -e ANTHROPIC_API_KEY="$ANTHROPIC" \
               -e CHECKUP_DATABASE_URL="$DBURL" \
               -e CHECKUP_METRICS_TOKEN="$METRICS" \
+              -e RESEND_API_KEY="$RESEND" \
               -e NEXT_PUBLIC_SITE_URL=https://checkup.cerebroamigo.com.br \
               $ECR/cerebro-amigo/checkup:$TAG
 
