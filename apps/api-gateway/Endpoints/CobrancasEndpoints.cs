@@ -209,10 +209,11 @@ public static class CobrancasEndpoints
                 JOIN usuarios u ON u.id = m.usuario_id
                 WHERE a.medico_id = {0}", medicoId.Value).FirstOrDefaultAsync();
             if (row is null) return Results.NotFound(new { error = "sem_assinatura" });
-            // Já tem subscription OU já está ativa (ex.: ativada manualmente pelo admin)
-            // → não cria 2ª cobrança recorrente. Self-checkout é p/ quem ainda não paga.
+            // Já tem subscription OU já está ativa/suspensa → não cria 2ª cobrança.
+            // "suspensa" = inadimplente com subscription ainda viva no Asaas;
+            // criar nova aqui geraria duplicata. Deve reativar via painel Asaas.
             if (!string.IsNullOrWhiteSpace(row.AsaasSubscriptionId)
-                || string.Equals(row.Status, "ativa", StringComparison.OrdinalIgnoreCase))
+                || row.Status is "ativa" or "suspensa")
                 return Results.Conflict(new { error = "ja_ativa", subscriptionId = row.AsaasSubscriptionId });
             if (string.IsNullOrWhiteSpace(row.Cpf))
                 return Results.BadRequest(new { error = "cpf_obrigatorio" });
@@ -288,6 +289,21 @@ public static class CobrancasEndpoints
             using var doc = await JsonDocument.ParseAsync(http.Body);
             var root = doc.RootElement;
             var evento = root.TryGetProperty("event", out var ev) ? ev.GetString() : null;
+
+            // SUBSCRIPTION_DELETED: cancelamento direto via painel Asaas (sem payment payload).
+            // Sem tratar, assinatura fica 'ativa' fantasma — paywall liberado sem cobrança.
+            if (evento == "SUBSCRIPTION_DELETED" &&
+                root.TryGetProperty("subscription", out var subObjDel) &&
+                subObjDel.TryGetProperty("id", out var subIdDelEl))
+            {
+                var cancelSubId = subIdDelEl.GetString();
+                if (!string.IsNullOrEmpty(cancelSubId))
+                    await db.Database.ExecuteRawAsync(@"
+                        UPDATE assinaturas SET status = 'cancelada', atualizado_em = NOW()
+                        WHERE asaas_subscription_id = {0} AND status <> 'cancelada'", cancelSubId);
+                return Results.Ok(new { ok = true });
+            }
+
             if (!root.TryGetProperty("payment", out var pay) || !pay.TryGetProperty("id", out var idEl))
                 return Results.Ok(new { ignored = true });
             var asaasId = idEl.GetString();

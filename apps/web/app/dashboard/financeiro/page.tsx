@@ -128,7 +128,10 @@ export default function MinhaAssinaturaPage() {
                   </Button>
                 </a>
               ) : a.cobrancaAtiva ? (
-                <p className="flex items-center gap-2 text-sm text-success"><CheckCircle2 className="h-4 w-4" /> Cobrança em dia — sem fatura em aberto.</p>
+                // erroCheckout aqui = "link aparece em instantes" (invoiceUrl null após checkout).
+                erroCheckout
+                  ? <p role="alert" className="text-sm text-warning">{erroCheckout}</p>
+                  : <p className="flex items-center gap-2 text-sm text-success"><CheckCircle2 className="h-4 w-4" /> Cobrança em dia — sem fatura em aberto.</p>
               ) : (
                 <div className="space-y-4">
                   {/* Modo bootstrap (sem Asaas): Pix manual. Senão, self-checkout Asaas. */}
