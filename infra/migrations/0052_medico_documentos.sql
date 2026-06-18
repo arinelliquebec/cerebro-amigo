@@ -66,4 +66,6 @@ $$;
 
 -- ── Foto de perfil do médico (avatar) — S3 presigned no mesmo bucket de docs.
 -- Coluna guarda só a key; o binário vive no S3 (SSE). Aparece na sidebar.
-ALTER TABLE medicos ADD COLUMN IF NOT EXISTS foto_s3_key TEXT;
+-- Nome SEM underscore antes de "key" (foto_s3key) p/ casar com a convenção
+-- snake_case do EF (UseSnakeCaseNamingConvention) sobre a propriedade FotoS3Key.
+ALTER TABLE medicos ADD COLUMN IF NOT EXISTS foto_s3key TEXT;
