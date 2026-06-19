@@ -16,6 +16,22 @@ COPY package.json pnpm-workspace.yaml ./
 COPY apps/web ./apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# NEXT_PUBLIC_* são BUILD-time: inlined no bundle do cliente durante `next build`.
+# Na Vercel vinham do dashboard; fora dela (Docker/CI) PRECISAM chegar como build-arg,
+# senão saem vazias (Turnstile/captcha + Web Push quebram). Passados pelo bake/CI.
+# Ver docs/runbooks/web-vercel-to-ec2-env.md. Não são segredo (vão pro cliente).
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ARG NEXT_PUBLIC_HUB_URL
+ARG NEXT_PUBLIC_MANUAL_PIX_CHAVE
+ARG NEXT_PUBLIC_MANUAL_PIX_NOME
+ARG NEXT_PUBLIC_MANUAL_PAGAMENTO_URL
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY \
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
+    NEXT_PUBLIC_HUB_URL=$NEXT_PUBLIC_HUB_URL \
+    NEXT_PUBLIC_MANUAL_PIX_CHAVE=$NEXT_PUBLIC_MANUAL_PIX_CHAVE \
+    NEXT_PUBLIC_MANUAL_PIX_NOME=$NEXT_PUBLIC_MANUAL_PIX_NOME \
+    NEXT_PUBLIC_MANUAL_PAGAMENTO_URL=$NEXT_PUBLIC_MANUAL_PAGAMENTO_URL
 # Turbopack usa raiz do workspace para resolver o pacote `next`
 RUN cd apps/web && node_modules/.bin/next build
 
