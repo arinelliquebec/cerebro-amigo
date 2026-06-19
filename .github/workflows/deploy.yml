@@ -35,6 +35,7 @@ jobs:
     outputs:
       clinical: ${{ steps.filter.outputs.clinical }}
       checkup: ${{ steps.filter.outputs.checkup }}
+      web: ${{ steps.filter.outputs.web }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -55,6 +56,13 @@ jobs:
               - 'pnpm-lock.yaml'
             checkup:
               - 'apps/checkup/**'
+              - '.github/docker-bake.hcl'
+              - '.github/workflows/deploy.yml'
+              - 'pnpm-lock.yaml'
+            # Subconjunto do clínico: só mexe no ASG do web (cerebro-web-asg) quando
+            # o web muda — evita instance refresh à toa em mudança só de gateway/py.
+            web:
+              - 'apps/web/**'
               - '.github/docker-bake.hcl'
               - '.github/workflows/deploy.yml'
               - 'pnpm-lock.yaml'
@@ -161,6 +169,14 @@ jobs:
         uses: docker/bake-action@v6
         env:
           TAG: ${{ github.sha }}
+          # NEXT_PUBLIC_* do web → build-args (inlined no bundle). GitHub Secrets.
+          # Sem eles a imagem web sai com captcha/push vazios. Ver runbook.
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+          NEXT_PUBLIC_HUB_URL: ${{ secrets.NEXT_PUBLIC_HUB_URL }}
+          NEXT_PUBLIC_MANUAL_PIX_CHAVE: ${{ secrets.NEXT_PUBLIC_MANUAL_PIX_CHAVE }}
+          NEXT_PUBLIC_MANUAL_PIX_NOME: ${{ secrets.NEXT_PUBLIC_MANUAL_PIX_NOME }}
+          NEXT_PUBLIC_MANUAL_PAGAMENTO_URL: ${{ secrets.NEXT_PUBLIC_MANUAL_PAGAMENTO_URL }}
         with:
           files: .github/docker-bake.hcl
           targets: clinical
@@ -351,3 +367,48 @@ jobs:
             --distribution-id "$CF_ID" \
             --paths "/*" \
             --query 'Invalidation.{Id:Id,Status:Status}' --output table
+
+  # ─── Deploy web no ASG próprio (instance refresh) ────────────────────────
+  # Migração Vercel → EC2 (infra/aws/web-asg-alb.yaml). A imagem web já é buildada
+  # em build-clinical (target web do bake, com NEXT_PUBLIC_* embutidos); este job só
+  # aponta o ASG p/ o novo SHA e faz o refresh. Roda só quando apps/web muda.
+  # Coexiste com o web do compose no box clínico até o cutover de DNS desligar a Vercel.
+  deploy-web:
+    name: Deploy web (ASG)
+    needs: [changes, build-clinical]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
+
+      - name: Bump image-tag + instance refresh
+        run: |
+          set -euo pipefail
+          ASG=cerebro-web-asg
+          aws ssm put-parameter --region sa-east-1 \
+            --name /cerebro-amigo/web/image-tag --type String --overwrite \
+            --value "${{ github.sha }}"
+          RID=$(aws autoscaling start-instance-refresh --region sa-east-1 \
+            --auto-scaling-group-name "$ASG" \
+            --preferences '{"MinHealthyPercentage":100,"MaxHealthyPercentage":200,"InstanceWarmup":60}' \
+            --query InstanceRefreshId --output text)
+          echo "instance refresh: $RID"
+          # zero-downtime (launch antes de terminar); espera concluir
+          for i in $(seq 1 45); do
+            ST=$(aws autoscaling describe-instance-refreshes --region sa-east-1 \
+              --auto-scaling-group-name "$ASG" --instance-refresh-ids "$RID" \
+              --query "InstanceRefreshes[0].Status" --output text)
+            echo "[$i/45] $ST"
+            case "$ST" in
+              Successful) echo "web ASG atualizado"; exit 0;;
+              Failed|Cancelled|RollbackSuccessful|RollbackFailed) echo "refresh terminou em $ST"; exit 1;;
+            esac
+            sleep 20
+          done
+          echo "timeout aguardando instance refresh"; exit 1

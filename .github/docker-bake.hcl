@@ -10,6 +10,16 @@ variable "TAG" {
   default = "latest"
 }
 
+// NEXT_PUBLIC_* do web são build-time (inlined no bundle do cliente). O CI passa
+// via env (GitHub Secrets) → estas variables → args do target web. Default "" =
+// build local sem captcha/push (não quebra dev). Ver runbook web-vercel-to-ec2-env.
+variable "NEXT_PUBLIC_TURNSTILE_SITE_KEY"   { default = "" }
+variable "NEXT_PUBLIC_VAPID_PUBLIC_KEY"     { default = "" }
+variable "NEXT_PUBLIC_HUB_URL"              { default = "" }
+variable "NEXT_PUBLIC_MANUAL_PIX_CHAVE"     { default = "" }
+variable "NEXT_PUBLIC_MANUAL_PIX_NOME"      { default = "" }
+variable "NEXT_PUBLIC_MANUAL_PAGAMENTO_URL" { default = "" }
+
 // Grupos por destino de deploy (ADR-045): o clínico vai pro box EC2 via SSM;
 // o checkup vai pro ASG próprio. deploy.yml builda só o grupo que mudou.
 //   "clinical" → box clínico (compose/SSM)
@@ -32,6 +42,14 @@ target "web" {
   dockerfile = "apps/web/Dockerfile"
   tags       = ["${ECR}/cerebro-amigo/web:${TAG}"]
   platforms  = ["linux/amd64"]
+  args = {
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY   = "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY     = "${NEXT_PUBLIC_VAPID_PUBLIC_KEY}"
+    NEXT_PUBLIC_HUB_URL              = "${NEXT_PUBLIC_HUB_URL}"
+    NEXT_PUBLIC_MANUAL_PIX_CHAVE     = "${NEXT_PUBLIC_MANUAL_PIX_CHAVE}"
+    NEXT_PUBLIC_MANUAL_PIX_NOME      = "${NEXT_PUBLIC_MANUAL_PIX_NOME}"
+    NEXT_PUBLIC_MANUAL_PAGAMENTO_URL = "${NEXT_PUBLIC_MANUAL_PAGAMENTO_URL}"
+  }
 }
 
 target "api-gateway" {
