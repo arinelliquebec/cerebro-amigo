@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Search, Loader2, ShieldCheck, MessageSquare, Bot, User } from "lucide-react"
 import { tempoRelativo } from "@/lib/tempo"
+import { iniciais } from "@/lib/iniciais"
 import { EscalacaoInbox } from "@/components/escalacao/escalacao-inbox"
 import { RascunhoAdmin } from "@/components/comunicacao/rascunho-admin"
 
@@ -25,11 +26,6 @@ interface Mensagem {
   criadaEm: string
 }
 
-function iniciais(nome: string | null) {
-  if (!nome) return "?"
-  const p = nome.trim().split(/\s+/)
-  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?"
-}
 function horaMin(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
 }
@@ -72,7 +68,7 @@ function InboxItem({ c, ativo, onClick }: { c: ConversaInbox; ativo: boolean; on
     >
       <Avatar className="h-10 w-10 border-2 border-primary/15">
         <AvatarFallback className="bg-secondary text-xs font-semibold text-primary">
-          {iniciais(c.pacienteNome)}
+          {iniciais(c.pacienteNome, "?")}
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
@@ -142,7 +138,7 @@ function ThreadHeader({ sel }: { sel: ConversaInbox }) {
     <div className="flex items-center gap-3 border-b border-border/60 bg-background px-5 py-3">
       <Avatar className="h-9 w-9 border-2 border-primary/15">
         <AvatarFallback className="bg-secondary text-xs font-semibold text-primary">
-          {iniciais(sel.pacienteNome)}
+          {iniciais(sel.pacienteNome, "?")}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1">

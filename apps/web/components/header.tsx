@@ -17,14 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { NovoPacienteDialog } from "@/components/pacientes/novo-paciente-dialog"
 import { useMe } from "@/lib/use-me"
-
-/** Iniciais p/ o avatar quando não há foto — mesmo padrão da sidebar. */
-function iniciais(nome?: string) {
-  if (!nome) return "·"
-  const partes = nome.trim().split(/\s+/).filter(Boolean)
-  const ini = (partes[0]?.[0] ?? "") + (partes.length > 1 ? partes[partes.length - 1][0] : "")
-  return ini.toUpperCase() || "·"
-}
+import { iniciais } from "@/lib/iniciais"
+import { useLogout } from "@/lib/use-logout"
 
 interface HeaderProps {
   title: string
@@ -34,19 +28,9 @@ interface HeaderProps {
 export function Header({ title, subtitle }: HeaderProps) {
   const router = useRouter()
   const me = useMe()
+  const { logout, isLoggingOut } = useLogout()
   const [busca, setBusca] = useState("")
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [fotoErro, setFotoErro] = useState(false)
-
-  async function handleLogout() {
-    if (isLoggingOut) return // trava duplo-clique: evita POST duplicado + evento de auditoria duplicado
-    setIsLoggingOut(true)
-    try {
-      await fetch("/api/auth/logout", { method: "POST" })
-    } finally {
-      router.push("/login")
-    }
-  }
 
   function buscarPacientes(e: React.FormEvent) {
     e.preventDefault()
@@ -133,7 +117,7 @@ export function Header({ title, subtitle }: HeaderProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={handleLogout}
+                onClick={logout}
                 disabled={isLoggingOut}
                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
               >
