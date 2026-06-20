@@ -72,5 +72,20 @@ for s in phq9 gad7 asrs18 audit mdq fagerstrom msi_bpd assist; do
   rm -f "$tmp"
 done
 
+# /api/email-report (CK-4) — gera o mesmo PDF + envia por Resend. Sem RESEND_API_KEY
+# (caso do CI) o resend.ts lança ANTES de qualquer HTTP → 502 fail-closed, NENHUM
+# e-mail sai. Com a key viraria 200. Pega regressão de runtime (PDF/rota) sem enviar nada.
+# scale=audit (expandida) de propósito: trava o enum completo — se voltar p/ só as 3
+# escalas originais, AUDIT cai em 400 e este check quebra.
+c=$(curl -s -o /dev/null -w "%{http_code}" --max-time 35 -X POST "$BASE/api/email-report" \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId":"00000000-0000-0000-0000-000000000000","email":"smoke@example.com","scale":"audit","score":12,"band":"moderate","label":"x","crisis":false}')
+{ [ "$c" = 502 ] || [ "$c" = 200 ]; } && ok "email-report fail-closed/ok ($c)" || bad "email-report (http=$c)"
+
+# Input inválido → 400 (Zod), sem tocar no envio.
+c=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 -X POST "$BASE/api/email-report" \
+  -H "Content-Type: application/json" -d '{"email":"not-an-email"}')
+[ "$c" = 400 ] && ok "email-report valida input (400)" || bad "email-report input (http=$c)"
+
 if [ "$fail" = 0 ]; then echo "SMOKE OK"; else echo "SMOKE FAILED"; fi
 exit "$fail"

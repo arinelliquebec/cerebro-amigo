@@ -8,6 +8,7 @@ const EVENT_TYPES = [
   "crisis_routed",
   "test_completed",
   "report_generated",
+  "email_report_sent",
   "qr_scanned",
   "doctor_signup_started",
 ] as const;
