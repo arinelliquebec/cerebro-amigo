@@ -5,16 +5,11 @@
 import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useMe } from "@/lib/use-me"
+import { iniciais } from "@/lib/iniciais"
 import { Loader2, Camera, Check } from "lucide-react"
 
 const MIME_OK = ["image/jpeg", "image/png"]
 const MAX_BYTES = 5 * 1024 * 1024
-
-function iniciais(nome?: string) {
-  if (!nome) return "·"
-  const p = nome.trim().split(/\s+/).filter(Boolean)
-  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "·"
-}
 
 export function FotoPerfil() {
   const me = useMe()

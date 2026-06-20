@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 import { useMe } from "@/lib/use-me"
+import { iniciais } from "@/lib/iniciais"
+import { useLogout } from "@/lib/use-logout"
 import {
   LayoutDashboard,
   Users,
@@ -43,26 +45,11 @@ const secondaryNavigation = [
   { name: "Configurações", href: "/dashboard/configuracoes", icon: Settings },
 ]
 
-function iniciais(nome?: string) {
-  if (!nome) return "·"
-  const partes = nome.trim().split(/\s+/).filter(Boolean)
-  const ini = (partes[0]?.[0] ?? "") + (partes.length > 1 ? partes[partes.length - 1][0] : "")
-  return ini.toUpperCase() || "·"
-}
-
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
+  const { logout, isLoggingOut } = useLogout()
   const [collapsed, setCollapsed] = useState(false)
   const [fotoErro, setFotoErro] = useState(false)
-
-  async function handleLogout() {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" })
-    } finally {
-      router.push("/login")
-    }
-  }
   const me = useMe()
 
   return (
@@ -164,16 +151,17 @@ export function Sidebar() {
         {/* Logout */}
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={logout}
+          disabled={isLoggingOut}
           className={cn(
             "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
-            "text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive",
+            "text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-60",
             "focus-visible:ring-2 focus-visible:ring-destructive/30 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
             collapsed && "justify-center px-2"
           )}
         >
           <LogOut className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground/50 group-hover:text-destructive transition-colors" />
-          {!collapsed && <span className="tracking-[-0.01em]">Sair</span>}
+          {!collapsed && <span className="tracking-[-0.01em]">{isLoggingOut ? "Saindo…" : "Sair"}</span>}
         </button>
       </div>
 

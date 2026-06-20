@@ -1,5 +1,6 @@
 import { cache } from "react"
 import { gateway } from "./gateway"
+import { iniciais } from "./iniciais"
 
 // Fontes reais (gateway .NET):
 //   GET /api/v1/pacientes          → lista do médico logado
@@ -43,14 +44,6 @@ export interface DashboardData {
 
 const SEV_RANK: Record<string, number> = { critico: 1, urgente: 2, atencao: 3, info: 4 }
 
-function iniciais(nome: string | null): string {
-  if (!nome) return "?"
-  const partes = nome.trim().split(/\s+/)
-  const a = partes[0]?.[0] ?? ""
-  const b = partes.length > 1 ? partes[partes.length - 1][0] : ""
-  return (a + b).toUpperCase() || "?"
-}
-
 export const getDashboard = cache(async (): Promise<DashboardData> => {
   // Falha do gateway não derruba a página — cai pra vazio (zeros).
   const [pacientes, insights] = await Promise.all([
@@ -76,7 +69,7 @@ export const getDashboard = cache(async (): Promise<DashboardData> => {
     id: p.id,
     numero: p.numero,
     nome: p.nome ?? `Paciente ${p.numero}`,
-    iniciais: iniciais(p.nome),
+    iniciais: iniciais(p.nome, "?"),
     ultimaMsg: p.ultimaMsg,
     severidade: sevPorPaciente.get(p.id) ?? null,
   }))

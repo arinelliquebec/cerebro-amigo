@@ -20,6 +20,7 @@ import {
   Link2,
 } from "lucide-react"
 import { useMe } from "@/lib/use-me"
+import { iniciais } from "@/lib/iniciais"
 import { FEATURE, temFeature, readFeatureGate } from "@/lib/feature-gate"
 import { UpsellFeature } from "@/components/assinatura/upsell-feature"
 import { useFeatureUpsell } from "@/components/assinatura/feature-upsell"
@@ -53,11 +54,6 @@ interface Resumo {
   criadoEm: string
 }
 
-function iniciais(nome: string | null): string {
-  if (!nome) return "?"
-  const p = nome.trim().split(/\s+/)
-  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?"
-}
 function hora(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
 }
@@ -243,7 +239,7 @@ export default function BriefingPage({ params }: { params: Promise<{ id: string 
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16 border-2 border-primary/20">
             <AvatarFallback className="bg-secondary text-xl font-semibold text-primary">
-              {iniciais(consulta.pacienteNome)}
+              {iniciais(consulta.pacienteNome, "?")}
             </AvatarFallback>
           </Avatar>
           <div>
