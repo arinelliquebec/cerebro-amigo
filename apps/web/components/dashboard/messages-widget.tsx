@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { CheckCheck, Loader2 } from "lucide-react"
 import { tempoRelativo } from "@/lib/tempo"
+import { iniciais } from "@/lib/iniciais"
 
 interface ConversaInbox {
   pacienteId: string
@@ -18,12 +19,6 @@ interface ConversaInbox {
 }
 
 const delayClass = ["delay-100", "delay-200", "delay-300"]
-
-function iniciais(nome: string | null) {
-  if (!nome) return "?"
-  const p = nome.trim().split(/\s+/)
-  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?"
-}
 
 export function MessagesWidget() {
   const [inbox, setInbox] = useState<ConversaInbox[]>([])
@@ -58,7 +53,7 @@ export function MessagesWidget() {
                 className={`flex items-start gap-3 px-3 py-2.5 mx-1 rounded-xl cursor-pointer transition-colors animate-fade-in ${delayClass[i]} hover:bg-primary/[0.03]`}
               >
                 <Avatar className="mt-0.5 h-[38px] w-[38px] flex-shrink-0 border-2 border-primary/20 bg-secondary text-[0.75rem] font-bold text-primary">
-                  <AvatarFallback>{iniciais(msg.pacienteNome)}</AvatarFallback>
+                  <AvatarFallback>{iniciais(msg.pacienteNome, "?")}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
