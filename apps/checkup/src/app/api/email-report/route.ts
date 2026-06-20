@@ -17,7 +17,9 @@ import { checkPdfLimit } from "@/lib/ratelimit";
 const BodySchema = z.object({
   sessionId: z.string().uuid(),
   email: z.string().email(),
-  scale: z.enum(["phq9", "gad7", "asrs18"]),
+  // Espelha /api/result: e-mail vale p/ TODAS as escalas live (ADR-048/049), não só
+  // as 3 originais — senão AUDIT/MDQ/Fagerström/MSI-BPD/ASSIST baixam PDF mas dão 400 no envio.
+  scale: z.enum(["phq9", "gad7", "asrs18", "audit", "mdq", "fagerstrom", "msi_bpd", "assist"]),
   score: z.number().int().min(0).max(100),
   band: z.string().min(1),
   label: z.string().min(1),

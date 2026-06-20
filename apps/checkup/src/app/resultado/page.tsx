@@ -186,7 +186,18 @@ function ResultContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId: sid, email: emailPdf, scale, score, band, label, crisis: isCrisis }),
     })
-      .then((r) => setEmailState(r.ok ? "done" : "error"))
+      .then((r) => {
+        setEmailState(r.ok ? "done" : "error");
+        // Sinal de aquisição (engajou a ponto de querer o PDF). Sem PII: só sessão +
+        // escala, NUNCA o e-mail. Não-bloqueante (void = fire-and-forget intencional).
+        // Cockpit ADR-050 conta por event_type.
+        if (r.ok)
+          void fetch("/api/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ event: "email_report_sent", sessionId: sid, scaleId: scale }),
+          }).catch(() => {});
+      })
       .catch(() => setEmailState("error"));
   };
 
