@@ -562,6 +562,11 @@ public static class PacientesPsiqEndpoints
 
         var emailNorm = email.Trim().ToLowerInvariant();
 
+        // Impede colisão de identidade: e-mail de médico não pode virar paciente.
+        if (await db.Database.ExistsAsync("SELECT 1 FROM usuarios WHERE email = {0}", emailNorm))
+            return new CriarResultado(CriarTipo.Conflito, null,
+                "Esse e-mail já está cadastrado como médico. Não é possível cadastrá-lo como paciente.");
+
         var clienteId = await db.Database.ExecuteScalarAsync<Guid?>(
             "SELECT id FROM clientes WHERE email = {0}", emailNorm);
 
