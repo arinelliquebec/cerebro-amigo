@@ -337,5 +337,6 @@ SCHEDULER_INTERVAL_SECONDS
 | [067](adrs/ADR-067-gateway-scala-strangler.md) | Migração do gateway .NET→Scala via strangler | ❌ Superseded by 071 |
 | [071](adrs/ADR-071-manter-dotnet-remover-scala.md) | Manter gateway em .NET 10 e decomissionar o Scala | Accepted |
 | [072](adrs/ADR-072-deploy-gateway-stop-then-start.md) | Deploy: stop-then-start do gateway (downtime curto × footprint) | Accepted |
+| [073](adrs/ADR-073-manter-aws-descartar-azure.md) | Manter infra na AWS; Azure descartado no piloto (custo/crédito) | Accepted |
 
 > **Gateway transacional = .NET 10** (decisão final, ADR-071). A migração p/ Scala (ADR-067) foi abandonada e o serviço Scala removido do box. (053–070 não listados nesta tabela — ver `docs/adrs/`.)
