@@ -121,7 +121,17 @@ export function MedicacoesEmUso({ pacienteId }: { pacienteId: string }) {
         }),
       })
       if (!r.ok) { setErro("Não foi possível registrar agora. Tente novamente."); return }
-      const nova = await r.json() as MedicacaoEmUso
+      const { id: novaId } = await r.json() as { id: string }
+      const nova: MedicacaoEmUso = {
+        id: novaId,
+        medicamento,
+        generico,
+        classe,
+        posologia: posologia.trim() || null,
+        fonte: fonte.trim() || null,
+        observacoes: null,
+        criadoEm: new Date().toISOString(),
+      }
       setLista((prev) => [...prev, nova])
       resetForm(); setAberto(false)
     } catch {
