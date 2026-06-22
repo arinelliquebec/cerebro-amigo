@@ -28,6 +28,13 @@
 services:
   web:
     image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/web:${IMAGE_TAG:-latest}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: sa-east-1
+        awslogs-group: /cerebro/web
+        awslogs-stream: web
+        awslogs-create-group: "false"
     restart: unless-stopped
     build:
       context: .
@@ -60,6 +67,13 @@ services:
 
   api-gateway:
     image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/api-gateway:${IMAGE_TAG:-latest}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: sa-east-1
+        awslogs-group: /cerebro/api-gateway
+        awslogs-stream: api-gateway
+        awslogs-create-group: "false"
     restart: unless-stopped
     build:
       context: ./apps/api-gateway
@@ -92,6 +106,13 @@ services:
 
   orchestrator-py:
     image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/orchestrator-py:${IMAGE_TAG:-latest}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: sa-east-1
+        awslogs-group: /cerebro/orchestrator-py
+        awslogs-stream: orchestrator-py
+        awslogs-create-group: "false"
     restart: unless-stopped
     build:
       context: ./apps/orchestrator-py
@@ -112,6 +133,13 @@ services:
 
   agents-py:
     image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/agents-py:${IMAGE_TAG:-latest}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: sa-east-1
+        awslogs-group: /cerebro/agents-py
+        awslogs-stream: agents-py
+        awslogs-create-group: "false"
     restart: unless-stopped
     build:
       context: ./apps/agents-py
@@ -137,6 +165,13 @@ services:
 
   notifier-py:
     image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/notifier-py:${IMAGE_TAG:-latest}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: sa-east-1
+        awslogs-group: /cerebro/notifier-py
+        awslogs-stream: notifier-py
+        awslogs-create-group: "false"
     restart: unless-stopped
     build:
       context: ./apps/notifier-py
