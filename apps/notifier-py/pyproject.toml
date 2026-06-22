@@ -17,6 +17,10 @@ dependencies = [
 
     # Cifragem em repouso (ADR-018)
     "cryptography>=44.0.0",
+
+    # E-mail provider SES atrás da flag EMAIL_PROVIDER=ses (ADR-072). Inativo
+    # enquanto vigente=resend; presente p/ o caminho funcionar quando flipado.
+    "boto3>=1.35.0",
 ]
 
 [project.optional-dependencies]
