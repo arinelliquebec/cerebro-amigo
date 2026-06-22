@@ -27,7 +27,19 @@ export async function PATCH(req: NextRequest) {
   const res = await fetch(`${GATEWAY}/api/v1/portal/paciente/perfil`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ nome: body?.nome ?? null, email: body?.email ?? null }),
+    body: JSON.stringify({
+      nome: body?.nome ?? null,
+      email: body?.email ?? null,
+      cpf: body?.cpf ?? null,
+      telefone: body?.telefone ?? null,
+      cep: body?.cep ?? null,
+      logradouro: body?.logradouro ?? null,
+      numero: body?.numero ?? null,
+      complemento: body?.complemento ?? null,
+      bairro: body?.bairro ?? null,
+      cidade: body?.cidade ?? null,
+      uf: body?.uf ?? null,
+    }),
   })
   return new NextResponse(res.status === 204 ? null : await res.text(), {
     status: res.status,

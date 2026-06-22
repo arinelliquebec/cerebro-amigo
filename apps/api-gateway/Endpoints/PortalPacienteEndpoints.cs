@@ -404,6 +404,8 @@ public static class PortalPacienteEndpoints
             var p = await db.Database.SqlQueryRaw<PerfilCompleto>(@"
                 SELECT c.id, c.nome, c.email, c.wa_id,
                        p.cpf, p.data_nascimento,
+                       p.telefone, p.cep, p.logradouro, p.numero,
+                       p.complemento, p.bairro, p.cidade, p.uf,
                        p.consentimento_lgpd_em,
                        p.config_lembretes,
                        m.nome AS nome_medico, m.crm AS crm_medico
@@ -424,6 +426,30 @@ public static class PortalPacienteEndpoints
             await db.Database.ExecuteSqlRawAsync(@"
                 UPDATE clientes SET nome = COALESCE({0}, nome), email = COALESCE({1}, email)
                 WHERE id = {2}", req.Nome, req.Email, pid.Value);
+
+            await db.Database.ExecuteSqlRawAsync(@"
+                UPDATE pacientes SET
+                    cpf         = {0},
+                    telefone    = {1},
+                    cep         = {2},
+                    logradouro  = {3},
+                    numero      = {4},
+                    complemento = {5},
+                    bairro      = {6},
+                    cidade      = {7},
+                    uf          = {8}
+                WHERE cliente_id = {9}",
+                (object?)req.Cpf ?? DBNull.Value,
+                (object?)req.Telefone ?? DBNull.Value,
+                (object?)req.Cep ?? DBNull.Value,
+                (object?)req.Logradouro ?? DBNull.Value,
+                (object?)req.Numero ?? DBNull.Value,
+                (object?)req.Complemento ?? DBNull.Value,
+                (object?)req.Bairro ?? DBNull.Value,
+                (object?)req.Cidade ?? DBNull.Value,
+                (object?)req.Uf ?? DBNull.Value,
+                pid.Value);
+
             return Results.NoContent();
         });
     }
@@ -507,7 +533,14 @@ public record MedicacaoPaciente(Guid Id, string Medicamento, string DoseDescrica
 public record ConfirmarTomadaRequest(string Status, string? Nota);
 
 public record PerfilCompleto(Guid Id, string? Nome, string? Email, string WaId,
-    string? Cpf, DateTime? DataNascimento, DateTime? ConsentimentoLgpdEm,
+    string? Cpf, DateTime? DataNascimento,
+    string? Telefone, string? Cep, string? Logradouro, string? Numero,
+    string? Complemento, string? Bairro, string? Cidade, string? Uf,
+    DateTime? ConsentimentoLgpdEm,
     string ConfigLembretes, string NomeMedico, string CrmMedico);
 
-public record AtualizarPerfilRequest(string? Nome, string? Email);
+public record AtualizarPerfilRequest(
+    string? Nome, string? Email,
+    string? Cpf, string? Telefone,
+    string? Cep, string? Logradouro, string? Numero,
+    string? Complemento, string? Bairro, string? Cidade, string? Uf);
