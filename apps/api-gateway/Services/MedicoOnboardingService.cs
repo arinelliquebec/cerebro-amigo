@@ -50,6 +50,11 @@ public sealed class MedicoOnboardingService
         if (await _db.Database.ExistsAsync("SELECT 1 FROM usuarios WHERE email = {0}", email))
             return OnboardMedicoResult.Fail("email_em_uso", 409);
 
+        // Impede colisão de identidade: mesmo e-mail não pode ser médico E paciente.
+        if (await _db.Database.ExistsAsync("SELECT 1 FROM clientes WHERE email = {0}", email))
+            return OnboardMedicoResult.Fail("email_em_uso", 409,
+                "Esse e-mail já está cadastrado como paciente. Use um e-mail diferente para a conta de médico.");
+
         // Valida CRM contra o CFM via Infosimples (hard gate) — ANTES de gravar qualquer
         // coisa, senão um CFM fora do ar deixava o usuário órfão no banco.
         var val = await _cfm.ValidarAsync(crm, crmUf, nome);
