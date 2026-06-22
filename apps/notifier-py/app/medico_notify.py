@@ -32,6 +32,7 @@ import structlog
 
 from app.core.config import get_settings
 from app.core.db import acquire
+from app.core.email import send_email
 
 logger = structlog.get_logger(__name__)
 
@@ -40,37 +41,13 @@ logger = structlog.get_logger(__name__)
 
 
 async def _enviar_email(destinatario: str, *, assunto: str, corpo: str) -> tuple[bool, str]:
-    """Envia e-mail via Resend. Retorna (ok, detalhe_sem_pii)."""
-    settings = get_settings()
-    if not settings.resend_api_key:
-        logger.info("medico_email.disabled_no_key")
-        return False, "sem_resend_key"
-    try:
-        import httpx
-    except ImportError:
-        logger.error("medico_email.no_httpx")
-        return False, "sem_httpx"
+    """Envia o e-mail de alerta pelo provider ativo (`EMAIL_PROVIDER`, ADR-073).
 
-    api_key = settings.resend_api_key.get_secret_value()
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(
-                "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "from": settings.email_from,
-                    "to": [destinatario],
-                    "subject": assunto,
-                    "text": corpo,
-                },
-            )
-        if resp.status_code == 200:
-            return True, "ok"
-        logger.warning("medico_email.failed", status=resp.status_code, body=resp.text)
-        return False, f"http_{resp.status_code}"
-    except Exception as exc:
-        logger.exception("medico_email.error", error=str(exc))
-        return False, "excecao"
+    Retorna (ok, detalhe_sem_pii). O `detalhe` (id da mensagem em sucesso, código
+    de erro em falha) vai para `crise_alerta_eventos.detalhe` — a escada (ADR-041)
+    decide por `ok`/eventos, nunca pelo valor textual do detalhe.
+    """
+    return await send_email(to=destinatario, subject=assunto, text=corpo)
 
 
 def _corpo_email(paciente_nome: str | None, *, reforco: bool) -> tuple[str, str]:

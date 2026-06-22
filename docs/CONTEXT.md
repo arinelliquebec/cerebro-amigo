@@ -213,6 +213,11 @@ INTERNAL_API_TOKEN            # .NET ↔ Python, Bearer
 
 # E-mail
 RESEND_API_KEY · EMAIL_FROM
+# notifier-py: provider-switchável (ADR-073). Vigente: resend (primário).
+EMAIL_PROVIDER=resend          # resend (vigente) | ses (alternativa, bloqueada CK-4)
+SES_REGION=sa-east-1           # SES v2 in-region quando EMAIL_PROVIDER=ses (auth por IAM role)
+# Domínio cerebroamigo.com.br: verificado no Resend (sa-east-1), DKIM + SPF(send) no ar.
+# FALTA DMARC: _dmarc TXT "v=DMARC1; p=none; rua=mailto:dmarc@cerebroamigo.com.br; fo=1" (zona Vercel).
 
 # Web Push
 VAPID_PRIVATE_KEY · VAPID_PUBLIC_KEY · NEXT_PUBLIC_VAPID_PUBLIC_KEY
@@ -337,5 +342,6 @@ SCHEDULER_INTERVAL_SECONDS
 | [067](adrs/ADR-067-gateway-scala-strangler.md) | Migração do gateway .NET→Scala via strangler | ❌ Superseded by 071 |
 | [071](adrs/ADR-071-manter-dotnet-remover-scala.md) | Manter gateway em .NET 10 e decomissionar o Scala | Accepted |
 | [072](adrs/ADR-072-deploy-gateway-stop-then-start.md) | Deploy: stop-then-start do gateway (downtime curto × footprint) | Accepted |
+| [073](adrs/ADR-073-email-provider-abstraction.md) | E-mail do notifier-py por `EMAIL_PROVIDER` (Resend primário, SES atrás da flag) | Accepted |
 
 > **Gateway transacional = .NET 10** (decisão final, ADR-071). A migração p/ Scala (ADR-067) foi abandonada e o serviço Scala removido do box. (053–070 não listados nesta tabela — ver `docs/adrs/`.)
