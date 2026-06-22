@@ -433,11 +433,15 @@ public static class PortalPacienteEndpoints
             var pid = PacienteAuthEndpoints.GetPacienteId(user);
             if (pid is null) return Results.Unauthorized();
 
-            await db.Database.ExecuteSqlRawAsync(@"
+            // ExecuteRawAsync (helper), NÃO ExecuteSqlRawAsync: o EF estoura com
+            // parâmetro DBNull.Value (campo nulo: e-mail/CPF/endereço vazios) — o
+            // helper normaliza null→DBNull no ADO cru. Era a causa do "erro ao salvar"
+            // (qualquer campo vazio → 500). Ver DbExtensions.ExecuteRawAsync.
+            await db.Database.ExecuteRawAsync(@"
                 UPDATE clientes SET nome = COALESCE({0}, nome), email = COALESCE({1}, email)
                 WHERE id = {2}", req.Nome, req.Email, pid.Value);
 
-            await db.Database.ExecuteSqlRawAsync(@"
+            await db.Database.ExecuteRawAsync(@"
                 UPDATE pacientes SET
                     cpf         = {0},
                     telefone    = {1},
@@ -449,15 +453,8 @@ public static class PortalPacienteEndpoints
                     cidade      = {7},
                     uf          = {8}
                 WHERE cliente_id = {9}",
-                (object?)req.Cpf ?? DBNull.Value,
-                (object?)req.Telefone ?? DBNull.Value,
-                (object?)req.Cep ?? DBNull.Value,
-                (object?)req.Logradouro ?? DBNull.Value,
-                (object?)req.Numero ?? DBNull.Value,
-                (object?)req.Complemento ?? DBNull.Value,
-                (object?)req.Bairro ?? DBNull.Value,
-                (object?)req.Cidade ?? DBNull.Value,
-                (object?)req.Uf ?? DBNull.Value,
+                req.Cpf, req.Telefone, req.Cep, req.Logradouro, req.Numero,
+                req.Complemento, req.Bairro, req.Cidade, req.Uf,
                 pid.Value);
 
             return Results.NoContent();
