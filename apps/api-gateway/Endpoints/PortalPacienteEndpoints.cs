@@ -352,10 +352,11 @@ public static class PortalPacienteEndpoints
                 FROM prescricoes
                 WHERE paciente_id = {0} AND ativa = TRUE
                 UNION ALL
-                -- ARRAY[]::time[] (não '{}'::time[]): SqlQueryRaw passa o SQL por
-                -- String.Format ({0} = placeholder), então uma chave literal {} vira
-                -- placeholder malformado → FormatException em GenerateFromSql (500 antes
-                -- de tocar o banco). medicacoes_em_uso não tem horários → array vazio.
+                -- horarios vazio via ARRAY[]::time[] (NUNCA a forma com chaves literais):
+                -- o SQL inteiro (comentarios inclusos) passa por String.Format no
+                -- SqlQueryRaw, e qualquer chave literal vira placeholder malformado e
+                -- quebra em GenerateFromSql (FormatException, 500 antes de tocar o banco).
+                -- medicacoes_em_uso nao tem horarios -> array vazio.
                 SELECT id, medicamento, COALESCE(posologia, '') AS dose_descricao,
                        ARRAY[]::time[] AS horarios, criado_em::date AS inicio_em, observacoes,
                        fonte, 'em_uso' AS origem
