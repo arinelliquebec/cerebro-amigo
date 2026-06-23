@@ -1,4 +1,5 @@
 using ApiGateway.Data;
+using ApiGateway.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
@@ -83,7 +84,7 @@ public static class PortalPacienteEndpoints
             .WithTags("portal-paciente-diario")
             .RequireAuthorization("paciente");
 
-        d.MapGet("/", async (AppDbContext db, ClaimsPrincipal user,
+        d.MapGet("/", async (AppDbContext db, ClaimsPrincipal user, CryptoService crypto,
             [FromQuery] int page = 1, [FromQuery] int pageSize = 20) =>
         {
             var pid = PacienteAuthEndpoints.GetPacienteId(user);
@@ -101,10 +102,18 @@ public static class PortalPacienteEndpoints
                 OFFSET {1} LIMIT {2}",
                 pid.Value, (page - 1) * pageSize, pageSize).ToListAsync();
 
-            return Results.Ok(entradas);
+            // ADR-018: titulo/conteudo/transcricao são cifrados em repouso. Decifra na
+            // leitura (no-op em linhas legadas plaintext, sem prefixo v1:).
+            var saida = entradas.Select(e => e with
+            {
+                Titulo = crypto.Decrypt(e.Titulo),
+                Conteudo = crypto.Decrypt(e.Conteudo) ?? "",
+                Transcricao = crypto.Decrypt(e.Transcricao)
+            }).ToList();
+            return Results.Ok(saida);
         });
 
-        d.MapGet("/{id:guid}", async (Guid id, AppDbContext db, ClaimsPrincipal user) =>
+        d.MapGet("/{id:guid}", async (Guid id, AppDbContext db, ClaimsPrincipal user, CryptoService crypto) =>
         {
             var pid = PacienteAuthEndpoints.GetPacienteId(user);
             if (pid is null) return Results.Unauthorized();
@@ -119,13 +128,20 @@ public static class PortalPacienteEndpoints
                 WHERE id = {0} AND paciente_id = {1}",
                 id, pid.Value).FirstOrDefaultAsync();
 
-            return e is null ? Results.NotFound() : Results.Ok(e);
+            if (e is null) return Results.NotFound();
+            // ADR-018: decifra na leitura (no-op em linhas legadas).
+            return Results.Ok(e with
+            {
+                Titulo = crypto.Decrypt(e.Titulo),
+                Conteudo = crypto.Decrypt(e.Conteudo) ?? "",
+                Transcricao = crypto.Decrypt(e.Transcricao)
+            });
         });
 
         d.MapPost("/", async (
             [FromBody] CriarDiarioRequest req,
             AppDbContext db, IHttpClientFactory httpFactory,
-            IConfiguration cfg, ClaimsPrincipal user) =>
+            IConfiguration cfg, ClaimsPrincipal user, CryptoService crypto) =>
         {
             var pid = PacienteAuthEndpoints.GetPacienteId(user);
             if (pid is null) return Results.Unauthorized();
@@ -163,9 +179,12 @@ public static class PortalPacienteEndpoints
                   (id, paciente_id, titulo, conteudo, humor, tags,
                    compartilhada_com_medico, tipo, transcricao)
                 VALUES ({0}, {1}, NULLIF({2}, ''), {3}, {4}, {5}, {6}, {7}, {8})",
-                id, pid.Value, req.Titulo ?? "", req.Conteudo,
+                // ADR-018: conteúdo clínico do paciente cifrado em repouso (a triagem de
+                // crise acima já usou req.Conteudo em claro, antes de cifrar). Encrypt("")
+                // devolve "" → NULLIF zera o título vazio normalmente.
+                id, pid.Value, crypto.Encrypt(req.Titulo ?? ""), crypto.Encrypt(req.Conteudo),
                 req.Humor, req.Tags ?? Array.Empty<string>(), req.CompartilharComMedico,
-                req.Tipo ?? "texto", req.Transcricao);
+                req.Tipo ?? "texto", crypto.Encrypt(req.Transcricao));
 
             return Results.Created($"/api/v1/portal/paciente/diario/{id}",
                 new { id, crise = false, salvo = true });
@@ -173,11 +192,13 @@ public static class PortalPacienteEndpoints
 
         d.MapPatch("/{id:guid}", async (
             Guid id, [FromBody] AtualizarDiarioRequest req,
-            AppDbContext db, ClaimsPrincipal user) =>
+            AppDbContext db, ClaimsPrincipal user, CryptoService crypto) =>
         {
             var pid = PacienteAuthEndpoints.GetPacienteId(user);
             if (pid is null) return Results.Unauthorized();
 
+            // ADR-018: cifra titulo/conteudo editados. Encrypt(null)=null → COALESCE
+            // preserva o valor anterior quando o campo não veio no PATCH.
             var rows = await db.Database.ExecuteSqlRawAsync(@"
                 UPDATE diario_entradas
                 SET titulo = COALESCE({0}, titulo),
@@ -187,7 +208,7 @@ public static class PortalPacienteEndpoints
                     compartilhada_com_medico = COALESCE({4}, compartilhada_com_medico),
                     atualizada_em = NOW()
                 WHERE id = {5} AND paciente_id = {6}",
-                req.Titulo, req.Conteudo, req.Humor, req.Tags, req.CompartilharComMedico,
+                crypto.Encrypt(req.Titulo), crypto.Encrypt(req.Conteudo), req.Humor, req.Tags, req.CompartilharComMedico,
                 id, pid.Value);
 
             return rows > 0 ? Results.NoContent() : Results.NotFound();

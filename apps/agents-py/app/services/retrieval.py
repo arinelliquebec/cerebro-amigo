@@ -61,11 +61,10 @@ _HYDRATE_SQL: dict[str, str] = {
         "JOIN pacientes p ON p.cliente_id = c.cliente_id "
         "WHERE m.id = $1 AND p.medico_responsavel_id = $2"
     ),
-    "diario": (
-        "SELECT concat_ws(E'\\n', NULLIF(d.titulo, ''), d.conteudo) AS txt "
-        "FROM diario_entradas d JOIN pacientes p ON p.cliente_id = d.paciente_id "
-        "WHERE d.id = $1 AND p.medico_responsavel_id = $2"
-    ),
+    # NOTA: 'diario' NÃO está aqui de propósito. Seus campos titulo/conteudo são
+    # cifrados SEPARADAMENTE (ADR-018), então têm de ser decifrados um a um antes
+    # de concatenar — o decrypt único sobre o concat quebraria. Tratado num branch
+    # dedicado em `_hydrate_trecho` (_hydrate_diario).
     "sintoma": (
         "SELECT s.nota AS txt FROM sintomas s "
         "JOIN pacientes p ON p.cliente_id = s.paciente_id "
@@ -161,10 +160,38 @@ async def _hydrate_trecho(conn, row, medico_id: UUID, key: str | None) -> str | 
     if row["conteudo"] is not None:
         return row["conteudo"]
 
+    if row["fonte_id"] is None:
+        return None
+
+    # Diário: titulo/conteudo cifrados SEPARADAMENTE (ADR-018) ⇒ branch dedicado
+    # que decifra cada campo antes de concatenar (não dá p/ decifrar o concat).
+    if row["fonte_tipo"] == "diario":
+        return await _hydrate_diario(conn, row["fonte_id"], medico_id, key)
+
     sql = _HYDRATE_SQL.get(row["fonte_tipo"])
-    if sql is None or row["fonte_id"] is None:
+    if sql is None:
         return None
     src = await conn.fetchval(sql, row["fonte_id"], medico_id)
     if src is None:
         return None
     return crypto.decrypt(src, key)
+
+
+async def _hydrate_diario(conn, fonte_id, medico_id: UUID, key: str | None) -> str | None:
+    """Re-busca uma entrada de diário com re-validação de tenant e decifra.
+
+    `titulo` e `conteudo` são cifrados SEPARADAMENTE (cada um é um v1:<base64>
+    independente). Decifra-se um a um e só então junta os PLAINTEXTS — nunca
+    decifrar a concatenação. Retorna None se a fonte sumiu ou mudou de tenant.
+    """
+    src = await conn.fetchrow(
+        "SELECT d.titulo, d.conteudo "
+        "FROM diario_entradas d JOIN pacientes p ON p.cliente_id = d.paciente_id "
+        "WHERE d.id = $1 AND p.medico_responsavel_id = $2",
+        fonte_id, medico_id,
+    )
+    if src is None:
+        return None
+    titulo = crypto.decrypt(src["titulo"], key) if src["titulo"] else ""
+    conteudo = crypto.decrypt(src["conteudo"], key) if src["conteudo"] else ""
+    return "\n".join(p for p in [titulo, conteudo] if p)

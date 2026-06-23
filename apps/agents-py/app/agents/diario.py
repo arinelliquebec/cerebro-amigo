@@ -32,6 +32,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from app.agents.base import AgentPayload, BaseAgent, InsightOutput
+from app.core import crypto
 from app.core.config import get_settings
 from app.core.db import acquire
 from app.core.llm import ainvoke_structured, sonnet
@@ -212,6 +213,12 @@ class DiarioAgent(BaseAgent):
     async def _carregar_entradas(self, paciente_id: UUID) -> list[dict]:
         settings = get_settings()
         desde = datetime.now(UTC) - timedelta(days=settings.diario_janela_dias)
+        # Chave de cifragem em repouso (ADR-018). None ⇒ legado plaintext (no-op).
+        key = (
+            settings.encryption_key.get_secret_value()
+            if settings.encryption_key
+            else None
+        )
         async with acquire() as conn:
             rows = await conn.fetch(
                 """
@@ -226,7 +233,15 @@ class DiarioAgent(BaseAgent):
                 paciente_id,
                 desde,
             )
-        return [dict(r) for r in rows]
+        # Decifra titulo/conteudo SEPARADAMENTE (cada campo é um v1:<base64>
+        # independente — nunca decifrar uma concatenação dos dois).
+        entradas: list[dict] = []
+        for r in rows:
+            d = dict(r)
+            d["titulo"] = crypto.decrypt(d["titulo"], key) if d["titulo"] else d["titulo"]
+            d["conteudo"] = crypto.decrypt(d["conteudo"], key) if d["conteudo"] else d["conteudo"]
+            entradas.append(d)
+        return entradas
 
     async def _get_nome(self, paciente_id: UUID) -> str:
         async with acquire() as conn:
