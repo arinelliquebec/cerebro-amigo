@@ -23,6 +23,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from app.agents.base import AgentPayload, BaseAgent, InsightOutput
+from app.core import crypto
 from app.core.config import get_settings
 from app.core.db import acquire
 from app.core.llm import ainvoke_structured, sonnet
@@ -233,7 +234,7 @@ class ResumidorAgent(BaseAgent):
                 desde,
             )
 
-            diario = await conn.fetch(
+            diario_rows = await conn.fetch(
                 """
                 SELECT titulo, conteudo, humor, tags, criada_em
                 FROM diario_entradas
@@ -246,6 +247,23 @@ class ResumidorAgent(BaseAgent):
                 paciente_id,
                 desde,
             )
+            # Decifra titulo/conteudo SEPARADAMENTE (ADR-018; cada campo é um
+            # v1:<base64> independente — nunca decifrar a concatenação dos dois).
+            # None ⇒ legado plaintext (no-op).
+            _settings = get_settings()
+            _key = (
+                _settings.encryption_key.get_secret_value()
+                if _settings.encryption_key
+                else None
+            )
+            diario = []
+            for r in diario_rows:
+                d = dict(r)
+                d["titulo"] = crypto.decrypt(d["titulo"], _key) if d["titulo"] else d["titulo"]
+                d["conteudo"] = (
+                    crypto.decrypt(d["conteudo"], _key) if d["conteudo"] else d["conteudo"]
+                )
+                diario.append(d)
 
             crises = await conn.fetch(
                 """
@@ -275,7 +293,7 @@ class ResumidorAgent(BaseAgent):
             "consulta_modalidade": consulta_modalidade,
             "sintomas": [dict(r) for r in sintomas],
             "tomadas": [dict(r) for r in tomadas],
-            "diario": [dict(r) for r in diario],
+            "diario": diario,  # já são dicts com titulo/conteudo decifrados
             "crises": [dict(r) for r in crises],
             "prescricoes": [dict(r) for r in prescricoes],
         }

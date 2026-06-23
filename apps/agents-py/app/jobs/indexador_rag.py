@@ -156,7 +156,7 @@ class IndexadorRagJob(BaseJob):
     async def _index_paciente(self, conn, medico_id: UUID, paciente_id: UUID) -> dict[str, int]:
         key = _enc_key()
         desejado: dict[tuple[str, UUID], tuple[str, str, dict]] = {}
-        for tipo, fid, raw, meta in await self._coletar_fontes_paciente(conn, paciente_id):
+        for tipo, fid, raw, meta in await self._coletar_fontes_paciente(conn, paciente_id, key):
             plain = crypto.decrypt(raw, key).strip() if raw else ""
             if not plain:
                 continue
@@ -167,10 +167,15 @@ class IndexadorRagJob(BaseJob):
         )
 
     @staticmethod
-    async def _coletar_fontes_paciente(conn, paciente_id: UUID):
+    async def _coletar_fontes_paciente(conn, paciente_id: UUID, key: str | None):
         """Coleta (fonte_tipo, fonte_id, texto_cru, metadata) das fontes do paciente.
 
         `paciente_id` = clientes.id. Mensagens ligam ao paciente via conversas.
+
+        `key`: chave de cifragem (ADR-018). Necessária aqui SÓ para o diário, cujos
+        campos `titulo`/`conteudo` são cifrados SEPARADAMENTE — a concatenação tem
+        de ser feita sobre os PLAINTEXTS, senão o decrypt único downstream quebra.
+        As demais fontes seguem CRUAS (decifradas em `_index_paciente`).
         """
         fontes: list[tuple[str, UUID, str, dict]] = []
 
@@ -185,12 +190,16 @@ class IndexadorRagJob(BaseJob):
                            {"fonte": "mensagem", "data": r["criada_em"].isoformat()}))
 
         # Diário — só o que o paciente COMPARTILHOU com o médico (consentimento).
+        # titulo/conteudo são cifrados SEPARADAMENTE (ADR-018): decifra cada um e
+        # junta os PLAINTEXTS. O `crypto.decrypt` downstream vira no-op inofensivo.
         for r in await conn.fetch(
             "SELECT id, titulo, conteudo, criada_em FROM diario_entradas "
             "WHERE paciente_id = $1 AND compartilhada_com_medico = TRUE",
             paciente_id,
         ):
-            texto = "\n".join(p for p in [r["titulo"], r["conteudo"]] if p)
+            titulo = crypto.decrypt(r["titulo"], key) if r["titulo"] else r["titulo"]
+            conteudo = crypto.decrypt(r["conteudo"], key) if r["conteudo"] else r["conteudo"]
+            texto = "\n".join(p for p in [titulo, conteudo] if p)
             fontes.append(("diario", r["id"], texto,
                            {"fonte": "diario", "data": r["criada_em"].isoformat()}))
 
