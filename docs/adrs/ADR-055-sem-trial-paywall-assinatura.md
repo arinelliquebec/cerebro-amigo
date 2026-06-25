@@ -33,7 +33,8 @@ avaliação.
 
 - **Onboarding (sem trial):** cria a assinatura em `status='pendente'` com
   **`prazo_pagamento_ate = NOW() + X dias`** (coluna nova; **não** reusar `trial_ate`,
-  cuja semântica é de trial). `X` = **5 dias** (config `ASSINATURA_PRAZO_PAGAMENTO_DIAS`, default 5). Vale para
+  cuja semântica é de trial). `X` = **7 dias** (config `ASSINATURA_PRAZO_PAGAMENTO_DIAS`, default 7;
+  ajustado de 5→7 em 2026-06-25). Vale para
   admin e self-signup. O campo `trial_ate` fica deprecado para linhas novas.
 - **Durante o prazo (`pendente`, dentro de `prazo_pagamento_ate`):** o médico tem
   acesso ao dashboard para configurar e começar, e vê um aviso persistente
@@ -102,7 +103,7 @@ dados, se houver). Atualizar os enums e contadores que hoje falam "trial":
 
 ## Parâmetros (confirmados 2026-06-15)
 
-1. **`X` (dias de prazo de pagamento): 5** — config `ASSINATURA_PRAZO_PAGAMENTO_DIAS` (default 5).
+1. **`X` (dias de prazo de pagamento): 7** — config `ASSINATURA_PRAZO_PAGAMENTO_DIAS` (default 7; era 5, ajustado em 2026-06-25).
 2. **Trimestral dos planos Consultoria: 3× a mensalidade com 10% de desconto** —
    Solo Consultoria R$ 4.023/tri; Clínica a partir de R$ 7.830/tri.
 3. **Pagamento no v1: self-checkout** — o médico paga sozinho na tela de bloqueio.
@@ -111,7 +112,7 @@ dados, se houver). Atualizar os enums e contadores que hoje falam "trial":
 
 - ✅ **Fase A (fundação) — PR #58:** migration `0045` (`assinaturas.prazo_pagamento_ate`)
   **APLICADA em prod 2026-06-15** (coluna verificada via SSM); `MedicoOnboardingService`
-  cria `pendente` + prazo (`ASSINATURA_PRAZO_PAGAMENTO_DIAS`, default 5); `/medico/signup`
+  cria `pendente` + prazo (`ASSINATURA_PRAZO_PAGAMENTO_DIAS`, default 7); `/medico/signup`
   passa `plano='pendente'`.
 - ✅ **Fase B (expõe situação) — PR #58:** `AssinaturaGate.Avaliar(status,prazo,trial,now)`
   (puro) exposto em `GET /api/v1/minha-assinatura` e `GET /api/v1/auth/me`
