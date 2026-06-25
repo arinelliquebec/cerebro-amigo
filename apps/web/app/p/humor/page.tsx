@@ -2,10 +2,20 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Smile, Loader2, Check, Heart, Phone } from "lucide-react"
+import { Smile, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { CrisisSupportPanel } from "@/components/portal/crisis-support-panel"
 
 const EMOJIS = ["😣", "😟", "😕", "😐", "🙂", "😌", "😊", "😄", "😁", "🤩"]
+
+/** Cinco níveis nomeados; valores 2–10 alinhados à escala clínica existente. */
+const ANSIEDADE = [
+  { valor: 2, emoji: "😌", rotulo: "Calma" },
+  { valor: 4, emoji: "🙂", rotulo: "Leve" },
+  { valor: 6, emoji: "😐", rotulo: "Moderada" },
+  { valor: 8, emoji: "😰", rotulo: "Alta" },
+  { valor: 10, emoji: "😱", rotulo: "Muito alta" },
+] as const
 
 export default function HumorPage() {
   const router = useRouter()
@@ -50,38 +60,11 @@ export default function HumorPage() {
   // Acolhimento de crise (texto fixo do backend, NUNCA editável) — regra #2.
   if (criseTexto) {
     return (
-      <div className="p-4 pt-8 space-y-5">
-        <h1 className="text-lg font-semibold text-foreground">Estamos com você</h1>
-        <div className="space-y-4 rounded-2xl border-2 border-primary/40 bg-primary/5 p-5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20">
-              <Heart className="h-5 w-5 text-primary" />
-            </div>
-            <p className="text-sm font-medium">Sua mensagem foi levada a sério</p>
-          </div>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">{criseTexto}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href="tel:188"
-            className="flex flex-col items-center gap-1 rounded-xl border-2 border-primary/30 bg-primary/10 p-4 transition-colors hover:bg-primary/20"
-          >
-            <Phone className="h-5 w-5 text-primary" />
-            <span className="text-sm font-semibold">CVV 188</span>
-            <span className="text-[11px] text-muted-foreground">24h gratuito</span>
-          </a>
-          <a
-            href="tel:192"
-            className="flex flex-col items-center gap-1 rounded-xl border-2 border-primary/30 bg-primary/10 p-4 transition-colors hover:bg-primary/20"
-          >
-            <Phone className="h-5 w-5 text-primary" />
-            <span className="text-sm font-semibold">SAMU 192</span>
-            <span className="text-[11px] text-muted-foreground">emergência</span>
-          </a>
-        </div>
-        <Button variant="outline" onClick={() => router.push("/p")} className="w-full">
-          Voltar ao início
-        </Button>
+      <div className="p-4 pt-8">
+        <CrisisSupportPanel
+          texto={criseTexto}
+          onVoltar={() => router.push("/p")}
+        />
       </div>
     )
   }
@@ -89,7 +72,7 @@ export default function HumorPage() {
   if (feito) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 p-8 pt-20 text-center">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-success/10 text-success">
+        <div className="humor-success-pop grid h-16 w-16 place-items-center rounded-full bg-success/10 text-success">
           <Check className="h-8 w-8" />
         </div>
         <p className="text-lg font-semibold text-foreground">Humor registrado!</p>
@@ -130,18 +113,28 @@ export default function HumorPage() {
 
       <div className="space-y-2">
         <p className="text-sm font-medium text-foreground">Ansiedade hoje? (opcional)</p>
-        <div className="flex flex-wrap gap-2">
-          {[2, 4, 6, 8, 10].map((v) => (
-            <button
-              key={v}
-              onClick={() => setAnsiedade(ansiedade === v ? null : v)}
-              className={`rounded-full border px-3 py-1.5 text-sm ${
-                ansiedade === v ? "border-primary bg-secondary text-primary" : "border-border text-muted-foreground"
-              }`}
-            >
-              {v <= 2 ? "Baixa" : v <= 6 ? "Média" : "Alta"} ({v})
-            </button>
-          ))}
+        <p className="text-xs text-muted-foreground">Toque no nível que mais combina com você agora.</p>
+        <div className="grid grid-cols-5 gap-2">
+          {ANSIEDADE.map(({ valor, emoji, rotulo }) => {
+            const sel = ansiedade === valor
+            return (
+              <button
+                key={valor}
+                type="button"
+                aria-label={`Ansiedade ${rotulo.toLowerCase()}`}
+                aria-pressed={sel}
+                onClick={() => setAnsiedade(ansiedade === valor ? null : valor)}
+                className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition-all ${
+                  sel ? "border-accent bg-accent/10" : "border-border bg-card hover:border-accent/40"
+                }`}
+              >
+                <span className="text-xl">{emoji}</span>
+                <span className={`text-[10px] font-medium leading-tight ${sel ? "text-accent" : "text-muted-foreground"}`}>
+                  {rotulo}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Search, Plus, UserCircle, Wallet, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,20 +31,32 @@ export function Header({ title, subtitle }: HeaderProps) {
   const { logout, isLoggingOut } = useLogout()
   const [busca, setBusca] = useState("")
   const [fotoErro, setFotoErro] = useState(false)
+  const [dataHoje, setDataHoje] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDataHoje(
+      new Date().toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    )
+  }, [])
 
   function buscarPacientes(e: React.FormEvent) {
     e.preventDefault()
     const q = busca.trim()
     router.push(q ? `/dashboard/pacientes?q=${encodeURIComponent(q)}` : "/dashboard/pacientes")
   }
-  const today = new Date().toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
   const primeiroNome = me?.nome?.trim().split(/\s+/)[0]
-  const saudacao = primeiroNome ? `Olá, ${primeiroNome}! ${today}` : `Olá! ${today}`
+  const saudacao = dataHoje
+    ? primeiroNome
+      ? `Olá, ${primeiroNome}! ${dataHoje}`
+      : `Olá! ${dataHoje}`
+    : primeiroNome
+      ? `Olá, ${primeiroNome}!`
+      : "Olá!"
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/40 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">

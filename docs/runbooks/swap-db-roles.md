@@ -20,6 +20,9 @@ ALTER ROLE cerebro_gateway PASSWORD '<SENHA_GATEWAY>';
 ALTER ROLE cerebro_workers PASSWORD '<SENHA_WORKERS>';
 ```
 
+> ⚠️ **REGRA: o `ALTER ROLE` no RDS e o `.env`/SSM andam JUNTOS, no mesmo passo, + `--force-recreate` na hora.**
+> Trocar só um lado deixa drift **latente**: o container vivo mantém o env antigo (compose **não relê env sem recreate**) e segue autenticando, então parece ok — até o **próximo deploy recriar** o container e carregar o env novo, aí estoura `Npgsql 28P01: password authentication failed` em toda conexão nova → endpoints que leem DB viram 500. Aconteceu em **2026-06-24** (gateway **e** checkup `checkup_app`; rotação de 06-23 trocou o `.env` mas pulou o `ALTER ROLE`). Detector: alarme CloudWatch `cerebro-gateway-db-auth-fail` (log group `/cerebro/api-gateway`). `/ready` **não** pega (pool mascara: reusa conexão pré-rotação ainda autenticada). Fix de emergência: `ALTER ROLE <role> PASSWORD '<a que o container já tem no env>'` como `cerebroadmin` (creds master estão no env do próprio container) — alinha RDS→env sem restart.
+
 ## 2. Validar os GRANTs ANTES de trocar (smoke read/write como o novo role)
 
 ```sql

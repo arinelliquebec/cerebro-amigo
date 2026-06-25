@@ -54,13 +54,21 @@ function buscar(): Promise<Me | null> {
 }
 
 export function useMe(): Me | null {
-  const [me, setMe] = useState<Me | null>(cache)
+  // Sempre null no SSR e no primeiro paint do client — evita mismatch quando o
+  // cache de módulo já foi preenchido (navegação anterior, HMR). Dados reais
+  // entram no useEffect, após a hidratação.
+  const [me, setMe] = useState<Me | null>(null)
 
   useEffect(() => {
     let vivo = true
-    buscar().then((d) => {
+    const aplicar = (d: Me | null) => {
       if (vivo) setMe(d)
-    })
+    }
+    if (cache) {
+      aplicar(cache)
+    } else {
+      buscar().then(aplicar)
+    }
     return () => {
       vivo = false
     }

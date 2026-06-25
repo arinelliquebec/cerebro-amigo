@@ -56,6 +56,24 @@ const STATUS_LABEL: Record<string, string> = {
 const num = (n: number) => (n ?? 0).toLocaleString("pt-BR")
 const dataCurta = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "—")
 
+// Diagnóstico do erro do Check-up (`checkupErro` vem do BFF /api/admin/aquisicao).
+// Cada status aponta para a causa REAL — token/url só é a pista quando é config/401/503.
+// Um 500 é erro interno do Check-up (ex.: falha de auth no Postgres do checkup_app) e
+// NÃO se resolve mexendo em CHECKUP_METRICS_TOKEN — o log está no CloudWatch.
+function dicaCheckupErro(erro: string): ReactNode {
+  if (/não configurado/i.test(erro))
+    return <>Defina <code className="font-mono text-xs">CHECKUP_METRICS_TOKEN</code> no BFF (web).</>
+  if (/\b401\b/.test(erro))
+    return <>Token não confere — <code className="font-mono text-xs">CHECKUP_METRICS_TOKEN</code> do BFF ≠ do Check-up.</>
+  if (/\b503\b/.test(erro))
+    return <>Check-up fail-closed: sem token ou banco indisponível no próprio Check-up.</>
+  if (/\b500\b/.test(erro))
+    return <>Erro interno do Check-up (não é token/URL). Ver o motivo no CloudWatch <code className="font-mono text-xs">/cerebro-amigo/checkup</code> (filtro <code className="font-mono text-xs">funnel-metrics falhou</code>).</>
+  if (/inacess/i.test(erro))
+    return <>Check-up inacessível — confira <code className="font-mono text-xs">CHECKUP_METRICS_URL</code> / rede / timeout.</>
+  return <>Confira <code className="font-mono text-xs">CHECKUP_METRICS_TOKEN</code> / <code className="font-mono text-xs">CHECKUP_METRICS_URL</code> e o CloudWatch do Check-up.</>
+}
+
 export default function AquisicaoPage() {
   const [d, setD] = useState<Aquisicao | null>(null)
   const [loading, setLoading] = useState(true)
@@ -119,7 +137,7 @@ export default function AquisicaoPage() {
           {d.checkupErro && (
             <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>Funil do Check-up indisponível ({d.checkupErro}). Mostrando só o lado clínico — confira <code className="font-mono text-xs">CHECKUP_METRICS_TOKEN</code> / <code className="font-mono text-xs">CHECKUP_METRICS_URL</code>.</span>
+              <span>Funil do Check-up indisponível ({d.checkupErro}). Mostrando só o lado clínico — {dicaCheckupErro(d.checkupErro)}</span>
             </div>
           )}
 

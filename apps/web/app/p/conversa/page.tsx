@@ -1,13 +1,14 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { Send, LifeBuoy, Phone } from "lucide-react"
+import { Send, Loader2 } from "lucide-react"
 import {
   IndicadorCuidado,
   avancarEtapa,
   etapaDeNode,
   type EtapaCuidado,
 } from "@/components/portal/indicador-cuidado"
+import { CrisisSupportPanel } from "@/components/portal/crisis-support-panel"
 
 type Papel = "user" | "assistant" | "crise" | "sistema"
 interface Msg {
@@ -20,7 +21,6 @@ interface NodePayload {
   status?: string
 }
 
-// Evento final do grafo (orchestrator) — front renderiza só o que vem daqui.
 interface CompletePayload {
   conversa_status?: string
   resposta_final?: string | null
@@ -28,19 +28,57 @@ interface CompletePayload {
   crise?: { detectada?: boolean; nivel?: string } | null
 }
 
+interface MsgHistorico {
+  id: string
+  papel: string
+  conteudo: string
+  criadaEm: string
+}
+
 const SAUDACAO =
   "Oi! Pode me contar como você está se sentindo. Vou organizar e, se precisar, sua psiquiatra é avisada."
 
+function mapPapel(p: string): Papel {
+  const x = p.toLowerCase()
+  if (x === "user" || x === "paciente") return "user"
+  if (x === "assistant" || x === "assistente") return "assistant"
+  return "sistema"
+}
+
 export default function ConversaPage() {
-  const [msgs, setMsgs] = useState<Msg[]>([{ papel: "assistant", texto: SAUDACAO }])
+  const [msgs, setMsgs] = useState<Msg[]>([])
+  const [carregandoHist, setCarregandoHist] = useState(true)
   const [input, setInput] = useState("")
   const [etapa, setEtapa] = useState<EtapaCuidado | null>(null)
   const [pausado, setPausado] = useState(false)
   const fimRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    let vivo = true
+    fetch("/api/paciente/conversation")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: MsgHistorico[]) => {
+        if (!vivo) return
+        if (Array.isArray(rows) && rows.length > 0) {
+          setMsgs(rows.map((m) => ({ papel: mapPapel(m.papel), texto: m.conteudo })))
+        } else {
+          setMsgs([{ papel: "assistant", texto: SAUDACAO }])
+        }
+      })
+      .catch(() => {
+        if (vivo) setMsgs([{ papel: "assistant", texto: SAUDACAO }])
+      })
+      .finally(() => {
+        if (vivo) setCarregandoHist(false)
+      })
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [msgs, etapa])
+  }, [msgs, etapa, carregandoHist])
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
@@ -109,7 +147,6 @@ export default function ConversaPage() {
     }
 
     if (evento === "token") {
-      // Tokens não são exibidos ao paciente; só avança a etapa visual.
       setEtapa((atual) => avancarEtapa(atual, "organizando"))
       return false
     }
@@ -156,17 +193,29 @@ export default function ConversaPage() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-5rem)]">
-      <header className="border-b border-border/60 px-4 py-3">
-        <h1 className="text-base font-semibold text-foreground">Conversa</h1>
-        <p className="text-xs text-muted-foreground">
-          Acompanhamento entre consultas · sua psiquiatra é avisada em caso de risco
+      <header className="border-b border-border/60 px-4 py-3 space-y-2">
+        <div>
+          <h1 className="text-base font-semibold text-foreground">Conversa</h1>
+          <p className="text-xs text-muted-foreground">
+            Acompanhamento entre consultas · sua psiquiatra é avisada em caso de risco
+          </p>
+        </div>
+        <p className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+          Organizo e acolho entre consultas.{" "}
+          <span className="text-foreground/80">
+            Não substituo sua psiquiatra — não dou diagnóstico nem oriento dose de medicamento.
+          </span>
         </p>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {msgs.map((m, i) => (
-          <Bolha key={i} msg={m} />
-        ))}
+        {carregandoHist ? (
+          <div className="flex justify-center py-8 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : (
+          msgs.map((m, i) => <Bolha key={i} msg={m} />)
+        )}
         {etapa !== null && <IndicadorCuidado etapa={etapa} />}
         <div ref={fimRef} />
       </div>
@@ -188,12 +237,12 @@ export default function ConversaPage() {
             }}
             rows={1}
             placeholder="Escreva como você está…"
-            disabled={etapa !== null}
+            disabled={etapa !== null || carregandoHist}
             className="flex-1 resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 max-h-32 disabled:opacity-60"
           />
           <button
             type="submit"
-            disabled={etapa !== null || !input.trim()}
+            disabled={etapa !== null || !input.trim() || carregandoHist}
             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40"
             aria-label="Enviar"
           >
@@ -207,29 +256,7 @@ export default function ConversaPage() {
 
 function Bolha({ msg }: { msg: Msg }) {
   if (msg.papel === "crise") {
-    return (
-      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-        <div className="flex items-center gap-2 text-destructive">
-          <LifeBuoy className="h-4 w-4" />
-          <span className="text-sm font-semibold">Apoio imediato</span>
-        </div>
-        <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{msg.texto}</p>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href="tel:188"
-            className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive"
-          >
-            <Phone className="h-3 w-3" /> CVV 188
-          </a>
-          <a
-            href="tel:192"
-            className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive"
-          >
-            <Phone className="h-3 w-3" /> SAMU 192
-          </a>
-        </div>
-      </div>
-    )
+    return <CrisisSupportPanel texto={msg.texto} compacto />
   }
   if (msg.papel === "sistema") {
     return (

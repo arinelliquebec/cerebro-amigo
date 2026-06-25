@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Mic, PenLine, ArrowLeft, Check, Edit3, Tag, SmilePlus, Phone, Heart } from "lucide-react"
+import { Mic, PenLine, ArrowLeft, Check, Edit3, Tag, SmilePlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { AudioDiario, type TranscricaoResult } from "@/components/portal/AudioDiario"
+import { CrisisSupportPanel } from "@/components/portal/crisis-support-panel"
 import { cn } from "@/lib/utils"
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -128,41 +129,11 @@ export default function NovaDiarioPage() {
 
       {/* ── Acolhimento de crise (texto fixo do backend, NUNCA editável) ─── */}
       {modo === "crise" && criseTexto && (
-        <div className="space-y-5">
-          <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                <Heart className="w-5 h-5 text-primary" />
-              </div>
-              <p className="text-sm font-medium">Sua mensagem foi levada a sério</p>
-            </div>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{criseTexto}</p>
-          </div>
-
-          {/* Ações rápidas de contato */}
-          <div className="grid grid-cols-2 gap-3">
-            <a
-              href="tel:188"
-              className="rounded-xl border-2 border-primary/30 bg-primary/10 hover:bg-primary/20 p-4 flex flex-col items-center gap-1 transition-colors"
-            >
-              <Phone className="w-5 h-5 text-primary" />
-              <span className="font-semibold text-sm">CVV 188</span>
-              <span className="text-[11px] text-muted-foreground">24h gratuito</span>
-            </a>
-            <a
-              href="tel:192"
-              className="rounded-xl border-2 hover:border-border/80 bg-card hover:bg-accent/40 p-4 flex flex-col items-center gap-1 transition-colors"
-            >
-              <Phone className="w-5 h-5 text-destructive" />
-              <span className="font-semibold text-sm">SAMU 192</span>
-              <span className="text-[11px] text-muted-foreground">emergência</span>
-            </a>
-          </div>
-
-          <Button variant="outline" className="w-full" onClick={() => router.push("/p/diario")}>
-            Voltar ao diário
-          </Button>
-        </div>
+        <CrisisSupportPanel
+          texto={criseTexto}
+          voltarLabel="Voltar ao diário"
+          onVoltar={() => router.push("/p/diario")}
+        />
       )}
 
       {/* ── Tela de escolha ─────────────────────────────────────────────── */}

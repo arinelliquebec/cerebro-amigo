@@ -1,17 +1,21 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { BookText, Pill, CalendarClock, Smile, ChevronRight, LogOut, MessageCircle, User } from "lucide-react"
+import { BookText, CalendarClock, LogOut, MessageCircle, User } from "lucide-react"
 import { gatewayPaciente, GatewayPacienteError } from "@/lib/gateway-paciente"
 import { Button } from "@/components/ui/button"
 import { AudioRecorder } from "@/components/portal/audio-recorder"
+import { FaixaDoDia } from "@/components/portal/faixa-do-dia"
+import { InstallPwaBanner } from "@/components/portal/install-pwa-banner"
+import { MedsHoje, type TomadaHoje } from "@/components/portal/meds-hoje"
 import { sairPaciente } from "./entrar/actions"
 
 interface HomeData {
   perfil: { nome: string; nomeMedico: string }
-  tomadasHoje: { id: string; horarioPrevisto: string; status: string; medicamento: string; dose: string }[]
+  tomadasHoje: TomadaHoje[]
   proxConsulta: { iniciaEm: string; modalidade: string; status: string } | null
   ultimoHumor: number | null
   jaRegistrouHumorHoje: boolean
+  checkinsPendentes: number
 }
 
 function horaCurta(iso: string) {
@@ -30,16 +34,19 @@ export default async function PortalHome() {
   }
 
   const primeiroNome = data.perfil.nome?.split(" ")[0] || "Olá"
-  const pendentesHoje = data.tomadasHoje.filter((t) => t.status === "pendente")
+  const consultaNaFaixa =
+    data.checkinsPendentes === 0 &&
+    !data.tomadasHoje.some((t) => t.status === "pendente") &&
+    data.jaRegistrouHumorHoje &&
+    data.proxConsulta != null
 
   return (
     <div className="p-4 pt-8 space-y-5">
-      {/* Saudação */}
-      <div className="flex items-start justify-between">
+      <div className="portal-rise-in flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Olá, {primeiroNome}</h1>
           {data.perfil.nomeMedico && (
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Acompanhamento com {data.perfil.nomeMedico}
             </p>
           )}
@@ -58,58 +65,25 @@ export default async function PortalHome() {
         </div>
       </div>
 
-      {/* Humor de hoje */}
-      <Link
-        href="/p/humor"
-        className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4"
-      >
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
-          <Smile className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">
-            {data.jaRegistrouHumorHoje ? "Humor registrado hoje" : "Como você está hoje?"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {data.jaRegistrouHumorHoje ? "Obrigado por compartilhar." : "Registre seu humor em segundos"}
-          </p>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </Link>
+      <FaixaDoDia
+        checkinsPendentes={data.checkinsPendentes ?? 0}
+        jaRegistrouHumorHoje={data.jaRegistrouHumorHoje}
+        ultimoHumor={data.ultimoHumor}
+        tomadasHoje={data.tomadasHoje}
+        proxConsulta={data.proxConsulta}
+      />
 
-      {/* Medicações de hoje */}
-      <section className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Pill className="h-4 w-4 text-primary" /> Medicações de hoje
-          </h2>
-          <Link href="/p/medicacoes" className="text-xs text-primary">ver todas</Link>
-        </div>
-        {data.tomadasHoje.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma medicação para hoje.</p>
-        ) : (
-          <ul className="space-y-2">
-            {data.tomadasHoje.slice(0, 4).map((t) => (
-              <li key={t.id} className="flex items-center justify-between text-sm">
-                <span className="text-foreground">
-                  {t.medicamento} <span className="text-muted-foreground">· {t.dose}</span>
-                </span>
-                <span className={t.status === "pendente" ? "text-warning" : "text-success"}>
-                  {horaCurta(t.horarioPrevisto)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {pendentesHoje.length > 0 && (
-          <p className="text-xs text-warning">{pendentesHoje.length} pendente(s) hoje</p>
-        )}
-      </section>
+      <div className="portal-rise-in portal-stagger-2">
+        <InstallPwaBanner />
+      </div>
 
-      {/* Próxima consulta */}
-      {data.proxConsulta && (
-        <section className="rounded-2xl border border-border/60 bg-card p-4">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-1">
+      <div className="portal-rise-in portal-stagger-3">
+        <MedsHoje tomadas={data.tomadasHoje} />
+      </div>
+
+      {data.proxConsulta && !consultaNaFaixa && (
+        <section className="portal-rise-in portal-stagger-4 rounded-2xl border border-border/60 bg-card p-4">
+          <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-foreground">
             <CalendarClock className="h-4 w-4 text-primary" /> Próxima consulta
           </h2>
           <p className="text-sm text-foreground">
@@ -120,47 +94,42 @@ export default async function PortalHome() {
             })}{" "}
             às {horaCurta(data.proxConsulta.iniciaEm)}
           </p>
-          <p className="text-xs text-muted-foreground capitalize">{data.proxConsulta.modalidade}</p>
-          {data.proxConsulta.status === "agendada" && (
-            <span className="mt-2 inline-block rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning">
-              Aguardando confirmação
-            </span>
-          )}
+          <p className="text-xs capitalize text-muted-foreground">{data.proxConsulta.modalidade}</p>
         </section>
       )}
 
-      {/* Mensagem de áudio */}
-      <AudioRecorder />
+      <div className="portal-rise-in portal-stagger-5 grid grid-cols-2 gap-2.5">
+        <Link
+          href="/p/conversa"
+          className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3.5 transition-colors hover:border-primary/40 hover:bg-secondary/30"
+        >
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/15 text-primary">
+            <MessageCircle className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Conversar</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              Desabafe com limites claros
+            </p>
+          </div>
+        </Link>
+        <Link
+          href="/p/diario"
+          className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3.5 transition-colors hover:border-primary/40 hover:bg-secondary/30"
+        >
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-secondary text-primary">
+            <BookText className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Diário</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">Texto ou voz, no seu ritmo</p>
+          </div>
+        </Link>
+      </div>
 
-      {/* Atalho conversa */}
-      <Link
-        href="/p/conversa"
-        className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4"
-      >
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-secondary text-primary">
-          <MessageCircle className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">Conversar</p>
-          <p className="text-xs text-muted-foreground">Desabafe; sua psiquiatra é avisada se houver risco</p>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </Link>
-
-      {/* Atalho diário */}
-      <Link
-        href="/p/diario"
-        className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4"
-      >
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-secondary text-primary">
-          <BookText className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">Meu diário</p>
-          <p className="text-xs text-muted-foreground">Registre como foi seu dia, por texto ou voz</p>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </Link>
+      <div className="portal-rise-in portal-stagger-6">
+        <AudioRecorder />
+      </div>
     </div>
   )
 }

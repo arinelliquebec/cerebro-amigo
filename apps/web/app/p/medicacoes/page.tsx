@@ -1,38 +1,63 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Pill, Clock, Check, Loader2 } from "lucide-react"
+import { Pill, Clock, Check, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface Medicacao {
   id: string
   medicamento: string
   doseDescricao: string
-  horarios: string[] // TimeOnly[] serializado "HH:mm:ss"
+  horarios: string[]
   inicioEm: string
   observacoes: string | null
-  fonte: string | null // só medicações em uso (ADR-062): "outro psiquiatra", etc.
-  origem: string // "prescricao" (MEMED, tem tomada) | "em_uso" (reconciliação, sem tomada)
+  fonte: string | null
+  origem: string
+}
+
+interface TomadaHoje {
+  prescricaoId: string
+  status: string
 }
 
 function horaCurta(t: string) {
-  return t.slice(0, 5) // "HH:mm:ss" → "HH:mm"
+  return t.slice(0, 5)
 }
 
 export default function MedicacoesPage() {
   const [meds, setMeds] = useState<Medicacao[]>([])
   const [loading, setLoading] = useState(true)
+  const [falhou, setFalhou] = useState(false)
   const [confirmando, setConfirmando] = useState<string | null>(null)
   const [feito, setFeito] = useState<Record<string, boolean>>({})
   const [erro, setErro] = useState<Record<string, boolean>>({})
 
-  useEffect(() => {
-    fetch("/api/paciente/medicacoes")
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then(setMeds)
-      .catch(() => setMeds([]))
+  function carregar() {
+    setLoading(true)
+    setFalhou(false)
+    Promise.all([
+      fetch("/api/paciente/medicacoes").then((r) => (r.ok ? r.json() : Promise.reject())),
+      fetch("/api/paciente/home").then((r) => (r.ok ? r.json() : Promise.reject())),
+    ])
+      .then(([lista, home]: [Medicacao[], { tomadasHoje?: TomadaHoje[] }]) => {
+        setMeds(Array.isArray(lista) ? lista : [])
+        const tomadas = Array.isArray(home?.tomadasHoje) ? home.tomadasHoje : []
+        const confirmadas: Record<string, boolean> = {}
+        for (const t of tomadas) {
+          if (t.status === "tomada" && t.prescricaoId) {
+            confirmadas[t.prescricaoId] = true
+          }
+        }
+        setFeito(confirmadas)
+      })
+      .catch(() => {
+        setMeds([])
+        setFalhou(true)
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(carregar, [])
 
   // Confirma a tomada de uma medicação (cria/atualiza a tomada de hoje no backend).
   async function confirmar(id: string) {
@@ -68,6 +93,13 @@ export default function MedicacoesPage() {
       {loading ? (
         <div className="flex justify-center py-12 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      ) : falhou ? (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center space-y-3">
+          <p className="text-sm text-foreground">Não foi possível carregar suas medicações.</p>
+          <Button variant="outline" size="sm" className="gap-2" onClick={carregar}>
+            <RefreshCw className="h-4 w-4" /> Tentar de novo
+          </Button>
         </div>
       ) : meds.length === 0 ? (
         <p className="rounded-2xl border border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">

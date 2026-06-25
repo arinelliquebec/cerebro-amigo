@@ -44,7 +44,8 @@ public static class PortalPacienteEndpoints
             var tomadasHoje = await db.Database.SqlQueryRaw<TomadaHoje>(@"
                 SELECT t.id, t.horario_previsto,
                        t.status, pr.medicamento,
-                       pr.dose_descricao AS dose
+                       pr.dose_descricao AS dose,
+                       pr.id AS prescricao_id
                 FROM tomadas_medicacao t
                 JOIN prescricoes pr ON pr.id = t.prescricao_id
                 WHERE t.paciente_id = {0}
@@ -64,12 +65,20 @@ public static class PortalPacienteEndpoints
                 WHERE paciente_id = {0} AND humor IS NOT NULL
                 ORDER BY registrado_em DESC LIMIT 1", pid.Value);
 
+            var checkinsPendentes = await db.Database.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(*)::int FROM checkins
+                WHERE paciente_id = {0}
+                  AND respondido_em IS NULL
+                  AND expirado_em IS NULL
+                  AND agendado_para <= NOW() + INTERVAL '15 minutes'", pid.Value);
+
             return Results.Ok(new
             {
                 perfil = perfil ?? new PerfilHome("", ""),
                 tomadasHoje,
                 proxConsulta,
                 ultimoHumor,
+                checkinsPendentes,
                 jaRegistrouHumorHoje = await db.Database.ExecuteScalarAsync<int>(@"
                     SELECT COUNT(*)::int FROM sintomas
                     WHERE paciente_id = {0} AND humor IS NOT NULL
@@ -430,6 +439,45 @@ public static class PortalPacienteEndpoints
         });
 
         // ====================================================================
+        // CONVERSA (histórico read-only — paciente vê só a própria thread)
+        // ====================================================================
+        g.MapGet("/conversa", async (AppDbContext db, ClaimsPrincipal user, CryptoService crypto) =>
+        {
+            var pid = PacienteAuthEndpoints.GetPacienteId(user);
+            if (pid is null) return Results.Unauthorized();
+
+            var msgs = await db.Database.SqlQueryRaw<MensagemConversaPaciente>(@"
+                SELECT m.id, m.papel, m.conteudo, m.criada_em
+                FROM mensagens m
+                JOIN conversas cv ON cv.id = m.conversa_id
+                WHERE cv.cliente_id = {0}
+                ORDER BY m.criada_em
+                LIMIT 100",
+                pid.Value).ToListAsync();
+
+            var decrypted = msgs.Select(m => m with {
+                Conteudo = crypto.Decrypt(m.Conteudo) ?? m.Conteudo
+            }).ToList();
+
+            return Results.Ok(decrypted);
+        });
+
+        // Marca onboarding do portal como visto (flag em config_lembretes JSON).
+        g.MapPost("/onboarding/concluido", async (AppDbContext db, ClaimsPrincipal user) =>
+        {
+            var pid = PacienteAuthEndpoints.GetPacienteId(user);
+            if (pid is null) return Results.Unauthorized();
+
+            await db.Database.ExecuteRawAsync(@"
+                UPDATE pacientes SET config_lembretes =
+                  (COALESCE(NULLIF(config_lembretes, ''), '{}')::jsonb
+                   || '{""onboarding_visto"": true}'::jsonb)::text
+                WHERE cliente_id = {0}", pid.Value);
+
+            return Results.NoContent();
+        });
+
+        // ====================================================================
         // PERFIL
         // ====================================================================
         g.MapGet("/perfil", async (AppDbContext db, ClaimsPrincipal user) =>
@@ -543,7 +591,7 @@ public record CriseTriagem(bool Crise, string? CriseTexto);
 
 public record PerfilHome(string Nome, string NomeMedico);
 public record TomadaHoje(Guid Id, DateTime HorarioPrevisto, string Status,
-    string Medicamento, string Dose);
+    string Medicamento, string Dose, Guid PrescricaoId);
 public record ProximaConsulta(DateTime IniciaEm, string Modalidade, string Status);
 
 public record DiarioEntrada(Guid Id, string? Titulo, string Conteudo, int? Humor,
@@ -564,6 +612,9 @@ public record MedicacaoPaciente(Guid Id, string Medicamento, string DoseDescrica
     TimeOnly[] Horarios, DateTime InicioEm, string? Observacoes, string? Fonte, string Origem);
 
 public record ConfirmarTomadaRequest(string Status, string? Nota);
+
+public record MensagemConversaPaciente(
+    Guid Id, string Papel, string Conteudo, DateTime CriadaEm);
 
 public record PerfilCompleto(Guid Id, string? Nome, string? Email, string WaId,
     string? Cpf, DateTime? DataNascimento,

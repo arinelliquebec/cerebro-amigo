@@ -23,6 +23,7 @@ import {
   Wallet,
   Sparkles,
   UserCircle,
+  ShieldCheck,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -51,6 +52,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [fotoErro, setFotoErro] = useState(false)
   const me = useMe()
+  const ehAdminPlataforma = me?.role === "owner" || me?.role === "admin"
 
   return (
     <aside
@@ -112,6 +114,28 @@ export function Sidebar() {
             </Link>
           )
         })}
+        {ehAdminPlataforma && (
+          <div className={cn("mt-4 border-t border-border/40 pt-4", collapsed && "pt-3")}>
+            {!collapsed && (
+              <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40">
+                Atalhos
+              </p>
+            )}
+            <Link
+              href="/admin"
+              title={collapsed ? "Painel admin" : undefined}
+              className={cn(
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200",
+                "text-muted-foreground/80 hover:bg-secondary/70 hover:text-foreground",
+                "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
+                collapsed && "justify-center px-2",
+              )}
+            >
+              <ShieldCheck className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground/60 transition-colors group-hover:text-primary" />
+              {!collapsed && <span className="tracking-[-0.01em]">Painel admin</span>}
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* Secondary Navigation */}
