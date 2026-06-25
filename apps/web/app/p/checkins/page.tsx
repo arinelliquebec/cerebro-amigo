@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ClipboardCheck, Loader2, Check, Smile } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { QuestionarioEscala } from "@/components/portal/QuestionarioEscala"
+import { PortalErroCarregar } from "@/components/portal/portal-erro-carregar"
 
 interface Checkin {
   id: string
@@ -23,15 +24,21 @@ const ROTULO: Record<string, string> = {
 export default function CheckinsPage() {
   const [itens, setItens] = useState<Checkin[]>([])
   const [loading, setLoading] = useState(true)
+  const [falhou, setFalhou] = useState(false)
   const [respondendo, setRespondendo] = useState<string | null>(null)
   const [feitos, setFeitos] = useState<Record<string, boolean>>({})
   const [erros, setErros] = useState<Record<string, string>>({})
 
   function carregar() {
+    setLoading(true)
+    setFalhou(false)
     fetch("/api/paciente/checkins")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setItens)
-      .catch(() => setItens([]))
+      .catch(() => {
+        setItens([])
+        setFalhou(true)
+      })
       .finally(() => setLoading(false))
   }
   useEffect(carregar, [])
@@ -89,6 +96,11 @@ export default function CheckinsPage() {
         <div className="flex justify-center py-12 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
+      ) : falhou ? (
+        <PortalErroCarregar
+          mensagem="Não foi possível carregar seus check-ins."
+          onRetry={carregar}
+        />
       ) : pendentes.length === 0 ? (
         <p className="rounded-2xl border border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
           Nenhum check-in pendente. 🎉

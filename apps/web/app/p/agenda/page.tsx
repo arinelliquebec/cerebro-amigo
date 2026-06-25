@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CalendarClock, Loader2, AlertTriangle, Check, X, Video } from "lucide-react"
+import { PortalErroCarregar } from "@/components/portal/portal-erro-carregar"
 
 interface Consulta {
   id: string
@@ -56,6 +57,7 @@ function podeEntrarVideo(c: Consulta): boolean {
 export default function AgendaPacientePage() {
   const [consultas, setConsultas] = useState<Consulta[]>([])
   const [loading, setLoading] = useState(true)
+  const [falhou, setFalhou] = useState(false)
   const [cancelando, setCancelando] = useState<string | null>(null)
 
   // agendamento
@@ -70,11 +72,19 @@ export default function AgendaPacientePage() {
   // silencioso: refresh em background (poll/foco) não acende o spinner da lista,
   // pra não piscar a cada atualização automática.
   const carregar = useCallback((silencioso = false) => {
-    if (!silencioso) setLoading(true)
+    if (!silencioso) {
+      setLoading(true)
+      setFalhou(false)
+    }
     fetch("/api/paciente/agenda", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : []))
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((rows) => setConsultas(Array.isArray(rows) ? rows : []))
-      .catch(() => setConsultas([]))
+      .catch(() => {
+        if (!silencioso) {
+          setConsultas([])
+          setFalhou(true)
+        }
+      })
       .finally(() => {
         if (!silencioso) setLoading(false)
       })
@@ -148,12 +158,18 @@ export default function AgendaPacientePage() {
   }
 
   async function cancelar(id: string) {
+    if (!confirm("Tem certeza que deseja cancelar esta consulta?")) return
     setCancelando(id)
+    setMsg(null)
     try {
       const r = await fetch(`/api/paciente/agenda/${id}/cancelar`, { method: "PATCH" })
       if (r.ok) {
         setConsultas((cs) => cs.map((c) => (c.id === id ? { ...c, status: "cancelada" } : c)))
+      } else {
+        setMsg({ tipo: "erro", texto: "Não foi possível cancelar. Tente novamente." })
       }
+    } catch {
+      setMsg({ tipo: "erro", texto: "Erro de conexão. Tente novamente." })
     } finally {
       setCancelando(null)
     }
@@ -239,6 +255,11 @@ export default function AgendaPacientePage() {
           <div className="flex justify-center py-8 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
+        ) : falhou ? (
+          <PortalErroCarregar
+            mensagem="Não foi possível carregar sua agenda."
+            onRetry={() => carregar()}
+          />
         ) : futuras.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border/60 px-4 py-8 text-center text-sm text-muted-foreground">
             Você não tem consultas futuras agendadas.
