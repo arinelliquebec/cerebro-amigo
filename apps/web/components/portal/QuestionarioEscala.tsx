@@ -7,11 +7,10 @@ import {
   Check,
   ClipboardList,
   Loader2,
-  Phone,
-  ShieldAlert,
   Undo2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { CrisisSupportPanel } from "@/components/portal/crisis-support-panel"
 import { cn } from "@/lib/utils"
 
 interface OpcaoEscala {
@@ -170,21 +169,14 @@ export function QuestionarioEscala({ checkinId, codigo, onConcluido }: Props) {
 
   if (modo === "crise") {
     return (
-      <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
-          <ShieldAlert className="h-4 w-4" /> Sua psiquiatra foi avisada agora
-        </p>
-        <p className="whitespace-pre-line text-sm text-foreground">
-          {criseTexto ??
-            "Se você sente que pode se machucar ou está em risco agora, ligue para o CVV no 188 (24h, gratuito). Em risco imediato, vá ao pronto-socorro mais próximo ou ligue para o SAMU (192)."}
-        </p>
-        <a
-          href="tel:188"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-destructive underline"
-        >
-          <Phone className="h-4 w-4" /> Ligar para o CVV (188)
-        </a>
-      </div>
+      <CrisisSupportPanel
+        texto={
+          criseTexto ??
+          "Se você sente que pode se machucar ou está em risco agora, ligue para o CVV no 188 (24h, gratuito). Em risco imediato, vá ao pronto-socorro mais próximo ou ligue para o SAMU (192)."
+        }
+        titulo="Sua psiquiatra foi avisada"
+        subtitulo="Apoio imediato disponível"
+      />
     )
   }
 
