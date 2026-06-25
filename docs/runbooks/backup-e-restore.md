@@ -8,22 +8,75 @@ manual de restore em caso de desastre.
 
 ## Backups automatizados (RDS)
 
-A instância RDS `cerebro-amigo-v3` na `sa-east-1` deve ter:
+A instância RDS de produção é **`cerebro-postgres-enc`** na `sa-east-1`
+(instância cifrada em repouso, ADR-018 — sucessora de `cerebro-postgres`/
+`cerebro-amigo-v3` após o cutover de cifragem de 2026-06-14). É `db.t4g.small`,
+**Single-AZ** (postura piloto; gatilho para religar Multi-AZ = 1º pagante).
 
-| Configuração | Valor recomendado | Rationale |
+### Estado atual (verificado 2026-06-25)
+
+| Configuração | Valor atual | Rationale |
 |---|---|---|
-| Backup retention period | 30 days | LGPD: manter pelo período de tratamento |
-| Backup window | 03:00–04:00 UTC | Fora do horário de pico (manhã BR) |
-| Automated backups | Enabled | Padrão AWS, snapshot diário + WAL contínuo |
-| Cross-region snapshot copy | `us-east-1` | DR: desastre regional sa-east-1 |
-| Snapshot encryption | AWS managed key (SSE-S3) | Dados cifrados em repouso |
+| Backup retention period | **35 days** | Máximo do PITR automático da AWS (subido de 7→35 em 2026-06-25). LGPD categoria especial; guarda além de 35d → AWS Backup vault |
+| Backup window | **07:00–07:30 UTC** (04:00–04:30 BRT) | Madrugada BR, menor uso; não sobrepõe a janela de manutenção (`thu 06:01–06:31 UTC`) |
+| Maintenance window | `thu 06:01–06:31 UTC` (03:01 BRT qui) | Não pode sobrepor o backup window |
+| Automated backups | Enabled | Snapshot diário + WAL contínuo |
+| Snapshot encryption | KMS (instância cifrada, ADR-018) | Dados cifrados em repouso |
+| Cross-region snapshot copy | `us-east-1` (DR — **a confirmar/provisionar**) | Desastre regional sa-east-1 |
+
+### Cadência do backup (importante)
+
+São **dois mecanismos com cadências diferentes**:
+
+- **Snapshot completo: 1×/dia**, na janela `07:00–07:30 UTC`. Backup full do volume.
+- **Transaction logs (WAL): a cada ~5 min**, o dia todo, independente da janela.
+  São eles que dão o PITR.
+
+Consequência: **RPO ≈ 5 min** (perda máxima de dado em desastre). Dá para
+restaurar para qualquer instante dos últimos **35 dias** com granularidade de
+~5 min — não só para os horários dos snapshots diários.
+
+### Teto de retenção e guarda longa
+
+- **PITR automático: máximo 35 dias** (teto duro da AWS). Subir o
+  `backup-retention-period` acima de 35 falha.
+- Para guarda além de 35d (arquivo de prontuário, exigência LGPD de longo
+  prazo): **AWS Backup vault** (lifecycle em anos, compliance-lock/WORM) ou
+  **snapshots manuais** (sem expiração, vivem até deleção explícita). Não usar
+  PITR como arquivo de longo prazo.
+
+### Como ajustar retenção / janela (sem downtime)
+
+Mudar retention ou backup window **não reinicia** a instância:
+
+```bash
+# Subir retenção (ex.: 35 dias; máximo permitido)
+aws rds modify-db-instance \
+  --db-instance-identifier cerebro-postgres-enc \
+  --backup-retention-period 35 \
+  --apply-immediately --region sa-east-1
+
+# Mover a janela de backup (UTC, mínimo 30 min, sem sobrepor manutenção)
+aws rds modify-db-instance \
+  --db-instance-identifier cerebro-postgres-enc \
+  --preferred-backup-window 07:00-07:30 \
+  --apply-immediately --region sa-east-1
+```
+
+Confira que `PendingModifiedValues` voltou vazio após aplicar.
 
 ### Verificação de health dos backups
 
 ```bash
+# Config atual de backup
+aws rds describe-db-instances \
+  --db-instance-identifier cerebro-postgres-enc \
+  --region sa-east-1 \
+  --query 'DBInstances[].{retention:BackupRetentionPeriod,backup:PreferredBackupWindow,maint:PreferredMaintenanceWindow,multiaz:MultiAZ}'
+
 # Lista snapshots recentes
 aws rds describe-db-snapshots \
-  --db-instance-identifier cerebro-amigo-v3 \
+  --db-instance-identifier cerebro-postgres-enc \
   --region sa-east-1 \
   --query 'DBSnapshots[?SnapshotCreateTime>='"'"'$(date -u -d "7 days ago" +%Y-%m-%d)'"'"'].[DBSnapshotIdentifier,SnapshotCreateTime,Status]' \
   --output table
@@ -47,8 +100,8 @@ no período de retenção (até o último minuto).
 2. **Criar nova instância a partir do snapshot mais recente**:
    ```bash
    aws rds restore-db-instance-to-point-in-time \
-     --source-db-instance-identifier cerebro-amigo-v3 \
-     --target-db-instance-identifier cerebro-amigo-v3-restored \
+     --source-db-instance-identifier cerebro-postgres-enc \
+     --target-db-instance-identifier cerebro-postgres-enc-restored \
      --restore-time "2026-06-02T10:00:00Z" \
      --region sa-east-1
    ```
