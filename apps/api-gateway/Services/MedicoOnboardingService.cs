@@ -117,9 +117,10 @@ public sealed class MedicoOnboardingService
                 input.SignupSource, input.CheckupRid ?? "");
 
             // Sem trial (ADR-055): a assinatura nasce 'pendente' com prazo curto de
-            // pagamento (default 5 dias). Vencido sem pagamento confirmado → paywall.
-            // plano/valor reais vêm no checkout; no self-signup chegam 'pendente'/0.
-            var prazoDias = int.TryParse(_cfg["ASSINATURA_PRAZO_PAGAMENTO_DIAS"], out var pd) && pd > 0 ? pd : 5;
+            // pagamento (default 7 dias; ajustado de 5→7 em 2026-06-25). Vencido sem
+            // pagamento confirmado → paywall. plano/valor reais vêm no checkout; no
+            // self-signup chegam 'pendente'/0.
+            var prazoDias = int.TryParse(_cfg["ASSINATURA_PRAZO_PAGAMENTO_DIAS"], out var pd) && pd > 0 ? pd : 7;
             await _db.Database.ExecuteSqlRawAsync(@"
                 INSERT INTO assinaturas (id, medico_id, plano, valor_mensal, status, prazo_pagamento_ate)
                 VALUES ({0},{1},{2},{3},'pendente', NOW() + make_interval(days => {4}))",
