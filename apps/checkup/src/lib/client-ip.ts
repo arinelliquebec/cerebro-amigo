@@ -1,33 +1,39 @@
 /**
- * Derivação confiável do IP do cliente atrás de CloudFront + ALB.
+ * Derivação confiável do IP do cliente para rate limit.
  *
- * PORQUÊ: a versão antiga (`x-forwarded-for.split(",")[0]`) lia o PRIMEIRO
- * elemento do XFF — que é exatamente o valor que o viewer pode FORJAR. Como
- * CloudFront e ALB apenas *anexam* o IP real à direita (nunca sobrescrevem),
- * o atacante injetava `X-Forwarded-For: <aleatório>` e ganhava um "IP novo" a
- * cada request, zerando o rate limit por IP (denial-of-wallet — ver ADR de
- * hardening anti-abuso do checkup).
+ * PORQUÊ: a versão antiga lia `x-forwarded-for.split(",")[0]` (o PRIMEIRO elemento =
+ * valor que o viewer pode FORJAR). Como os proxies confiáveis *anexam* à direita, o
+ * atacante injetava `X-Forwarded-For: <aleatório>` e ganhava um "IP novo" por request,
+ * zerando o rate limit por IP (denial-of-wallet — ADR-075).
  *
- * ESTRATÉGIA (em ordem de robustez):
- *  1. `CloudFront-Viewer-Address` — header que o CloudFront injeta a partir da
- *     conexão TCP do viewer. Não é spoofável pelo cliente (o CloudFront
- *     sobrescreve qualquer valor que o viewer mande). Formato "ip:porta".
- *     Só chega à origem se incluído no Origin Request Policy do CloudFront
- *     (follow-up de infra); ler defensivamente já deixa o caminho pronto.
- *  2. `X-Forwarded-For` descartando N hops confiáveis da DIREITA. Topologia:
- *     viewer → CloudFront (anexa IP do viewer) → ALB (anexa IP do CloudFront)
- *     → Next. O IP real do viewer fica em `len - 1 - HOPS`. Por mais entradas
- *     forjadas que o atacante prepende à ESQUERDA, o índice contado da direita
- *     não se move. HOPS=1 (só o ALB anexa entre o Next e o edge que registrou
- *     o viewer); ajustável por env se a topologia mudar.
- *  3. `x-real-ip` / "unknown" como último recurso.
+ * TOPOLOGIA (decide quantos hops descartar da direita):
+ *  - HOJE o checkup serve DIRETO do ALB (ASG+ALB próprio, ADR-045; DNS aponta no ALB).
+ *    1 proxy confiável (o ALB) anexa o IP TCP do viewer no fim do XFF → o IP real é a
+ *    ÚLTIMA entrada → descartar 0 da direita (`CHECKUP_TRUSTED_PROXY_HOPS=0`, default).
+ *  - Quando o CloudFront for fronteado e ENFORÇADO (origin-secret no :443, ADR-047 —
+ *    follow-up deferido do ADR-075), passam a existir 2 proxies (CF anexa o viewer, ALB
+ *    anexa o egress do CF) → setar `CHECKUP_TRUSTED_PROXY_HOPS=1`. Enquanto o :443 do ALB
+ *    estiver alcançável direto, NÃO use 1 (o caminho de bypass leria entrada forjada).
  *
- * Sem PII persistida: o IP é usado só como chave efêmera de rate limit.
+ * Valor não-inteiro/negativo na env → cai para o default (nunca reabrir o spoof em
+ * silêncio). O backstop topology-independent do gasto é o circuit breaker global
+ * (`ai/breaker.ts`), não este helper.
+ *
+ * `CloudFront-Viewer-Address` (header não-spoofável que o CF injeta da conexão TCP) só
+ * é confiado quando `CHECKUP_TRUST_CF_VIEWER_HEADER=true` — porque, enquanto o ALB :443
+ * estiver aberto, um atacante batendo direto no ALB poderia FORJAR esse header.
+ *
+ * Sem PII persistida: o IP é só chave efêmera de rate limit.
  */
 
-// Nº de proxies confiáveis que anexam ao XFF entre o Next e o edge que viu o
-// viewer real. CloudFront→ALB→Next ⇒ 1 (o ALB). Configurável p/ topologias futuras.
-const TRUSTED_PROXY_HOPS = Math.max(0, Number(process.env.CHECKUP_TRUSTED_PROXY_HOPS ?? "1"));
+// Nº de proxies confiáveis cujas entradas (à direita) descartar. Lido em runtime
+// (testável; sem captura no load). Inválido → 0.
+function trustedHops(): number {
+  const raw = process.env.CHECKUP_TRUSTED_PROXY_HOPS;
+  if (raw === undefined) return 0;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : 0;
+}
 
 function stripPort(addr: string): string {
   const v = addr.trim();
@@ -37,10 +43,12 @@ function stripPort(addr: string): string {
     const end = v.indexOf("]");
     return end > 0 ? v.slice(1, end) : v;
   }
-  // IPv4 "1.2.3.4:567" → corta a porta. IPv6 cru (vários ":") fica intacto.
-  const firstColon = v.indexOf(":");
-  if (firstColon !== -1 && v.indexOf(":", firstColon + 1) === -1) {
-    return v.slice(0, firstColon);
+  // CloudFront-Viewer-Address sempre traz ":porta" no fim. Tira o último segmento se
+  // ele for a porta (só dígitos) — funciona p/ IPv4 ("1.2.3.4:567") E IPv6 sem colchetes
+  // ("2001:db8::1:567"), formato real da AWS. (Só chamado no header do CF, que tem porta.)
+  const lastColon = v.lastIndexOf(":");
+  if (lastColon > 0 && /^\d+$/.test(v.slice(lastColon + 1))) {
+    return v.slice(0, lastColon);
   }
   return v;
 }
@@ -50,11 +58,13 @@ interface HeaderGetter {
 }
 
 export function getClientIp(req: HeaderGetter): string {
-  // 1) Header gerenciado do CloudFront — não-spoofável.
-  const cfViewer = req.headers.get("cloudfront-viewer-address");
-  if (cfViewer) {
-    const ip = stripPort(cfViewer);
-    if (ip) return ip;
+  // 1) Header gerenciado do CloudFront — só quando o CF for o caminho enforçado.
+  if (process.env.CHECKUP_TRUST_CF_VIEWER_HEADER === "true") {
+    const cfViewer = req.headers.get("cloudfront-viewer-address");
+    if (cfViewer) {
+      const ip = stripPort(cfViewer);
+      if (ip) return ip;
+    }
   }
 
   // 2) XFF descartando os hops confiáveis da direita.
@@ -62,9 +72,8 @@ export function getClientIp(req: HeaderGetter): string {
   if (xff) {
     const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
     if (parts.length > 0) {
-      const idx = parts.length - 1 - TRUSTED_PROXY_HOPS;
-      // Cadeia menor que o esperado (ex.: request interno sem passar pelo edge):
-      // cai para a entrada mais à esquerda em vez de estourar índice negativo.
+      const idx = parts.length - 1 - trustedHops();
+      // Cadeia mais curta que o esperado: melhor esforço (entrada mais à esquerda).
       return parts[idx >= 0 ? idx : 0];
     }
   }

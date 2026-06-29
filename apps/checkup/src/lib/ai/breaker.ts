@@ -23,8 +23,17 @@
  */
 import { getSql } from "@/lib/db";
 
-const HOURLY_CAP = Math.max(1, Number(process.env.CHECKUP_LLM_HOURLY_CAP ?? "500"));
-const DAILY_CAP = Math.max(1, Number(process.env.CHECKUP_LLM_DAILY_CAP ?? "3000"));
+// Cap inteiro positivo da env; valor inválido (NaN, ≤0, não-inteiro) → default. SEM
+// isto, `Number("abc")=NaN` e `hits > NaN` é sempre false → o breaker NUNCA dispararia
+// (fail-open silencioso do teto de gasto).
+function intCap(name: string, def: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return def;
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : def;
+}
+const HOURLY_CAP = intCap("CHECKUP_LLM_HOURLY_CAP", 500);
+const DAILY_CAP = intCap("CHECKUP_LLM_DAILY_CAP", 3000);
 
 const HOUR_SEC = 60 * 60;
 const DAY_SEC = 24 * 60 * 60;
@@ -64,18 +73,23 @@ async function hitGlobal(bucket: string, windowSec: number, cap: number): Promis
  * short-circuit das escalas sem LLM, para não gastar orçamento à toa).
  */
 export async function tryConsumeLlmBudget(): Promise<LlmBudgetResult> {
+  // Checa a janela horária PRIMEIRO. Se estourou, retorna SEM tocar o balde diário —
+  // senão tentativas já recusadas pelo cap de 1h inflariam o teto de 24h, e um burst de
+  // 1h derrubaria a IA por 1 dia inteiro a custo-zero de LLM. Assim o balde diário só
+  // conta requests que passaram no gate horário (≈ chamadas reais ao LLM).
   const hour = await hitGlobal("llm:global:hour", HOUR_SEC, HOURLY_CAP);
-  const day = await hitGlobal("llm:global:day", DAY_SEC, DAILY_CAP);
-
-  // DB indisponível para ambos → fail-open (ver doc do módulo).
-  if (hour === null && day === null) return { allowed: true };
-
-  if (hour?.over) {
+  // DB indisponível → fail-open (o caminho por request já é fail-closed nessa condição;
+  // o breaker é o teto macro e não deve derrubar o produto num soluço de DB).
+  if (hour === null) return { allowed: true };
+  if (hour.over) {
     // Log estruturado p/ metric filter + alarme CloudWatch (observabilidade de gasto).
     console.warn(`llm.breaker.tripped scope=hour cap=${HOURLY_CAP} hits=${hour.hits}`);
     return { allowed: false, scope: "hour" };
   }
-  if (day?.over) {
+
+  const day = await hitGlobal("llm:global:day", DAY_SEC, DAILY_CAP);
+  if (day === null) return { allowed: true };
+  if (day.over) {
     console.warn(`llm.breaker.tripped scope=day cap=${DAILY_CAP} hits=${day.hits}`);
     return { allowed: false, scope: "day" };
   }
