@@ -46,3 +46,25 @@ mitigado por (i) contagens idênticas nos dois lados e (ii) natureza append-only
 tráfego ~zero). Se o audit FINAL (com `desired=0`) confirmar zero, o **merge é dispensado**
 e o Gate 0 vai direto de drenagem → flip do SSM. O passo de merge (truncate+reload + setval)
 permanece no plano para o caso de delta > 0 no momento da execução.
+
+---
+
+## Audit FINAL — executado 2026-07-06T21:50:09Z (checkup parado, drenagem = 0)
+
+Pré-condições: ASG `desired=0/min=0`, instâncias terminadas (21:43:04Z), `pg_stat_activity`
+no RDS com **0 conexões** de `checkup_app` (excluindo o backend da própria consulta —
+o primeiro loop de drenagem contava a si mesmo; instrumento corrigido com
+`pid <> pg_backend_pid()`).
+
+| Tabela | rds | local | veredito |
+|---|---:|---:|---|
+| funnel_events | 42 | 42 | IGUAL |
+| rate_limits | 29 | 29 | IGUAL + **md5 idêntico** (`431757d2...b81b` nos dois lados) |
+| report_emails | 2 | 2 | IGUAL |
+| test_results | 1 | 1 | IGUAL |
+| tracking_points / _reminders / _series | 0 | 0 | IGUAL |
+
+Inseridos ≥ 2026-07-06T20:33Z (6 tabelas com `created_at`): **0 em todas**.
+
+**Decisão: MERGE DISPENSADO** (regra do Gate 0: tudo idêntico). Nenhuma escrita no RDS
+em toda a janela. Execução e desfecho do flip: `05-gate0-execucao.md`.
