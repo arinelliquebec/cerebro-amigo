@@ -1,5 +1,25 @@
 # 01 — Runbook: cutover RDS → container pgvector no EC2
 
+> ## 📍 STATUS (2026-07-06)
+> - **Fase 0 ✅** (volume/swap/backup/timers) · **Fase 1 ✅** dados migrados e validados
+>   (`02-validacao-dados.md`; janela 20:10→20:14Z) · **Fase 2 ✅ parcial**: stack clínico
+>   (web, gateway, orchestrator, agents, notifier) **operando no Postgres local com TLS**
+>   desde **20:25Z**; smoke E2E ok (BFF/gateway→banco: login 401 limpo; 6/6 healthy; 0 erros).
+> - **⏱️ Observação de 72 h iniciada em 2026-07-06T20:25Z → gate em 2026-07-09T20:25Z.**
+> - **⚠️ Checkup ainda no RDS**: a regra de SG (5432 `cerebro-checkup` SG → `cerebro-app-sg`)
+>   foi bloqueada pelo modo de permissão da sessão. Para concluir: (1) `aws ec2
+>   authorize-security-group-ingress --group-id sg-0f8f950282b292818 --protocol tcp --port 5432
+>   --source-group sg-0c240ece2f5c0e46f`; (2) re-dump/restore do schema `checkup` (delta);
+>   (3) flip do SSM `/cerebro-amigo/checkup/database-url` (host 172.31.4.97, role `checkup_app`,
+>   senha `PG_LOCAL_CHECKUP_PASSWORD` do `.env` do box) + instance refresh. Bind já pronto
+>   (`POSTGRES_BIND=172.31.4.97`) e TLS ligado.
+> - **↩️ ROLLBACK (vigente durante as 72 h):** no box, `cp .env.pre-adr077 .env` →
+>   `IMAGE_TAG=<tag vivo> docker compose up -d --no-build --force-recreate` dos 5 serviços →
+>   stack volta ao RDS (vivo, intocado). Escritas locais pós-20:25Z precisam de reconciliação
+>   (dump reverso) ou aceite de perda.
+> - Gotcha novo: imagem do gateway tinha sido removida por prune → `up` ad-hoc tentou *buildar*
+>   no box. Sempre `--no-build` + `docker compose pull <svc>` antes.
+
 > **Decisão:** ADR-077 · **Baseline:** `00-discovery.md` (2026-07-06) · **Alvo:** `pgvector/pgvector:0.8.4-pg16`
 > **Princípio do rollback:** até a Fase 4 (descomissionamento), o RDS permanece **intacto e rodando**.
 > Rollback de qualquer fase = reapontar as connection strings de volta ao RDS. Só a Fase 4 é irreversível

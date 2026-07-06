@@ -47,7 +47,9 @@ services:
     mem_limit: 1g
     cpu_shares: 1024
     ports:
-      - "127.0.0.1:5432:5432"
+      # Dev: loopback. Prod (box): POSTGRES_BIND=<IP privado> no .env — o checkup
+      # ASG conecta pela VPC; o SG só permite 5432 do SG do checkup (nunca público).
+      - "${POSTGRES_BIND:-127.0.0.1}:5432:5432"
     environment:
       # Gerar com: openssl rand -base64 24 (no .env do host; NUNCA comitar)
       POSTGRES_PASSWORD: ${POSTGRES_LOCAL_PASSWORD:?defina POSTGRES_LOCAL_PASSWORD no .env}
@@ -56,8 +58,12 @@ services:
       - /data/postgres:/var/lib/postgresql/data
     # Tuning p/ t3.medium (discovery §7.2-A). Em t3.large (cenário B):
     # shared_buffers=1536MB, effective_cache_size=3GB.
+    # ssl=on: cert self-signed em $PGDATA/server.{crt,key} (gerado no cutover);
+    # DSNs seguem sslmode=require / Trust Server Certificate=true.
     command:
       - postgres
+      - -c
+      - ssl=on
       - -c
       - shared_buffers=256MB
       - -c
@@ -145,6 +151,9 @@ services:
       ORCHESTRATOR_PY_URL: http://orchestrator-py:8081
       AGENTS_PY_URL: http://agents-py:8082
       NOTIFIER_PY_URL: http://notifier-py:8083
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:5000/health"]
       interval: 10s
@@ -179,6 +188,9 @@ services:
     ports:
       - "8081:8081"
     env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
       interval: 10s
@@ -209,6 +221,9 @@ services:
     ports:
       - "8082:8082"
     env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health')"]
       interval: 10s
@@ -236,6 +251,9 @@ services:
     ports:
       - "8083:8083"
     env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health')"]
       interval: 10s
