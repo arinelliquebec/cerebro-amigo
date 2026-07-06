@@ -42,9 +42,14 @@ Gotcha permanente: containers **não releem** `.env` em `restart` — todo flip 
 5. **Globals e roles:** no RDS, `pg_dumpall --globals-only` como `cerebroadmin`; aplicar no
    container **removendo roles `rds_*`**; recriar `cerebroadmin`, `cerebro_gateway`,
    `cerebro_workers` (BYPASSRLS), `checkup_app` com as senhas vigentes do SSM.
-6. **Backup antes do dado:** cron diário no host (systemd timer, padrão do watchdog):
-   `pg_dump -Fc` de `cerebro_v3` + globals → S3 `s3://<bucket-backups>/postgres/` (SSE-KMS,
-   lifecycle 35 dias). Política DLM: snapshot diário do volume, retenção 7 dias.
+6. **Backup antes do dado:** `infra/scripts/backup-postgres.sh` (DSN parametrizada — reusar
+   no dump do RDS na Fase 1) + `test-restore.sh`, agendados por systemd timers
+   (`infra/systemd/`, diário 03:30 + restore-test dom 05:00 BRT) → S3
+   `s3://cerebro-amigo-db-backups/postgres/` (SSE-KMS; lifecycle daily/30d, weekly/90d;
+   policy `CerebroAmigoDbBackupsS3` no instance profile). Falha/sucesso observáveis em
+   `last-error`/`last-success`/`last-restore-test` (pluga no alerta P7).
+   ✅ Executado 2026-07-06: backup smoke + test-restore PASS, timers ativos.
+   Pendente: política DLM de snapshot do volume EBS (segunda camada).
 7. **Ensaio geral (dry-run):** dump do RDS → restore no container → validar contagens
    (baseline 00-discovery §2.4), `\dx`, `pg_policies`; rodar `apps/api-gateway-tests`
    apontada para o container. **Executar um restore-test do backup S3** (prova o item 6).
