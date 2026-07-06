@@ -9,7 +9,13 @@
 
 ## 0. GATES — NÃO EXECUTE NADA ANTES DESTES ✋
 
-### Gate 0 — Flip do checkup (split-brain desde 2026-07-06T20:25Z) 🔴
+### Gate 0 — Flip do checkup (split-brain desde 2026-07-06T20:25Z) 🟡 QUASE CONCLUÍDO
+
+> **Execução 2026-07-06 (ver `05-gate0-execucao.md`):** flip FEITO (parâmetro v4 → local),
+> split-brain ENCERRADO, merge dispensado (delta zero, `04-gate0-audit.md`), checkup no ar.
+> **Pendente para fechar o gate:** deploy do fix de TLS do driver (commitado na branch) +
+> E2E com persistência provada + **48h do checkup contados a partir daí**.
+> O delete do RDS continua bloqueado até lá.
 
 **Situação:** o SSM `/cerebro-amigo/checkup/database-url` ainda aponta para o RDS, database
 `cerebro_v3` — o MESMO database que o stack principal cortou para o Postgres local às 20:25Z.
