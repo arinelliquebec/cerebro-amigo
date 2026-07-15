@@ -99,10 +99,13 @@ SQL
 psql_db <<'SQL'
 DO $do$
 BEGIN
+  -- 0036 cria as roles de app, inclusive cerebro_workers BYPASSRLS — o criador
+  -- precisa de CREATEROLE e BYPASSRLS (o master do RDS tinha ambos). NOLOGIN:
+  -- ninguém conecta como cerebroadmin no box; é só executor/dono das migrations.
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'cerebroadmin') THEN
-    CREATE ROLE cerebroadmin NOLOGIN CREATEROLE; -- 0036 cria roles (master do RDS tinha CREATEROLE)
+    CREATE ROLE cerebroadmin NOLOGIN CREATEROLE BYPASSRLS;
   ELSE
-    ALTER ROLE cerebroadmin CREATEROLE;
+    ALTER ROLE cerebroadmin CREATEROLE BYPASSRLS;
   END IF;
 END
 $do$;
