@@ -6,7 +6,12 @@
 # o checkup tem banco próprio no box dele (ADR-078) — isolamento de dados.
 set -euo pipefail
 cd "$(dirname "$0")"
-. ./.env
+# O .env NÃO é sourceável: POSTGRES_DSN (formato Npgsql) contém `;`, que o shell
+# interpreta como fim de comando. Extrai só as chaves necessárias.
+env_val() { sed -n "s/^$1=//p" .env | head -1; }
+DB_SUPERUSER_PASSWORD=$(env_val DB_SUPERUSER_PASSWORD)
+DB_GATEWAY_PASSWORD=$(env_val DB_GATEWAY_PASSWORD)
+DB_WORKERS_PASSWORD=$(env_val DB_WORKERS_PASSWORD)
 
 # Todas as migrations clínicas, em ordem. Gap 0008 é histórico (nunca existiu).
 MIGRATIONS=(

@@ -5,7 +5,8 @@
 # s3://cerebro-amigo-db-backups/postgres/*.
 set -euo pipefail
 cd /opt/cerebro-amigo-v3/src/infra/clinical-box
-. ./.env
+# .env não é sourceável (DSNs contêm `;`) — extrai só a senha.
+DB_SUPERUSER_PASSWORD=$(sed -n 's/^DB_SUPERUSER_PASSWORD=//p' .env | head -1)
 
 STAMP=$(date -u +%Y-%m-%dT%H%M%SZ)
 docker compose exec -T -e PGPASSWORD="${DB_SUPERUSER_PASSWORD}" postgres \
