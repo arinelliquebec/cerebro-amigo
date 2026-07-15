@@ -91,13 +91,58 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 );
 SQL
 
+# As migrations foram escritas para rodar como `cerebroadmin` (master do RDS,
+# dono de todos os objetos): 0036 declara ALTER DEFAULT PRIVILEGES FOR ROLE
+# cerebroadmin, e ALTERs posteriores exigem ownership. No container o role não
+# existe — cria NOLOGIN (ninguém conecta; é só executor/dono) e transfere o
+# ownership do que já existir (idempotente: filtra owner='postgres').
+psql_db <<'SQL'
+DO $do$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'cerebroadmin') THEN
+    CREATE ROLE cerebroadmin NOLOGIN;
+  END IF;
+END
+$do$;
+ALTER DATABASE cerebro_v3 OWNER TO cerebroadmin;
+ALTER SCHEMA public OWNER TO cerebroadmin;
+DO $do$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT tablename FROM pg_tables
+           WHERE schemaname='public' AND tableowner='postgres' LOOP
+    EXECUTE format('ALTER TABLE public.%I OWNER TO cerebroadmin', r.tablename);
+  END LOOP;
+  FOR r IN SELECT sequencename FROM pg_sequences
+           WHERE schemaname='public' AND sequenceowner='postgres' LOOP
+    EXECUTE format('ALTER SEQUENCE public.%I OWNER TO cerebroadmin', r.sequencename);
+  END LOOP;
+  FOR r IN SELECT viewname FROM pg_views v JOIN pg_roles o ON o.rolname=v.viewowner
+           WHERE schemaname='public' AND o.rolname='postgres' LOOP
+    EXECUTE format('ALTER VIEW public.%I OWNER TO cerebroadmin', r.viewname);
+  END LOOP;
+  FOR r IN SELECT p.proname, pg_get_function_identity_arguments(p.oid) AS args
+           FROM pg_proc p
+           JOIN pg_namespace n ON n.oid = p.pronamespace
+           JOIN pg_roles o ON o.oid = p.proowner
+           WHERE n.nspname='public' AND o.rolname='postgres'
+             AND NOT EXISTS (SELECT 1 FROM pg_depend d
+                             WHERE d.objid = p.oid AND d.deptype = 'e') LOOP
+    EXECUTE format('ALTER FUNCTION public.%I(%s) OWNER TO cerebroadmin', r.proname, r.args);
+  END LOOP;
+END
+$do$;
+SQL
+
 for m in "${MIGRATIONS[@]}"; do
   applied=$(psql_db -tA -c "SELECT 1 FROM schema_migrations WHERE filename = '${m}'")
   if [ "$applied" = "1" ]; then
     continue
   fi
   echo ">> aplicando ${m}"
-  psql_db --single-transaction < "../migrations/${m}"
+  # SET ROLE cerebroadmin: objetos novos nascem com o dono certo e os DEFAULT
+  # PRIVILEGES do 0036 se aplicam (mesma semântica do RDS).
+  psql_db --single-transaction -c "SET ROLE cerebroadmin" -f /dev/stdin < "../migrations/${m}"
   psql_db -c "INSERT INTO schema_migrations (filename) VALUES ('${m}')"
 done
 
