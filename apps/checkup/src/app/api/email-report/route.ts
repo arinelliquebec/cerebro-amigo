@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = await req.json().catch(() => null);
+  const body: unknown = await req.json().catch(() => null);
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
@@ -59,10 +59,8 @@ export async function POST(req: NextRequest) {
   const { sessionId, email, scale, score, band, label, crisis } = parsed.data;
 
   // gera o PDF (mesmo componente do /api/pdf)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdf = (await renderToBuffer(
-    createElement(CheckupPDF, { scale, score, band, label, crisis, rid: sessionId.slice(0, 8) }) as any
-  )) as Buffer;
+  const element = createElement(CheckupPDF, { scale, score, band, label, crisis, rid: sessionId.slice(0, 8) });
+  const pdf = (await renderToBuffer(element)) as Buffer;
 
   // envia via Resend (PDF como anexo base64)
   try {
