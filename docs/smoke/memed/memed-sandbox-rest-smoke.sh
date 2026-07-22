@@ -6,16 +6,16 @@
 # `token` que o SDK do frontend usa. Reproduz o MemedClient.RegistrarOuObterAsync
 # (POST /sinapse-prescricao/usuarios, JSON:API, auth em query-string).
 #
-# NÃO usa credencial de produção. Default = chaves sandbox públicas do MEMED.
-# Para sobrescrever:  MEMED_API_KEY=... MEMED_SECRET_KEY=... ./memed-sandbox-rest-smoke.sh
+# Requer credenciais sandbox injetadas pelo ambiente; não há defaults no repositório.
+# Exporte MEMED_API_KEY e MEMED_SECRET_KEY antes de executar.
 #
 # Saída: HTTP status + corpo + `data.id` (memed_usuario_id) + `token` (cole na Parte B).
 # =============================================================================
 set -euo pipefail
 
-# Chaves sandbox de homologação (públicas, da área de parceiro MEMED — .env.example).
-MEMED_API_KEY=
-MEMED_SECRET_KEY=
+# Credenciais sandbox obrigatórias via ambiente; nunca persistir neste arquivo.
+: "${MEMED_API_KEY:?defina MEMED_API_KEY com uma credencial sandbox}"
+: "${MEMED_SECRET_KEY:?defina MEMED_SECRET_KEY com uma credencial sandbox}"
 MEMED_API_BASE="${MEMED_API_BASE:-https://integrations.api.memed.com.br/v1}"
 
 # Prescritor de teste (sobrescreva por env se o sandbox recusar o board).
