@@ -49,7 +49,11 @@ async function fetchCheckup(): Promise<{ data: FunnelMetrics | null; erro: strin
   try {
     const r = await fetch(CHECKUP_METRICS_URL, {
       headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
+      // O funil do Check-up é agregado GLOBAL (sem tenant, sem PII): cache curto
+      // compartilhado tira a chamada cross-serviço do caminho quente do cockpit e
+      // alivia o box do Check-up. O lado clínico (gateway, por cookie/tenant) segue
+      // dinâmico — não entra em cache. ADR-046/ADR-050.
+      next: { revalidate: 60 },
       signal: AbortSignal.timeout(5000), // não pendurar o cockpit se o Check-up lentar
     })
     if (!r.ok) return { data: null, erro: `Check-up respondeu ${r.status}` }
