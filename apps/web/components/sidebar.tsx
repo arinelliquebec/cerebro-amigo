@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Wallet,
   Sparkles,
+  Brain,
   UserCircle,
   ShieldCheck,
 } from "lucide-react"
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Pacientes", href: "/dashboard/pacientes", icon: Users },
   { name: "Agenda", href: "/dashboard/agenda", icon: Calendar },
+  { name: "Briefings", href: "/dashboard/briefings", icon: Brain },
   { name: "Mensagens", href: "/dashboard/mensagens", icon: MessageSquare },
   { name: "Prontuários", href: "/dashboard/prontuarios", icon: FileText },
   { name: "Evolução", href: "/dashboard/evolucao", icon: TrendingUp },
