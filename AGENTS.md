@@ -60,7 +60,6 @@ apps/
   checkup/          Next.js 16 — Check-up Mental (triagem pública anônima; App Router em /src/app)
   api-gateway/      .NET 10 — REST, JWT, EF Core, RLS, Resend, proxy SSE (minimal APIs)
   api-gateway-tests/ xUnit + Testcontainers — isolamento de tenant/RLS (gate no CI)
-  api-gateway-scala/ DECOMISSIONADO (ADR-071) — não buildar/deployar
   orchestrator-py/  FastAPI + LangGraph — IA conversacional + protocolo de crise (:8081)
   agents-py/        FastAPI + APScheduler — agentes analíticos + RAG (:8082)
   notifier-py/      FastAPI + pywebpush — Web Push / e-mail de check-ins e crise (:8083)
