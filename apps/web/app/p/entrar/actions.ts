@@ -139,6 +139,18 @@ export const entrarComoPacienteDemo = async (
   return redirect(destinoSeguro(formData.get("next")))
 }
 
+const validarTrocaSenha = (
+  senhaAtual: string,
+  novaSenha: string,
+  confirmar: string,
+): string | null => {
+  if (!senhaAtual) return "Enter your current password."
+  if (!novaSenha || novaSenha.length < 8)
+    return "Your new password must contain at least 8 characters."
+  if (novaSenha !== confirmar) return "The passwords do not match."
+  return null
+}
+
 // ─── Troca de senha (autenticado) ──────────────────────────────────────────
 export async function trocarSenha(
   _prev: PacienteAuthState,
@@ -148,10 +160,8 @@ export async function trocarSenha(
   const novaSenha = formData.get("novaSenha") as string
   const confirmar = formData.get("confirmar") as string
 
-  if (!senhaAtual) return { error: "Enter your current password." }
-  if (!novaSenha || novaSenha.length < 8)
-    return { error: "Your new password must contain at least 8 characters." }
-  if (novaSenha !== confirmar) return { error: "The passwords do not match." }
+  const erroValidacao = validarTrocaSenha(senhaAtual, novaSenha, confirmar)
+  if (erroValidacao) return { error: erroValidacao }
 
   try {
     await gatewayPaciente.post("/api/v1/auth/paciente/senha", { senhaAtual, novaSenha })
