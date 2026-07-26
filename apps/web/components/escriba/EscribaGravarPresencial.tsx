@@ -4,7 +4,7 @@
 // (médico + paciente na sala, sem videochamada). Fluxo:
 //   1. médico atesta consentimento verbal do paciente (LGPD)
 //   2. grava o mic da sala (MediaRecorder standalone, com pausa, sem cap de tempo)
-//   3. sobe o áudio direto no S3 (presigned) → registra → transcrição assíncrona
+//   3. sobe o áudio direto no Azure Blob (SAS) → registra → transcrição assíncrona
 //   4. redireciona p/ a revisão, que faz polling até o rascunho ficar pronto
 // Guardrail: o rascunho é factual; a nota clínica é do médico (revisão/aprovação).
 
@@ -191,9 +191,13 @@ export function EscribaGravarPresencial({
       if (!ru.ok) throw new Error("upload-url")
       const { uploadUrl, s3Key } = await ru.json()
 
-      // 2) PUT direto no S3 (Content-Type precisa bater com o que foi assinado)
-      const put = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": contentType }, body: blob })
-      if (!put.ok) throw new Error("s3")
+      // 2) PUT direto no Azure Blob via SAS (x-ms-blob-type é obrigatório no upload)
+      const put = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": contentType, "x-ms-blob-type": "BlockBlob" },
+        body: blob,
+      })
+      if (!put.ok) throw new Error("blob")
 
       // 3) registra → enfileira transcrição assíncrona
       const reg = await fetch(`/api/consultas/${consultaId}/escriba`, {

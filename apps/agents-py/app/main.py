@@ -32,7 +32,7 @@ from app.services.crisis import (
     detectar_crise,
 )
 from app.services.crisis_copy import CRISIS_COPY
-from app.services.escriba import gerar_rascunho_consulta, gerar_rascunho_consulta_s3
+from app.services.escriba import gerar_rascunho_consulta, gerar_rascunho_consulta_blob
 from app.services.retrieval import buscar as rag_buscar_service
 from app.services.transcricao import transcrever_audio
 
@@ -176,8 +176,9 @@ class TranscreverAudioRequest(BaseModel):
 async def transcrever_diario(req: TranscreverAudioRequest) -> dict:
     """Transcreve áudio de diário e retorna análise clínica estruturada.
 
-    Fluxo interno: S3 upload → Amazon Transcribe (pt-BR) → Claude Sonnet → resultado.
-    O áudio é deletado do S3 logo após a transcrição (LGPD).
+    Fluxo interno (ADR-082): Azure Speech fast transcription (pt-BR, bytes
+    direto — sem storage) → Claude Sonnet → resultado. O áudio nunca persiste
+    além do ciclo da request (LGPD).
     """
     import base64
     import binascii
@@ -210,11 +211,11 @@ async def transcrever_diario(req: TranscreverAudioRequest) -> dict:
     except HTTPException:
         raise
     except Exception as exc:
-        # Falha de infraestrutura (Transcribe/S3/timeout). A triagem de crise
+        # Falha de infraestrutura (Azure Speech/timeout). A triagem de crise
         # acontece DENTRO de transcrever_audio e retorna normalmente (não por
         # exceção), então protocolos_crise_acionados e o acolhimento fixo não
-        # são afetados aqui. Logamos o erro real para ops (sem PII e sem o
-        # FailureReason do Transcribe no detail) e devolvemos copy amigável.
+        # são afetados aqui. Logamos o erro real para ops (sem PII e sem corpo
+        # de resposta do Speech no detail) e devolvemos copy amigável.
         log.error(
             "diario.transcrever.falha_infra",
             paciente_id=str(req.paciente_id),
@@ -245,13 +246,14 @@ async def transcrever_diario(req: TranscreverAudioRequest) -> dict:
 
 
 class EscribaRequest(BaseModel):
-    # Teleconsulta: áudio pequeno via base64. Presencial (ADR-075): s3_key de um
-    # objeto que o browser já subiu via presigned PUT no bucket efêmero.
+    # Teleconsulta: áudio pequeno via base64. Presencial (ADR-075): chave de um
+    # blob que o browser já subiu via SAS PUT no container efêmero (o campo
+    # mantém o nome legado s3_key no wire — ADR-082).
     # Exatamente um dos dois é enviado.
     content_type: str                    # "audio/webm" | "audio/mp4"
     paciente_id: UUID
     audio_base64: str | None = None      # caminho teleconsulta
-    s3_key: str | None = None            # caminho presencial
+    s3_key: str | None = None            # caminho presencial (chave no Blob)
 
 
 @app.post(
@@ -262,15 +264,16 @@ async def transcrever_escriba(req: EscribaRequest) -> dict:
     """Transcreve o áudio de uma consulta (diarizado) e gera um rascunho FACTUAL
     para o médico (ADR-040/ADR-075). NÃO gera diagnóstico/conduta (regra #1).
     Doctor-facing: não aciona protocolo de crise patient-facing (regra #2) — só marca
-    mencao_risco. Áudio deletado do S3 logo após a transcrição (LGPD).
+    mencao_risco. Transcrição via Azure Speech (ADR-082); no caminho presencial o
+    blob efêmero é deletado logo após a transcrição (LGPD).
 
     Dois caminhos, exatamente um por request:
-      • s3_key  → presencial: o browser já subiu o áudio (presigned); só transcreve a chave.
-      • audio_base64 → teleconsulta: áudio pequeno inline (cap 25 MB)."""
+      • s3_key  → presencial: chave do blob que o browser já subiu (SAS).
+      • audio_base64 → teleconsulta: áudio pequeno inline (cap 25 MB), sem storage."""
     import base64
 
     if req.s3_key:
-        result = await gerar_rascunho_consulta_s3(
+        result = await gerar_rascunho_consulta_blob(
             req.s3_key, req.content_type, req.paciente_id
         )
     elif req.audio_base64:

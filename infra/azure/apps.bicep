@@ -8,6 +8,9 @@ param keyVaultUri string
 param imageTag string
 param frontendUrl string = 'https://www.cerebroamigo.com.br'
 
+@description('Região do Azure AI Speech (ADR-082) — mesma do foundation.bicep (speechLocation).')
+param speechRegion string = 'eastus'
+
 @description('Tags comuns para governança e custo.')
 param tags object = {
   project: 'cerebro-amigo'
@@ -87,7 +90,6 @@ resource orchestrator 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'CRISIS_RESILIENCE_ENABLED', value: 'false' }
             { name: 'LLM_PROVIDER', value: 'anthropic' }
             { name: 'ANTHROPIC_API_KEY', secretRef: 'anthropic-api-key' }
-            { name: 'BEDROCK_REGION', value: 'sa-east-1' }
             { name: 'LANGSMITH_TRACING', value: 'false' }
             { name: 'LANGSMITH_HIDE_INPUTS', value: 'true' }
             { name: 'LANGSMITH_HIDE_OUTPUTS', value: 'true' }
@@ -157,7 +159,20 @@ resource agents 'Microsoft.App/containerApps@2024-03-01' = {
         ]
       }
       registries: registry
-      secrets: commonSecrets
+      // ADR-082: agents-py transcreve (Azure Speech) e baixa/deleta o áudio
+      // efêmero do escriba presencial no Blob.
+      secrets: concat(commonSecrets, [
+        {
+          name: 'storage-connection-string'
+          keyVaultUrl: '${keyVaultUri}secrets/storage-connection-string'
+          identity: identityResourceId
+        }
+        {
+          name: 'speech-key'
+          keyVaultUrl: '${keyVaultUri}secrets/speech-key'
+          identity: identityResourceId
+        }
+      ])
     }
     template: {
       containers: [
@@ -171,7 +186,10 @@ resource agents 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'SHADOW_MODE', value: 'true' }
             { name: 'LLM_PROVIDER', value: 'anthropic' }
             { name: 'ANTHROPIC_API_KEY', secretRef: 'anthropic-api-key' }
-            { name: 'BEDROCK_REGION', value: 'sa-east-1' }
+            { name: 'AZURE_SPEECH_KEY', secretRef: 'speech-key' }
+            { name: 'AZURE_SPEECH_REGION', value: speechRegion }
+            { name: 'AZURE_STORAGE_CONNECTION_STRING', secretRef: 'storage-connection-string' }
+            { name: 'BLOB_CONTAINER_AUDIO', value: 'audio-efemero' }
             { name: 'EMBEDDINGS_ENABLED', value: 'false' }
             { name: 'MAX_DAILY_LLM_USD', value: '0' }
             { name: 'LANGSMITH_TRACING', value: 'false' }
@@ -360,6 +378,12 @@ resource gateway 'Microsoft.App/containerApps@2024-03-01' = {
           keyVaultUrl: '${keyVaultUri}secrets/edge-auth-secret'
           identity: identityResourceId
         }
+        {
+          // ADR-082: gateway assina SAS de upload/download no Blob.
+          name: 'storage-connection-string'
+          keyVaultUrl: '${keyVaultUri}secrets/storage-connection-string'
+          identity: identityResourceId
+        }
       ]
     }
     template: {
@@ -383,7 +407,11 @@ resource gateway 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'PORTAL_PACIENTE_URL', value: frontendUrl }
             { name: 'Cors__Origins__0', value: frontendUrl }
             { name: 'STUN_URLS', value: 'stun:stun.l.google.com:19302' }
-            { name: 'AWS_REGION', value: 'sa-east-1' }
+            // ADR-082: SAS do Blob (containers criados no foundation.bicep).
+            { name: 'AZURE_STORAGE_CONNECTION_STRING', secretRef: 'storage-connection-string' }
+            { name: 'BLOB_CONTAINER_MEDICO_DOCS', value: 'documentos-demo' }
+            { name: 'BLOB_CONTAINER_AUDIO_MSGS', value: 'audio-mensagens' }
+            { name: 'BLOB_CONTAINER_AUDIO', value: 'audio-efemero' }
           ]
           probes: [
             {

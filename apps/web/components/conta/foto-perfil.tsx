@@ -36,7 +36,11 @@ export function FotoPerfil() {
       })
       const u = await ur.json().catch(() => null)
       if (!ur.ok || !u?.uploadUrl) { setErro("Não foi possível iniciar o envio."); return }
-      const put = await fetch(u.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file })
+      const put = await fetch(u.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type, "x-ms-blob-type": "BlockBlob" },
+        body: file,
+      })
       if (!put.ok) { setErro("Falha no upload."); return }
       const rr = await fetch("/api/conta/foto", {
         method: "POST", headers: { "Content-Type": "application/json" },

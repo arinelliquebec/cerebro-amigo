@@ -1,24 +1,20 @@
-"""Serviço de transcrição de áudio: S3 efêmero → Amazon Transcribe → Claude análise.
+"""Serviço de transcrição de áudio: Azure AI Speech (fast transcription) → Claude análise.
 
-Fluxo:
-  1. Upload do áudio para S3 (chave temporária por paciente)
-  2. StartTranscriptionJob (pt-BR) — polling até conclusão
-  3. DELETE do S3 imediatamente após obter transcript (LGPD)
-  4. Claude Sonnet: extrai humor estimado, emoção, tags e sintomas relatados
+Fluxo (ADR-082):
+  1. Fast transcription pt-BR — os bytes vão direto na request REST (síncrona);
+     o áudio NÃO toca storage em nenhum momento deste fluxo.
+  2. Triagem de crise sobre a transcrição (ADR-010)
+  3. Claude Sonnet: extrai humor estimado, emoção, tags e sintomas relatados
 
-O áudio NUNCA persiste além do ciclo de transcrição.
+O áudio NUNCA persiste além do ciclo de transcrição (LGPD).
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
-import time
-import urllib.request
 import uuid
 from dataclasses import dataclass, field
 
-import boto3
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
@@ -27,6 +23,7 @@ from pydantic import Field as PydanticField
 from app.core.config import get_settings
 from app.core.db import acquire
 from app.core.llm import ainvoke_structured, sonnet
+from app.services.azure_speech import texto_simples, transcrever_fast
 from app.services.crisis import acionar_protocolo_diario, detectar_crise
 
 logger = structlog.get_logger(__name__)
@@ -100,26 +97,21 @@ async def transcrever_audio(
     content_type: str,
     paciente_id: uuid.UUID,
 ) -> TranscricaoResult:
-    """Ponto de entrada principal: upload → transcribe → analisa → retorna."""
+    """Ponto de entrada principal: transcreve → triagem de crise → analisa.
+
+    content_type fica na assinatura por compat de wire/log — a fast
+    transcription detecta o formato (webm/mp4) pelo próprio conteúdo.
+    """
     settings = get_settings()
     log = logger.bind(service="transcricao", paciente_id=str(paciente_id))
 
-    # 1. Upload para S3 (efêmero)
-    s3_key = await asyncio.to_thread(
-        _upload_s3, audio_bytes, content_type, paciente_id, settings
+    # 1. Azure Speech fast transcription (bytes direto — sem storage)
+    transcricao = texto_simples(
+        await asyncio.to_thread(_transcrever_bytes, audio_bytes, settings)
     )
-    log.info("transcricao.s3_uploaded", s3_key=s3_key, size_bytes=len(audio_bytes))
+    log.info("transcricao.done", chars=len(transcricao), content_type=content_type)
 
-    try:
-        # 2. Amazon Transcribe
-        transcricao = await asyncio.to_thread(_transcrever_s3, s3_key, settings)
-        log.info("transcricao.done", chars=len(transcricao))
-    finally:
-        # 3. Delete imediato do S3 (LGPD — áudio não persiste)
-        await asyncio.to_thread(_delete_s3, s3_key, settings)
-        log.info("transcricao.s3_deleted")
-
-    # 3.5. Triagem de crise ANTES da análise (ADR-010, regra #2 clinical-safety).
+    # 2. Triagem de crise ANTES da análise (ADR-010, regra #2 clinical-safety).
     # Se houver crise: aciona protocolo (texto fixo, trilha, notifica médico,
     # pausa automação) e PULA a análise — não geramos humor/tags sobre uma fala
     # de crise; o paciente recebe o acolhimento.
@@ -140,7 +132,7 @@ async def transcrever_audio(
             crise_texto=texto_acolhimento,
         )
 
-    # 4. Claude Sonnet: análise contextual
+    # 3. Claude Sonnet: análise contextual
     call = await ainvoke_structured(
         sonnet(temperature=0.0),
         AnaliseVozOutput,
@@ -168,68 +160,9 @@ async def transcrever_audio(
     )
 
 
-# ─── Helpers síncronos (executados em thread pool) ─────────────────────────
+# ─── Helper síncrono (executado em thread pool) ────────────────────────────
 
 
-def _upload_s3(
-    audio_bytes: bytes,
-    content_type: str,
-    paciente_id: uuid.UUID,
-    settings,
-) -> str:
-    """Faz upload do áudio para S3 e retorna a chave."""
-    ext = "webm" if "webm" in content_type else "mp4"
-    # Chave namespaceada por paciente para facilitar auditoria e lifecycle rules
-    key = f"audio-diario/{paciente_id}/{uuid.uuid4().hex}.{ext}"
-    s3 = boto3.client("s3", region_name=settings.aws_region)
-    s3.put_object(
-        Bucket=settings.s3_bucket_audio,
-        Key=key,
-        Body=audio_bytes,
-        ContentType=content_type,
-        # Tag para lifecycle rule de 24h (rede de segurança)
-        Tagging="auto-delete=true",
-    )
-    return key
-
-
-def _transcrever_s3(s3_key: str, settings) -> str:
-    """Inicia job no Amazon Transcribe e aguarda conclusão por polling."""
-    job_name = f"ca-diario-{uuid.uuid4().hex}"
-    s3_uri = f"s3://{settings.s3_bucket_audio}/{s3_key}"
-    ext = s3_key.rsplit(".", 1)[-1].lower()
-    media_format = "webm" if ext == "webm" else "mp4"
-
-    client = boto3.client("transcribe", region_name=settings.aws_region)
-    client.start_transcription_job(
-        TranscriptionJobName=job_name,
-        LanguageCode="pt-BR",
-        MediaFormat=media_format,
-        Media={"MediaFileUri": s3_uri},
-        Settings={"ShowSpeakerLabels": False},
-    )
-
-    deadline = time.monotonic() + settings.transcribe_timeout_s
-    while time.monotonic() < deadline:
-        time.sleep(settings.transcribe_poll_interval_s)
-        resp = client.get_transcription_job(TranscriptionJobName=job_name)
-        status: str = resp["TranscriptionJob"]["TranscriptionJobStatus"]
-
-        if status == "COMPLETED":
-            transcript_uri: str = resp["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
-            with urllib.request.urlopen(transcript_uri) as r:
-                data = json.loads(r.read())
-            return data["results"]["transcripts"][0]["transcript"]
-
-        if status == "FAILED":
-            reason = resp["TranscriptionJob"].get("FailureReason", "unknown")
-            raise RuntimeError(f"Transcribe job falhou: {reason}")
-
-    raise TimeoutError(
-        f"Amazon Transcribe não concluiu em {settings.transcribe_timeout_s}s"
-    )
-
-
-def _delete_s3(s3_key: str, settings) -> None:
-    s3 = boto3.client("s3", region_name=settings.aws_region)
-    s3.delete_object(Bucket=settings.s3_bucket_audio, Key=s3_key)
+def _transcrever_bytes(audio_bytes: bytes, settings) -> dict:
+    """Fast transcription sem diarização (diário de voz é um locutor só)."""
+    return transcrever_fast(audio_bytes, settings, max_speakers=None)

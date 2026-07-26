@@ -1,13 +1,12 @@
-using Amazon.S3;
-using Amazon.S3.Model;
 using ApiGateway.Data;
+using ApiGateway.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 // ADR-066: cofre de documentos do médico (Portal do Psiquiatra).
-// Cofre BIDIRECIONAL, binário nunca passa pelo gateway (S3 presigned, padrão da
-// ADR-064/MensagensAudio):
+// Cofre BIDIRECIONAL, binário nunca passa pelo gateway (SAS do Azure Blob,
+// ADR-082; padrão da ADR-064/MensagensAudio):
 //   - médico ENVIA (direcao='enviado')          → entra 'pendente' de revisão admin
 //   - admin DISPONIBILIZA (direcao='disponibilizado') → entra 'disponivel'
 // Isolamento: RLS (migration 0052) por app.current_medico no lado do médico; o
@@ -31,7 +30,7 @@ public static class MedicoDocumentosEndpoints
 
     public static void MapMedicoDocumentos(this WebApplication app)
     {
-        var bucket = app.Configuration["S3_BUCKET_MEDICO_DOCS"] ?? "cerebro-amigo-medico-docs";
+        var container = app.Configuration["BLOB_CONTAINER_MEDICO_DOCS"] ?? "medico-docs";
 
         // ── MÉDICO ───────────────────────────────────────────────────────────
         // RequireAuthorization() (qualquer JWT) + GetMedicoIdAsync → Forbid se não-médico.
@@ -46,10 +45,10 @@ public static class MedicoDocumentosEndpoints
             return Results.Ok(await ListarAsync(db, medicoId.Value));
         });
 
-        // Gerar URL de upload (presigned PUT, 15min). Key namespaced por médico+direção;
+        // Gerar URL de upload (SAS PUT, 15min). Key namespaced por médico+direção;
         // sem string do usuário na key (evita path traversal).
         m.MapPost("/upload-url", async ([FromBody] DocumentoUploadUrlReq req,
-            AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3) =>
+            AppDbContext db, ClaimsPrincipal user, BlobStoragePresigner storage) =>
         {
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
@@ -57,7 +56,7 @@ public static class MedicoDocumentosEndpoints
             if (!MimeOk.Contains(req.ContentType ?? "")) return Results.BadRequest(new { error = "tipo_arquivo_invalido" });
 
             var key = $"medico/{medicoId.Value}/enviado/{Guid.NewGuid()}.{Ext(req.ContentType!)}";
-            return Results.Ok(new { uploadUrl = PresignPut(s3, bucket, key, req.ContentType!), s3Key = key });
+            return Results.Ok(new { uploadUrl = PresignPut(storage, container, key), s3Key = key });
         });
 
         // Registrar após upload concluído. Valida que a key pertence a este médico+direção.
@@ -77,15 +76,15 @@ public static class MedicoDocumentosEndpoints
             return Results.Ok(new { id });
         });
 
-        // Presigned GET p/ baixar um doc meu (qualquer direção). RLS limita ao dono.
+        // SAS GET p/ baixar um doc meu (qualquer direção). RLS limita ao dono.
         m.MapGet("/{id:guid}/download-url", async (Guid id,
-            AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3) =>
+            AppDbContext db, ClaimsPrincipal user, BlobStoragePresigner storage) =>
         {
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
             var key = await KeyDoDocAsync(db, id, medicoId.Value);
             if (key is null) return Results.NotFound();
-            return Results.Ok(new { downloadUrl = PresignGet(s3, bucket, key) });
+            return Results.Ok(new { downloadUrl = PresignGet(storage, container, key) });
         });
 
         // Médico pode remover só os que ELE enviou (não os disponibilizados pela plataforma).
@@ -107,12 +106,12 @@ public static class MedicoDocumentosEndpoints
         a.MapGet("/", async (Guid medicoId, AppDbContext db) =>
             Results.Ok(await ListarAsync(db, medicoId)));
 
-        a.MapPost("/upload-url", async (Guid medicoId, [FromBody] DocumentoUploadUrlReq req, IAmazonS3 s3) =>
+        a.MapPost("/upload-url", async (Guid medicoId, [FromBody] DocumentoUploadUrlReq req, BlobStoragePresigner storage) =>
         {
             if (!TipoAdmin.Contains(req.Tipo ?? "")) return Results.BadRequest(new { error = "tipo_invalido" });
             if (!MimeOk.Contains(req.ContentType ?? "")) return Results.BadRequest(new { error = "tipo_arquivo_invalido" });
             var key = $"medico/{medicoId}/disponibilizado/{Guid.NewGuid()}.{Ext(req.ContentType!)}";
-            return Results.Ok(new { uploadUrl = PresignPut(s3, bucket, key, req.ContentType!), s3Key = key });
+            return Results.Ok(new { uploadUrl = PresignPut(storage, container, key), s3Key = key });
         });
 
         a.MapPost("/", async (Guid medicoId, [FromBody] DocumentoRegistrarReq req, AppDbContext db) =>
@@ -140,11 +139,11 @@ public static class MedicoDocumentosEndpoints
             return rows > 0 ? Results.NoContent() : Results.NotFound();
         });
 
-        a.MapGet("/{id:guid}/download-url", async (Guid medicoId, Guid id, AppDbContext db, IAmazonS3 s3) =>
+        a.MapGet("/{id:guid}/download-url", async (Guid medicoId, Guid id, AppDbContext db, BlobStoragePresigner storage) =>
         {
             var key = await KeyDoDocAsync(db, id, medicoId);
             if (key is null) return Results.NotFound();
-            return Results.Ok(new { downloadUrl = PresignGet(s3, bucket, key) });
+            return Results.Ok(new { downloadUrl = PresignGet(storage, container, key) });
         });
     }
 
@@ -174,19 +173,13 @@ public static class MedicoDocumentosEndpoints
         db.Database.ExecuteScalarAsync<string?>(
             "SELECT s3_key FROM medico_documentos WHERE id = {0} AND medico_id = {1}", id, medicoId);
 
-    private static string PresignPut(IAmazonS3 s3, string bucket, string key, string contentType) =>
-        s3.GetPreSignedURL(new GetPreSignedUrlRequest
-        {
-            BucketName = bucket, Key = key, Verb = HttpVerb.PUT,
-            Expires = DateTime.UtcNow.AddMinutes(PresignUploadMin), ContentType = contentType,
-        });
+    // SAS não impõe Content-Type (o presign do S3 impunha) — a allowlist de MIME
+    // acima segue validando o pedido; enforcement pós-upload é o DEBT T1-8.
+    private static string PresignPut(BlobStoragePresigner storage, string container, string key) =>
+        storage.PresignPut(container, key, TimeSpan.FromMinutes(PresignUploadMin));
 
-    private static string PresignGet(IAmazonS3 s3, string bucket, string key) =>
-        s3.GetPreSignedURL(new GetPreSignedUrlRequest
-        {
-            BucketName = bucket, Key = key, Verb = HttpVerb.GET,
-            Expires = DateTime.UtcNow.AddMinutes(PresignDownloadMin),
-        });
+    private static string PresignGet(BlobStoragePresigner storage, string container, string key) =>
+        storage.PresignGet(container, key, TimeSpan.FromMinutes(PresignDownloadMin));
 
     private static string Ext(string contentType) => contentType.ToLowerInvariant() switch
     {

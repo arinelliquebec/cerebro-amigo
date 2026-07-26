@@ -12,9 +12,10 @@ namespace ApiGateway.Tests;
 ///   - IDOR via HTTP (gateway real): listar/baixar/deletar/registrar cross-tenant nega.
 /// Controles positivos garantem que não é um "nega tudo" — o dono acessa o próprio doc.
 ///
-/// Os caminhos felizes que dependem de presign S3 (download do dono) ficam de fora:
-/// GetPreSignedURL exige credencial AWS, ausente no CI. O foco aqui é o isolamento,
-/// e todo caminho cross-tenant nega ANTES de tocar o S3.
+/// Os caminhos felizes que dependem de SAS do Blob (download do dono) ficam de fora:
+/// assinar SAS exige AZURE_STORAGE_CONNECTION_STRING, ausente no CI (ADR-082; o
+/// presigner é lazy). O foco aqui é o isolamento, e todo caminho cross-tenant nega
+/// ANTES de tocar o storage.
 /// </summary>
 [Collection("tenant")]
 public class MedicoDocumentosIsolationTests(TenantIsolationFixture fx)
