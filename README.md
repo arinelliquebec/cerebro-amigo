@@ -1,3 +1,5 @@
+<p align="center"><strong><a href="https://www.cerebroamigo.com.br">www.cerebroamigo.com.br</a></strong></p>
+
 # Cérebro Amigo V3
 
 A demonstration platform for psychiatric care between appointments, designed to connect the patient's daily routine to the physician's decision-making with safety, context, and traceability.
@@ -213,6 +215,12 @@ docker compose up -d --build
 - The AWS infrastructure represents a plausible topology, not a statement of an active clinical environment.
 - Clinical scales and safeguards were treated as controlled artifacts, but real-world use would require independent legal, clinical, security, and privacy validation.
 - Open debts and pending decisions are kept explicit in [docs/DEBT.md](./docs/DEBT.md).
+
+## License
+
+Copyright © 2026 Patrick Arinelli. All rights reserved. This repository is
+publicly accessible for viewing, evaluation, and portfolio review only. See
+the [LICENSE](./LICENSE) file for the complete terms.
 
 ---
 

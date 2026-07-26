@@ -1,1 +1,0 @@
-"""Nós do grafo conversacional."""
