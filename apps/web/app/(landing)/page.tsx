@@ -15,7 +15,6 @@ import {
   Cloud,
   Code2,
   Database,
-  ExternalLink,
   Github,
   HeartHandshake,
   LifeBuoy,
@@ -143,9 +142,9 @@ const decisions = [
   },
   {
     tag: "CODE → OPERATIONS",
-    title: "The demo runs the real stack.",
-    body: "The public environment uses reproducible fictional data instead of runtime mocks: Vercel at the edge, Container Apps for services and PostgreSQL for the same migrations and RLS model.",
-    evidence: "ADR-080 · infra/azure · infra/seed/portfolio.sql",
+    title: "The stack is real. The tour is resilient.",
+    body: "The authenticated product uses the Azure portfolio stack. The public recruiter tour is a read-only snapshot of the same fictional seed, so a cold backend never blocks inspection.",
+    evidence: "ADR-080 · infra/seed/portfolio.sql · apps/web/app/demo",
   },
 ]
 
@@ -251,12 +250,12 @@ export default function RecruiterHomepage() {
           </p>
 
           <div className={styles.heroActions}>
-            <a className={styles.primaryAction} href="#case-study">
+            <Link className={styles.primaryAction} href="/demo">
+              View live demo <ArrowRight aria-hidden="true" />
+            </Link>
+            <a className={styles.secondaryAction} href="#case-study">
               Explore architecture <ArrowRight aria-hidden="true" />
             </a>
-            <Link className={styles.secondaryAction} href="/login">
-              Physician sign-in <ExternalLink aria-hidden="true" />
-            </Link>
           </div>
 
           <div className={styles.creatorBlock}>
