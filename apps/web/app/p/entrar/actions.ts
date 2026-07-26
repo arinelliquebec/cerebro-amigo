@@ -139,45 +139,7 @@ export const entrarComoPacienteDemo = async (
   return redirect(destinoSeguro(formData.get("next")))
 }
 
-const validarTrocaSenha = (
-  senhaAtual: string,
-  novaSenha: string,
-  confirmar: string,
-): string | null => {
-  if (!senhaAtual) return "Enter your current password."
-  if (!novaSenha || novaSenha.length < 8)
-    return "Your new password must contain at least 8 characters."
-  if (novaSenha !== confirmar) return "The passwords do not match."
-  return null
-}
-
-const mensagemErroTrocaSenha = (err: unknown): string => {
-  if (err instanceof GatewayPacienteError && err.status === 401)
-    return "Your current password is incorrect."
-  return "We could not change your password. Please try again."
-}
-
 // ─── Troca de senha (autenticado) ──────────────────────────────────────────
-export async function trocarSenha(
-  _prev: PacienteAuthState,
-  formData: FormData,
-): Promise<PacienteAuthState> {
-  const senhaAtual = formData.get("senhaAtual") as string
-  const novaSenha = formData.get("novaSenha") as string
-  const confirmar = formData.get("confirmar") as string
-
-  const erroValidacao = validarTrocaSenha(senhaAtual, novaSenha, confirmar)
-  if (erroValidacao) return { error: erroValidacao }
-
-  try {
-    await gatewayPaciente.post("/api/v1/auth/paciente/senha", { senhaAtual, novaSenha })
-  } catch (err) {
-    return { error: mensagemErroTrocaSenha(err) }
-  }
-
-  return redirect("/p")
-}
-
 // ─── Logout ────────────────────────────────────────────────────────────────
 // CSRF (T1-9): é um Server Action — o Next já valida Origin × Host nativamente e
 // rejeita POST cross-site, então não precisa do guard manual do Route Handler do

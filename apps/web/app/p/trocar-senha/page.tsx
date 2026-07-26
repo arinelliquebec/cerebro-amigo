@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, Loader2, ShieldCheck } from "lucide-react"
-import { trocarSenha, type PacienteAuthState } from "../entrar/actions"
+import { trocarSenha, type PacienteAuthState } from "./actions"
 
 const inicial: PacienteAuthState = { error: null }
 
