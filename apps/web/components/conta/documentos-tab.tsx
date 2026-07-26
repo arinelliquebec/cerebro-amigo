@@ -76,8 +76,12 @@ export function DocumentosTab() {
       const u = await ur.json().catch(() => null)
       if (!ur.ok || !u?.uploadUrl) { setErro("Não foi possível iniciar o envio."); return }
 
-      // 2) sobe o binário direto no S3
-      const put = await fetch(u.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file })
+      // 2) sobe o binário direto no Azure Blob via SAS (x-ms-blob-type obrigatório)
+      const put = await fetch(u.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type, "x-ms-blob-type": "BlockBlob" },
+        body: file,
+      })
       if (!put.ok) { setErro("Falha no upload do arquivo."); return }
 
       // 3) registra o metadado

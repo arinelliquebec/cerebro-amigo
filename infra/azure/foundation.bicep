@@ -3,6 +3,12 @@ targetScope = 'resourceGroup'
 @description('Região primária do ambiente de portfólio.')
 param location string = 'eastus2'
 
+@description('Região do Azure AI Speech (ADR-082). Fast transcription não está disponível em toda região; eastus cobre e a latência até eastus2 é desprezível.')
+param speechLocation string = 'eastus'
+
+@description('Origem do frontend autorizada no CORS do Blob (uploads via SAS direto do browser).')
+param frontendUrl string = 'https://www.cerebroamigo.com.br'
+
 @secure()
 @description('Senha do administrador do PostgreSQL. Nunca persistir em arquivo.')
 param postgresAdminPassword string
@@ -110,7 +116,10 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   properties: {
     accessTier: 'Hot'
     allowBlobPublicAccess: false
-    allowSharedKeyAccess: false
+    // ADR-082: o gateway assina SAS de curta duração com a account key
+    // (connection string via Key Vault) — exige shared key habilitada.
+    // Evolução registrada no ADR: user delegation SAS via Managed Identity.
+    allowSharedKeyAccess: true
     defaultToOAuthAuthentication: true
     minimumTlsVersion: 'TLS1_2'
     publicNetworkAccess: 'Enabled'
@@ -129,6 +138,19 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
     containerDeleteRetentionPolicy: {
       enabled: true
       days: 7
+    }
+    // ADR-082: o browser faz PUT (upload SAS) e GET (foto/playback) direto no
+    // Blob — precisa de CORS para a origem do web. localhost cobre o dev.
+    cors: {
+      corsRules: [
+        {
+          allowedOrigins: [frontendUrl, 'http://localhost:3000']
+          allowedMethods: ['GET', 'HEAD', 'OPTIONS', 'PUT']
+          allowedHeaders: ['*']
+          exposedHeaders: ['*']
+          maxAgeInSeconds: 3600
+        }
+      ]
     }
   }
 }
@@ -209,6 +231,21 @@ resource lifecycle 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05
         }
       ]
     }
+  }
+}
+
+// Azure AI Speech (ADR-082) — fast transcription do diário de voz e do escriba.
+// A key é gravada manualmente no Key Vault como `speech-key` (README, passo 7).
+resource speech 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+  name: 'spch-cerebro-${suffix}'
+  location: speechLocation
+  tags: tags
+  kind: 'SpeechServices'
+  sku: {
+    name: 'S0'
+  }
+  properties: {
+    publicNetworkAccess: 'Enabled'
   }
 }
 
@@ -330,6 +367,9 @@ output identityClientId string = identity.properties.clientId
 output keyVaultName string = vault.name
 output keyVaultUri string = vault.properties.vaultUri
 output storageAccountName string = storage.name
+output blobEndpoint string = storage.properties.primaryEndpoints.blob
+output speechAccountName string = speech.name
+output speechRegion string = speechLocation
 output postgresName string = postgres.name
 output postgresFqdn string = postgres.properties.fullyQualifiedDomainName
 output databaseName string = database.name

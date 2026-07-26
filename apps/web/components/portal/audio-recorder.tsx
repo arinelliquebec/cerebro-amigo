@@ -61,13 +61,13 @@ export function AudioRecorder() {
       if (!urlRes.ok) throw new Error("upload-url falhou")
       const { uploadUrl, s3Key } = await urlRes.json()
 
-      // 2. PUT direto no S3
+      // 2. PUT direto no Azure Blob via SAS (x-ms-blob-type é obrigatório)
       const put = await fetch(uploadUrl, {
         method: "PUT",
         body: blob,
-        headers: { "Content-Type": "audio/webm" },
+        headers: { "Content-Type": "audio/webm", "x-ms-blob-type": "BlockBlob" },
       })
-      if (!put.ok) throw new Error("PUT S3 falhou")
+      if (!put.ok) throw new Error("PUT no Blob falhou")
 
       // 3. Registrar no DB
       const reg = await fetch("/api/paciente/audio", {

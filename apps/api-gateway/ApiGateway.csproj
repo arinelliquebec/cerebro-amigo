@@ -16,8 +16,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Azure Blob Storage — SAS de upload/download das features de arquivo (ADR-082) -->
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
     <!-- ASP.NET Core OpenAPI 3.1 nativo do .NET 10 -->
-    <PackageReference Include="AWSSDK.S3" Version="4.0.24" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
     <!-- Pin direto: a transitiva Microsoft.OpenApi 2.0.0 tem advisory NU1903
          (GHSA-v5pm-xwqc-g5wc) e o restore trata como erro — 2.7.5 é a corrigida. -->

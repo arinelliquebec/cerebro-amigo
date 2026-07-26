@@ -7,6 +7,8 @@ This is the canonical description of the public Cérebro Amigo portfolio environ
 | Frontend | Vercel (`apps/web` and `apps/checkup`) |
 | Backend | Azure Container Apps |
 | Database | Azure Database for PostgreSQL Flexible Server |
+| Object storage | Azure Blob Storage — SAS URLs, containers from `foundation.bicep` (ADR-082) |
+| Speech-to-text | Azure AI Speech fast transcription, `eastus` (ADR-082) |
 | Azure region | `eastus2` (United States) |
 | Data | Fictional, reproducible demonstration data only |
 | Frontend delivery | Vercel Git Integration from `main` |

@@ -239,7 +239,8 @@ public static class PortalPacienteEndpoints
         // ====================================================================
         // Recebe áudio (multipart/form-data, campo "audio"), converte para base64,
         // chama agents-py /internal/diario/transcrever, devolve análise ao cliente.
-        // O áudio NÃO é persistido — agents-py deleta do S3 após transcrição (LGPD).
+        // O áudio NÃO é persistido — no diário ele nem toca storage: vai em bytes
+        // ao agents-py, que transcreve direto no Azure Speech (LGPD, ADR-082).
         // Paciente revisa a transcrição e confirma via POST /diario normal.
         d.MapPost("/audio/transcrever", async (
             HttpRequest httpRequest,

@@ -8,13 +8,13 @@ namespace ApiGateway.Services;
 
 /// <summary>
 /// Worker de transcrição assíncrona do Escriba presencial (ADR-075). Consome a
-/// EscribaJobQueue: chama o agents-py (Amazon Transcribe + rascunho factual; pode
+/// EscribaJobQueue: chama o agents-py (Azure AI Speech + rascunho factual; pode
 /// levar minutos numa consulta longa), cifra transcrição + rascunho (ADR-018) e
 /// atualiza consulta_transcricoes para 'rascunho'. Em falha → 'erro'.
 ///
 /// RLS (0037): roda fora do request scope, então seta app.current_medico tx-local
-/// antes dos UPDATEs (mesmo padrão do INSERT de mensagens_audio). O LLM/Transcribe
-/// vivem só no Python (ADR-044); o gateway só orquestra + persiste cifrado.
+/// antes dos UPDATEs (mesmo padrão do INSERT de mensagens_audio). O LLM/transcrição
+/// vivem só no Python (ADR-044/081); o gateway só orquestra + persiste cifrado.
 /// </summary>
 public class EscribaJobWorker : BackgroundService
 {
@@ -59,7 +59,8 @@ public class EscribaJobWorker : BackgroundService
         var internalToken = _cfg["INTERNAL_API_TOKEN"]
             ?? throw new InvalidOperationException("INTERNAL_API_TOKEN ausente");
 
-        // agents-py: transcrição do s3_key (áudio efêmero, deletado lá após transcrever).
+        // agents-py: transcrição da chave no Blob (áudio efêmero, deletado lá após
+        // transcrever). O campo segue chamado s3_key no wire (nome legado, ADR-082).
         var http = _httpFactory.CreateClient("agents-py-escriba");
         var payload = JsonSerializer.Serialize(new
         {

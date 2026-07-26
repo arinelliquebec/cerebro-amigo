@@ -9,7 +9,15 @@
 //   - OpenAPI 3.1 nativo
 //
 // Não chama LLM. LLM é responsabilidade exclusiva de orchestrator-py e
-// agents-py via AWS Bedrock (ADR-008). Sem Azure, sem ANTHROPIC_API_KEY.
+// agents-py, via client unificado LLM_PROVIDER (vigente: Anthropic API direta
+// — ADR-044; o caminho Bedrock do ADR-008 está suspenso, reativável por
+// config). ANTHROPIC_API_KEY não existe neste serviço — vive apenas nos
+// serviços Python (e no apps/checkup, exceção registrada no ADR-044).
+//
+// Runtime do portfólio público (ADR-080): Vercel + Azure Container Apps +
+// Azure PostgreSQL Flexible Server. Arquivos (documentos/foto/áudio) vivem no
+// Azure Blob Storage via SAS URLs (ADR-082); transcrição de áudio é Azure AI
+// Speech no agents-py. Fonte: docs/CURRENT-PORTFOLIO-RUNTIME.md.
 // =============================================================================
 
 using ApiGateway.Auth;
@@ -17,7 +25,6 @@ using ApiGateway.Data;
 using ApiGateway.Endpoints;
 using ApiGateway.Features.Portal.Conversation;
 using ApiGateway.Services;
-using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -46,7 +53,7 @@ builder.WebHost.UseSentry(o =>
 // Prioridade de connection string:
 //   1. ConnectionStrings:Postgres  (dev local / appsettings)
 //   2. ConnectionStrings:Default   (legado)
-//   3. POSTGRES_DSN                (env var — docker-compose / EC2)
+//   3. POSTGRES_DSN                (env var — docker-compose / Azure Container Apps)
 var postgresConn =
     builder.Configuration.GetConnectionString("Postgres")
     ?? builder.Configuration.GetConnectionString("Default")
@@ -55,14 +62,15 @@ var postgresConn =
         "Connection string do Postgres não configurada. " +
         "Defina ConnectionStrings:Postgres, ConnectionStrings:Default ou POSTGRES_DSN.");
 
-// T1-4: hosts RDS sobem para SSL Mode=VerifyFull (valida CA regional + hostname).
-// Dev/CI (localhost, Testcontainers) passam intactos.
+// T1-4: hosts RDS (*.rds.amazonaws.com — legado AWS) sobem para SSL
+// Mode=VerifyFull (valida CA regional + hostname). Qualquer outro host —
+// localhost/Testcontainers e o Azure PostgreSQL atual — passa intacto.
 postgresConn = RdsCa.UpgradeToVerifyFull(postgresConn);
 
-// Orçamento de conexões (ADR-043 item D): pós right-size do RDS para db.t4g.small,
-// max_connections caiu para 181. A soma dos pools de TODOS os serviços (gateway +
-// 3 Python + checkup×ASG) deve ficar < ~178. Gateway capado em 40 (Npgsql default era
-// 100) — cabe até 2 instâncias do box sob o teto. Override por env DB_MAX_POOL_SIZE.
+// Orçamento de conexões (ADR-043 item D, dimensionado na era RDS db.t4g.small:
+// max_connections=181, soma dos pools de todos os serviços < ~178). Gateway
+// capado em 40 (Npgsql default era 100); cap conservador mantido no Azure
+// PostgreSQL Flexible Server atual. Override por env DB_MAX_POOL_SIZE.
 {
     var maxPool = int.TryParse(builder.Configuration["DB_MAX_POOL_SIZE"], out var mp) && mp > 0
         ? mp
@@ -276,7 +284,7 @@ builder.Services.AddHttpClient("agents-py", client =>
 {
     var url = builder.Configuration["AGENTS_PY_URL"] ?? "http://agents-py:8082";
     client.BaseAddress = new Uri(url);
-    // Diário de voz: agents-py faz polling do Transcribe até transcribe_timeout_s
+    // Diário de voz: agents-py espera o Azure Speech até transcribe_timeout_s
     // (120s) + chamada Claude. Gateway precisa esperar mais que isso, senão aborta
     // a transcrição no meio. Margem para o Claude por cima dos 120s.
     client.Timeout = TimeSpan.FromSeconds(150);
@@ -301,11 +309,13 @@ builder.Services.AddHostedService<EscribaJobWorker>();
 // -----------------------------------------------------------------------------
 builder.Services.AddSignalR();
 
-// S3 (rede social — fotos dos posts). Credenciais: IAM role (prod) / mount
-// ~/.aws (dev). Bucket privado em S3_BUCKET_SOCIAL.
-builder.Services.AddSingleton<IAmazonS3>(_ =>
-    new AmazonS3Client(Amazon.RegionEndpoint.GetBySystemName(
-        builder.Configuration["AWS_REGION"] ?? "sa-east-1")));
+// Azure Blob Storage (ADR-082) — SAS URLs das features de arquivo (o binário
+// nunca passa pelo gateway): cofre de documentos e foto do médico
+// (BLOB_CONTAINER_MEDICO_DOCS), áudio de mensagens do paciente
+// (BLOB_CONTAINER_AUDIO_MSGS) e áudio efêmero do escriba (BLOB_CONTAINER_AUDIO).
+// Lazy: sem AZURE_STORAGE_CONNECTION_STRING os endpoints de arquivo falham
+// isolados, sem afetar o resto do gateway.
+builder.Services.AddSingleton<BlobStoragePresigner>();
 
 builder.Services.AddOpenApi("v1", options =>
 {

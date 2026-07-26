@@ -8,7 +8,8 @@ exclusivamente fictícios e teto Azure de US$ 30/mês.
 - `subscription.bicep`: providers não são registrados por Bicep; cria o budget da
   subscription depois do primeiro provisionamento.
 - `foundation.bicep`: Log Analytics, Container Apps Environment, ACR Basic,
-  Key Vault, Storage e PostgreSQL Flexible Server.
+  Key Vault, Storage (containers + CORS + lifecycle), Azure AI Speech (ADR-082)
+  e PostgreSQL Flexible Server.
 - `apps.bicep`: quatro Container Apps; aplicado somente depois das imagens existirem.
 
 ## Ordem
@@ -25,10 +26,25 @@ exclusivamente fictícios e teto Azure de US$ 30/mês.
 
 Nunca grave parâmetros seguros em `.bicepparam`, logs ou histórico do shell.
 
+## Segredos de storage e Speech (ADR-082)
+
+No passo 7, além dos segredos já listados, grave no Key Vault (sem ecoar no shell):
+
+- `storage-connection-string` — `az storage account show-connection-string`
+  da conta `stcerebro<suffix>`. O gateway assina SAS com ela; o agents-py
+  baixa/deleta o áudio efêmero do escriba.
+- `speech-key` — `az cognitiveservices account keys list` da conta
+  `spch-cerebro-<suffix>` (região `eastus`; fast transcription).
+
+Na Vercel, configure `NEXT_PUBLIC_BLOB_ORIGIN` com o endpoint do blob
+(output `blobEndpoint` do foundation, sem barra final) — a CSP do web usa
+esse valor em img-src/connect-src/media-src.
+
 ## Providers
 
 ```text
 Microsoft.App
+Microsoft.CognitiveServices
 Microsoft.ContainerRegistry
 Microsoft.DBforPostgreSQL
 Microsoft.KeyVault

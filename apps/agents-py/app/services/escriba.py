@@ -1,25 +1,29 @@
-"""Escriba clínico (Ambient Scribe, ADR-040): áudio da teleconsulta → transcrição
+"""Escriba clínico (Ambient Scribe, ADR-040): áudio da consulta → transcrição
 diarizada → rascunho FACTUAL para o médico revisar.
 
-Reusa o pipeline efêmero do Diário de Voz (S3 → Amazon Transcribe → delete; o áudio
-NUNCA persiste). Diferenças:
-  - Diarização (ShowSpeakerLabels) separa Locutor 1 / Locutor 2 (não assume quem é médico).
-  - O rascunho é FACTUAL (regra #1 clinical-safety): relato do paciente, temas, medicações
-    MENCIONADAS, fatos. NÃO gera diagnóstico, CID, avaliação, dose nem plano — isso é do médico.
-  - `mencao_risco` é observação factual ("o paciente mencionou risco?"), não dispara protocolo
-    de crise patient-facing (regra #2): o rascunho é doctor-facing e o médico estava na consulta.
+Transcrição via Azure AI Speech fast transcription (ADR-082), diarizada
+(Locutor 1/2 — não assume quem é médico). Dois caminhos:
+  - Teleconsulta: o áudio chega em bytes (base64) e vai DIRETO na request do
+    Speech — não toca storage em momento algum.
+  - Presencial (ADR-075): o browser subiu o áudio para o container efêmero do
+    Blob via SAS; aqui baixamos, transcrevemos e DELETAMOS (finally — o áudio
+    NUNCA persiste além do ciclo, LGPD).
+
+Guardrails:
+  - O rascunho é FACTUAL (regra #1 clinical-safety): relato do paciente, temas,
+    medicações MENCIONADAS, fatos. NÃO gera diagnóstico, CID, avaliação, dose
+    nem plano — isso é do médico.
+  - `mencao_risco` é observação factual ("o paciente mencionou risco?"), não
+    dispara protocolo de crise patient-facing (regra #2): o rascunho é
+    doctor-facing e o médico estava na consulta.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
-import time
-import urllib.request
 import uuid
 from dataclasses import dataclass
 
-import boto3
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
@@ -27,7 +31,8 @@ from pydantic import Field as PydanticField
 
 from app.core.config import get_settings
 from app.core.llm import ainvoke_structured, sonnet
-from app.services.transcricao import _delete_s3, _upload_s3  # reuso do pipeline efêmero
+from app.services.azure_speech import texto_diarizado, transcrever_fast
+from app.services.blob_audio import delete_blob, download_blob
 
 logger = structlog.get_logger(__name__)
 
@@ -102,49 +107,54 @@ async def gerar_rascunho_consulta(
     content_type: str,
     paciente_id: uuid.UUID,
 ) -> EscribaResult:
-    """Caminho da TELECONSULTA: o áudio chega em bytes (base64) e nós fazemos o
-    upload efêmero. upload → transcribe (diarizado) → delete → rascunho factual.
-    (O presencial usa gerar_rascunho_consulta_s3 — o browser já subiu via presigned.)"""
+    """Caminho da TELECONSULTA: o áudio chega em bytes (base64) e vai direto ao
+    Speech — sem storage. (O presencial usa gerar_rascunho_consulta_blob — o
+    browser já subiu o áudio via SAS.)"""
     settings = get_settings()
     log = logger.bind(service="escriba", paciente_id=str(paciente_id), origem="teleconsulta")
 
-    s3_key = await asyncio.to_thread(
-        _upload_s3, audio_bytes, content_type, paciente_id, settings
+    transcricao = texto_diarizado(
+        await asyncio.to_thread(_transcrever_consulta_bytes, audio_bytes, settings)
     )
-    log.info("escriba.s3_uploaded", s3_key=s3_key, size_bytes=len(audio_bytes))
-    return await _rascunho_de_s3_key(s3_key, settings, log)
+    log.info("escriba.transcrito", chars=len(transcricao), content_type=content_type)
+    return await _rascunho_da_transcricao(transcricao, log)
 
 
-async def gerar_rascunho_consulta_s3(
-    s3_key: str,
+async def gerar_rascunho_consulta_blob(
+    blob_key: str,
     content_type: str,
     paciente_id: uuid.UUID,
 ) -> EscribaResult:
-    """Caminho da consulta PRESENCIAL (ADR-075): o browser já subiu o áudio para o
-    bucket efêmero via presigned PUT. Aqui só transcrevemos a chave e apagamos — o
-    áudio NUNCA persiste (delete garantido no finally, LGPD)."""
+    """Caminho da consulta PRESENCIAL (ADR-075): o browser já subiu o áudio para
+    o container efêmero via SAS PUT (o wire ainda chama a chave de s3_key — nome
+    legado, ADR-082). Baixa, transcreve e apaga — o áudio NUNCA persiste (delete
+    garantido no finally, LGPD)."""
     settings = get_settings()
     log = logger.bind(
         service="escriba",
         paciente_id=str(paciente_id),
-        s3_key=s3_key,
+        blob_key=blob_key,
         content_type=content_type,
         origem="presencial",
     )
-    log.info("escriba.s3_key_recebida")
-    return await _rascunho_de_s3_key(s3_key, settings, log)
+    log.info("escriba.blob_key_recebida")
 
-
-async def _rascunho_de_s3_key(s3_key: str, settings, log) -> EscribaResult:
-    """Miolo comum aos dois caminhos: transcreve (diarizado) → delete efêmero →
-    rascunho factual. O delete é garantido mesmo se a transcrição falhar (LGPD)."""
     try:
-        transcricao = await asyncio.to_thread(_transcrever_consulta_s3, s3_key, settings)
+        audio_bytes = await asyncio.to_thread(download_blob, blob_key, settings)
+        transcricao = texto_diarizado(
+            await asyncio.to_thread(_transcrever_consulta_bytes, audio_bytes, settings)
+        )
         log.info("escriba.transcrito", chars=len(transcricao))
     finally:
-        await asyncio.to_thread(_delete_s3, s3_key, settings)
-        log.info("escriba.s3_deleted")
+        # Delete garantido mesmo se download/transcrição falharem (LGPD).
+        await asyncio.to_thread(delete_blob, blob_key, settings)
+        log.info("escriba.blob_deletado")
 
+    return await _rascunho_da_transcricao(transcricao, log)
+
+
+async def _rascunho_da_transcricao(transcricao: str, log) -> EscribaResult:
+    """Miolo comum aos dois caminhos: transcrição → rascunho factual."""
     if not transcricao.strip():
         return EscribaResult(transcricao="", rascunho={}, mencao_risco=False)
 
@@ -172,85 +182,9 @@ async def _rascunho_de_s3_key(s3_key: str, settings, log) -> EscribaResult:
     )
 
 
-# ─── Transcribe com diarização ──────────────────────────────────────────────
+# ─── Transcrição diarizada (helper síncrono, thread pool) ───────────────────
 
 
-def _transcrever_consulta_s3(s3_key: str, settings) -> str:
-    """Amazon Transcribe com diarização (2 locutores). Reconstrói o texto rotulado."""
-    job_name = f"ca-escriba-{uuid.uuid4().hex}"
-    s3_uri = f"s3://{settings.s3_bucket_audio}/{s3_key}"
-    ext = s3_key.rsplit(".", 1)[-1].lower()
-    media_format = "webm" if ext == "webm" else "mp4"
-
-    client = boto3.client("transcribe", region_name=settings.aws_region)
-    client.start_transcription_job(
-        TranscriptionJobName=job_name,
-        LanguageCode="pt-BR",
-        MediaFormat=media_format,
-        Media={"MediaFileUri": s3_uri},
-        Settings={"ShowSpeakerLabels": True, "MaxSpeakerLabels": 2},
-    )
-
-    deadline = time.monotonic() + settings.transcribe_timeout_s
-    while time.monotonic() < deadline:
-        time.sleep(settings.transcribe_poll_interval_s)
-        resp = client.get_transcription_job(TranscriptionJobName=job_name)
-        status: str = resp["TranscriptionJob"]["TranscriptionJobStatus"]
-
-        if status == "COMPLETED":
-            transcript_uri = resp["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
-            with urllib.request.urlopen(transcript_uri) as r:
-                data = json.loads(r.read())
-            return _montar_transcricao_diarizada(data)
-
-        if status == "FAILED":
-            reason = resp["TranscriptionJob"].get("FailureReason", "unknown")
-            raise RuntimeError(f"Transcribe job falhou: {reason}")
-
-    raise TimeoutError(f"Amazon Transcribe não concluiu em {settings.transcribe_timeout_s}s")
-
-
-def _montar_transcricao_diarizada(data: dict) -> str:
-    """Reconstrói 'Locutor N: …' a partir do JSON do Transcribe. Sem diarização,
-    cai para o transcript simples."""
-    results = data.get("results", {})
-    if "speaker_labels" not in results:
-        transcripts = results.get("transcripts", [])
-        return transcripts[0]["transcript"] if transcripts else ""
-
-    spk_por_inicio: dict[str, str] = {}
-    for seg in results["speaker_labels"].get("segments", []):
-        for it in seg.get("items", []):
-            if "start_time" in it:
-                spk_por_inicio[it["start_time"]] = it.get("speaker_label", "")
-
-    linhas: list[str] = []
-    atual: str | None = None
-    buf: list[str] = []
-    for it in results.get("items", []):
-        if it.get("type") == "punctuation":
-            if buf:
-                buf[-1] = buf[-1] + it["alternatives"][0]["content"]
-            continue
-        spk = spk_por_inicio.get(it.get("start_time"))
-        palavra = it["alternatives"][0]["content"]
-        if spk != atual:
-            if buf:
-                linhas.append(f"{_rotulo(atual)}: " + " ".join(buf))
-            buf = [palavra]
-            atual = spk
-        else:
-            buf.append(palavra)
-    if buf:
-        linhas.append(f"{_rotulo(atual)}: " + " ".join(buf))
-    return "\n".join(linhas)
-
-
-def _rotulo(spk: str | None) -> str:
-    """spk_0 → 'Locutor 1'. Não assume quem é médico/paciente."""
-    if not spk:
-        return "Locutor"
-    try:
-        return f"Locutor {int(spk.replace('spk_', '')) + 1}"
-    except ValueError:
-        return "Locutor"
+def _transcrever_consulta_bytes(audio_bytes: bytes, settings) -> dict:
+    """Fast transcription com diarização (2 locutores)."""
+    return transcrever_fast(audio_bytes, settings, max_speakers=2)

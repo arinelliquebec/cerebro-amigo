@@ -7,15 +7,16 @@
    exfiltração trivial (connect-src allowlist), clickjacking (frame-ancestors), base-hijack
    (base-uri) e plugins (object-src). Futuro: nonce + 'strict-dynamic' quando o inventário
    inline fechar.
-   Hosts externos legítimos (presigned S3, sa-east-1, virtual-hosted — Program.cs sem
-   ForcePathStyle; bucket names = defaults do código, sem override no repo):
-     - img-src:     foto de perfil do médico — <img> CRU (não next/image), bucket medico-docs.
-     - connect-src: uploads PUT presigned (foto + áudio do paciente) + viacep (CEP /p/perfil).
-     - media-src:   playback do áudio do paciente pelo médico (ADR-064), bucket audio-msgs.
-   Turnstile (ADR-055) em script-src/frame-src. worker-src/manifest-src explícitos p/ o PWA.
-   upgrade-insecure-requests espelha a policy do checkup. */
-const S3_MEDICO_DOCS = "https://cerebro-amigo-medico-docs.s3.sa-east-1.amazonaws.com";
-const S3_AUDIO_MSGS = "https://cerebro-amigo-audio-msgs.s3.sa-east-1.amazonaws.com";
+   Hosts externos legítimos (SAS do Azure Blob, ADR-082 — um host único por storage
+   account; containers ficam no path, então uma origem cobre docs/foto/áudio):
+     - img-src:     foto de perfil do médico — <img> CRU (não next/image), container medico-docs.
+     - connect-src: uploads PUT via SAS (foto/docs/áudio) + viacep (CEP /p/perfil).
+     - media-src:   playback do áudio do paciente pelo médico (ADR-064), container audio-msgs.
+   NEXT_PUBLIC_BLOB_ORIGIN (build-time, Vercel) aponta pro storage account do ambiente;
+   o default cobre o dev. Turnstile (ADR-055) em script-src/frame-src. worker-src/
+   manifest-src explícitos p/ o PWA. upgrade-insecure-requests espelha o checkup. */
+const BLOB_ORIGIN =
+  process.env.NEXT_PUBLIC_BLOB_ORIGIN ?? "https://stcerebro7zcnncyxvk.blob.core.windows.net";
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -24,10 +25,10 @@ const CSP = [
   "form-action 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${S3_MEDICO_DOCS}`,
+  `img-src 'self' data: blob: ${BLOB_ORIGIN}`,
   "font-src 'self' data:",
-  `connect-src 'self' https://viacep.com.br ${S3_MEDICO_DOCS} ${S3_AUDIO_MSGS}`,
-  `media-src 'self' ${S3_AUDIO_MSGS}`,
+  `connect-src 'self' https://viacep.com.br ${BLOB_ORIGIN}`,
+  `media-src 'self' ${BLOB_ORIGIN}`,
   "frame-src https://challenges.cloudflare.com",
   "worker-src 'self'",
   "manifest-src 'self'",
