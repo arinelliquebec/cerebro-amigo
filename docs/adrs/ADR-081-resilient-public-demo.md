@@ -23,8 +23,9 @@ narrativa de produto.
 1. A rota pública `/demo` abre diretamente uma conta fictícia read-only, sem
    cadastro, credenciais, cookie de autenticação ou acesso anônimo ao tenant
    clínico.
-2. O tour contém quatro etapas: `Dashboard → Patient record → AI briefing →
-   Architecture`.
+2. A demo oferece dois tours de quatro etapas, selecionáveis no shell:
+   - médico: `Dashboard → Patient record → AI briefing → Architecture`;
+   - paciente: `Today → Check-in → Voice journal → Architecture`.
 3. A interface usa um snapshot frontend versionado, alinhado aos três perfis
    sintéticos do seed de portfólio.
 4. `/demo` não chama gateway, banco, serviços Python ou LLM e não oferece ações de
@@ -35,6 +36,9 @@ narrativa de produto.
    tratamento ou ajuste de dose.
    Nomes de medicamentos podem aparecer somente como fatos sintéticos de
    prontuário, sem dose, posologia, indicação ou recomendação.
+   O tour do paciente pode manter estado efêmero apenas na aba. A gravação de voz
+   é uma simulação de interface: não solicita microfone, não captura áudio, não
+   gera transcrição e não tenta upload.
 6. O produto autenticado em `/dashboard/*` permanece separado e continua a usar o
    runtime completo Vercel + Azure descrito no ADR-080. A demo não é evidência de
    que requests clínicos, RLS ou serviços de IA foram executados naquele acesso.

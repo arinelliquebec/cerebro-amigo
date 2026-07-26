@@ -58,6 +58,11 @@
 .account small { display: inline-flex; align-items: center; gap: .4rem; color: var(--yellow); font-size: .7rem; }
 .account svg { width: .85rem; height: .85rem; }
 
+.roleSwitch { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 1rem 1.4rem; border: 1px solid rgba(106,154,187,.22); background: rgba(106,154,187,.22); }
+.roleSwitch a { display: grid; min-height: 36px; place-items: center; color: var(--steel-500); background: #020509; font: 500 .56rem/1 var(--font-mono-jb), monospace; text-transform: uppercase; transition: color 180ms ease-out, background-color 180ms ease-out; }
+.roleSwitch a:hover { color: var(--trace); background: rgba(53,216,255,.045); }
+.roleSwitch .activeRole { color: var(--vacuum); background: var(--yellow); }
+
 .tourNav { display: grid; }
 .tourNav a { position: relative; display: grid; grid-template-columns: 1.7rem 1.2rem 1fr; min-height: 78px; align-items: center; gap: .75rem; padding: .8rem 1.4rem; border-bottom: 1px solid rgba(106,154,187,.16); color: var(--telemetry); transition: color 180ms ease-out, background-color 180ms ease-out; }
 .tourNav a::before { position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--yellow); content: ""; transform: scaleY(0); transition: transform 180ms ease-out; }
@@ -263,6 +268,7 @@
   .account small,
   .account strong { font-size: .54rem; }
   .account > span { display: none; }
+  .roleSwitch { margin: 0; border-inline: 0; }
   .tourNav { display: flex; overflow-x: auto; scrollbar-width: thin; }
   .tourNav a { grid-template-columns: 1.3rem 1rem auto; min-width: 200px; min-height: 64px; flex: 1 0 auto; padding: .7rem 1rem; border-top: 1px solid rgba(106,154,187,.16); border-right: 1px solid rgba(106,154,187,.16); border-bottom: 0; }
   .tourNav a::before { inset: auto 0 0; width: auto; height: 2px; transform: scaleX(0); }

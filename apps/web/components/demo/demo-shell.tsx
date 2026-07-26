@@ -5,29 +5,66 @@ import { usePathname } from "next/navigation"
 import {
   ArrowRight,
   BrainCircuit,
+  ClipboardCheck,
   FileClock,
+  House,
   LayoutDashboard,
   LogOut,
+  Mic,
   Network,
   ShieldCheck,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { Logo } from "@/components/logo"
 import styles from "@/app/demo/demo.module.css"
 
-const steps = [
+type TourStep = { href: string; label: string; detail: string; icon: LucideIcon }
+
+const physicianSteps: readonly TourStep[] = [
   { href: "/demo", label: "Dashboard", detail: "See the workspace", icon: LayoutDashboard },
   { href: "/demo/patient", label: "Patient record", detail: "Inspect the timeline", icon: FileClock },
   { href: "/demo/briefing", label: "AI briefing", detail: "Review the boundary", icon: BrainCircuit },
   { href: "/#architecture", label: "Architecture", detail: "Trace the real stack", icon: Network },
 ] as const
 
-const currentStep = (pathname: string) => {
-  if (pathname.startsWith("/demo/briefing")) return 2
-  if (pathname.startsWith("/demo/patient")) return 1
-  return 0
+const patientSteps: readonly TourStep[] = [
+  { href: "/demo/patient-app", label: "Today", detail: "See the daily rhythm", icon: House },
+  { href: "/demo/patient-app/check-in", label: "Check-in", detail: "Try local interactions", icon: ClipboardCheck },
+  { href: "/demo/patient-app/voice", label: "Voice journal", detail: "Simulate a recording", icon: Mic },
+  { href: "/#architecture", label: "Architecture", detail: "Trace the real stack", icon: Network },
+] as const
+
+const physicianConfig = {
+  mode: "physician",
+  steps: physicianSteps,
+  accountLabel: "PORTFOLIO DEMO ACCOUNT",
+  accountName: "Dr. Morgan · fictional",
+  sessionLabel: "Read-only session",
+  tourLabel: "LIVE PORTFOLIO TOUR",
+  exitHref: "/medico",
+  boundary: "Three synthetic patients. No real health data. No write actions.",
+  notice: "This resilient read-only tour does not require credentials or the clinical backend.",
+} as const
+
+const patientConfig = {
+  mode: "patient",
+  steps: patientSteps,
+  accountLabel: "PATIENT DEMO PROFILE",
+  accountName: "Aurora Demo · fictional",
+  sessionLabel: "Local-only session",
+  tourLabel: "PATIENT PWA TOUR",
+  exitHref: "/paciente",
+  boundary: "One synthetic profile. No microphone access. No stored health data.",
+  notice: "Interactions stay in this browser tab. Voice recording is simulated; no audio is captured or uploaded.",
+} as const
+
+const configForPath = (pathname: string) => pathname.startsWith("/demo/patient-app") ? patientConfig : physicianConfig
+
+const currentStep = (pathname: string, steps: readonly TourStep[]) => {
+  return steps.slice(0, -1).reduce((active, step, index) => pathname.startsWith(step.href) ? index : active, 0)
 }
 
-const TourNavigation = ({ active }: { active: number }) => (
+const TourNavigation = ({ active, steps }: { active: number; steps: readonly TourStep[] }) => (
   <nav className={styles.tourNav} aria-label="Four-step product tour">
     {steps.map((step, index) => {
       const Icon = step.icon
@@ -48,45 +85,55 @@ const TourNavigation = ({ active }: { active: number }) => (
   </nav>
 )
 
-const DemoSidebar = ({ active }: { active: number }) => (
+const RoleSwitch = ({ mode }: { mode: "physician" | "patient" }) => (
+  <nav className={styles.roleSwitch} aria-label="Choose demo perspective">
+    <Link className={mode === "physician" ? styles.activeRole : ""} href="/demo">Physician</Link>
+    <Link className={mode === "patient" ? styles.activeRole : ""} href="/demo/patient-app">Patient</Link>
+  </nav>
+)
+
+type DemoConfig = typeof physicianConfig | typeof patientConfig
+
+const DemoSidebar = ({ active, config }: { active: number; config: DemoConfig }) => (
   <aside className={styles.sidebar} aria-label="Demo tour">
     <Link className={styles.brand} href="/" aria-label="Cérebro Amigo home">
       <Logo size="md" variant="light" />
     </Link>
 
     <div className={styles.account}>
-      <span>PORTFOLIO DEMO ACCOUNT</span>
-      <strong>Dr. Morgan · fictional</strong>
-      <small><ShieldCheck aria-hidden="true" /> Read-only session</small>
+      <span>{config.accountLabel}</span>
+      <strong>{config.accountName}</strong>
+      <small><ShieldCheck aria-hidden="true" /> {config.sessionLabel}</small>
     </div>
 
-    <TourNavigation active={active} />
+    <RoleSwitch mode={config.mode} />
+    <TourNavigation active={active} steps={config.steps} />
 
     <div className={styles.runtimeNote}>
       <span>DEMO BOUNDARY</span>
-      <p>Three synthetic patients. No real health data. No write actions.</p>
+      <p>{config.boundary}</p>
     </div>
   </aside>
 )
 
-const DemoTopbar = ({ active }: { active: number }) => (
+const DemoTopbar = ({ active, config }: { active: number; config: DemoConfig }) => (
   <header className={styles.topbar}>
     <div>
-      <span>LIVE PORTFOLIO TOUR</span>
+      <span>{config.tourLabel}</span>
       <strong>STEP {active + 1} / 4</strong>
     </div>
-    <Link href="/medico">Exit demo <LogOut aria-hidden="true" /></Link>
+    <Link href={config.exitHref}>Exit demo <LogOut aria-hidden="true" /></Link>
   </header>
 )
 
-const DemoNotice = () => (
+const DemoNotice = ({ notice }: { notice: string }) => (
   <div className={styles.demoNotice} role="note">
     <ShieldCheck aria-hidden="true" />
-    <p><strong>Fictional data only.</strong> This resilient read-only tour does not require credentials or the clinical backend.</p>
+    <p><strong>Fictional data only.</strong> {notice}</p>
   </div>
 )
 
-const NextStep = ({ step }: { step: (typeof steps)[number] }) => (
+const NextStep = ({ step }: { step: TourStep }) => (
   <footer className={styles.nextStep}>
     <span>TOUR CONTINUES</span>
     <div><p>Next: <strong>{step.label}</strong></p><Link href={step.href}>Continue tour <ArrowRight aria-hidden="true" /></Link></div>
@@ -95,17 +142,18 @@ const NextStep = ({ step }: { step: (typeof steps)[number] }) => (
 
 export const DemoShell = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname()
-  const active = currentStep(pathname)
-  const next = steps[active + 1]
+  const config = configForPath(pathname)
+  const active = currentStep(pathname, config.steps)
+  const next = config.steps[active + 1]
 
   return (
     <main className={styles.demo} lang="en">
       <a className={styles.skipLink} href="#demo-content">Skip to demo content</a>
-      <DemoSidebar active={active} />
+      <DemoSidebar active={active} config={config} />
 
       <section className={styles.workspace}>
-        <DemoTopbar active={active} />
-        <DemoNotice />
+        <DemoTopbar active={active} config={config} />
+        <DemoNotice notice={config.notice} />
 
         <div className={styles.content} id="demo-content" tabIndex={-1}>{children}</div>
 

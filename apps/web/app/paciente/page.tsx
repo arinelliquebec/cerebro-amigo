@@ -59,8 +59,8 @@ export default function PacienteLandingPage() {
           <a href="#privacy">Privacy</a>
           <Link href="/medico">For physicians</Link>
         </nav>
-        <Link className={styles.headerAction} href="/p/entrar">
-          Sign in <ArrowRight aria-hidden="true" />
+        <Link className={styles.headerAction} href="/demo/patient-app">
+          View patient demo <ArrowRight aria-hidden="true" />
         </Link>
       </header>
 
@@ -72,15 +72,15 @@ export default function PacienteLandingPage() {
             Record how you feel, keep your routine organized and arrive at your next appointment with the interval visible to you and your psychiatrist.
           </p>
           <div className={styles.heroActions}>
-            <Link className={styles.primaryAction} href="/p/entrar">
-              Open patient portal <ArrowRight aria-hidden="true" />
+            <Link className={styles.primaryAction} href="/demo/patient-app">
+              View patient demo <ArrowRight aria-hidden="true" />
             </Link>
-            <Link className={styles.secondaryAction} href="#care-flow">
-              See how it works
+            <Link className={styles.secondaryAction} href="/p/entrar">
+              Patient sign in
             </Link>
           </div>
           <div className={styles.installControl}><InstallPWA variant="signal" /></div>
-          <p className={styles.inviteNote}>Access begins with an invitation from your psychiatrist.</p>
+          <p className={styles.inviteNote}>No credentials. One synthetic profile. Voice recording is safely simulated.</p>
         </div>
 
         <div className={styles.signalConsole} aria-label="Care flow between appointments">
@@ -160,11 +160,11 @@ export default function PacienteLandingPage() {
 
       <section className={styles.finalCta} aria-labelledby="patient-cta-title">
         <div>
-          <p>SECURE ACCESS · PATIENT PORTAL</p>
-          <h2 id="patient-cta-title">Received your invitation?</h2>
-          <span>Create your password or sign in to continue your care.</span>
+          <p>PUBLIC DEMO · PATIENT PWA</p>
+          <h2 id="patient-cta-title">Explore one day between appointments.</h2>
+          <span>Try mood, medication and voice-journal interactions without creating an account.</span>
         </div>
-        <Link className={styles.primaryAction} href="/p/entrar">Open patient portal <ArrowRight aria-hidden="true" /></Link>
+        <Link className={styles.primaryAction} href="/demo/patient-app">View patient demo <ArrowRight aria-hidden="true" /></Link>
       </section>
 
       <footer className={styles.footer}>
