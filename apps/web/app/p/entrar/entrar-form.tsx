@@ -10,7 +10,7 @@ import { EsqueciSenhaForm } from "./esqueci-senha-form"
 
 const inicial: PacienteAuthState = { error: null }
 
-function PortfolioProfile() {
+const PortfolioProfile = () => {
   return (
     <div className="rounded-2xl border border-primary/20 bg-primary/[0.07] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <div className="flex items-start gap-3">
@@ -42,7 +42,7 @@ function PortfolioProfile() {
   )
 }
 
-function FictionalPatientAccess({ next, enabled, onOtherAccount }: { next: string; enabled: boolean; onOtherAccount: () => void }) {
+const FictionalPatientAccess = ({ next, enabled, onOtherAccount }: { next: string; enabled: boolean; onOtherAccount: () => void }) => {
   const [state, action, pending] = useActionState(entrarComoPacienteDemo, inicial)
 
   return (
@@ -90,34 +90,13 @@ function FictionalPatientAccess({ next, enabled, onOtherAccount }: { next: strin
   )
 }
 
-export function EntrarForm({ token, next, demoEnabled }: { token?: string; next: string; demoEnabled: boolean }) {
-  const modoConvite = Boolean(token)
-  const [esqueci, setEsqueci] = useState(false)
-  const [outroAcesso, setOutroAcesso] = useState(false)
-  const [state, action, pending] = useActionState(
-    modoConvite ? entrarComLink : entrarComSenha,
-    inicial,
-  )
-
-  // Fluxo de recuperação de senha (só no modo login, sem token de convite).
-  if (!modoConvite && esqueci) {
-    return <EsqueciSenhaForm onVoltar={() => setEsqueci(false)} />
-  }
-
-  if (!modoConvite && !outroAcesso) {
-    return (
-      <FictionalPatientAccess
-        next={next}
-        enabled={demoEnabled}
-        onOtherAccount={() => setOutroAcesso(true)}
-      />
-    )
-  }
+const InvitationAccess = ({ token, next }: { token: string; next: string }) => {
+  const [state, action, pending] = useActionState(entrarComLink, inicial)
 
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
-      {token && <input type="hidden" name="token" value={token} />}
+      <input type="hidden" name="token" value={token} />
 
       {state.error && (
         <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
@@ -126,106 +105,134 @@ export function EntrarForm({ token, next, demoEnabled }: { token?: string; next:
         </div>
       )}
 
-      {modoConvite ? (
-        <>
-          <p className="text-sm text-muted-foreground">
-            Create a password to access your care timeline.
-          </p>
-          <div className="space-y-2">
-            <Label htmlFor="novaSenha">Create a password</Label>
-            <Input
-              id="novaSenha"
-              name="novaSenha"
-              type="password"
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-              className="h-11 rounded-xl bg-noir-surface-raised/60"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmar">Confirm password</Label>
-            <Input
-              id="confirmar"
-              name="confirmar"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Repeat your password"
-              className="h-11 rounded-xl bg-noir-surface-raised/60"
-              required
-            />
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="h-11 rounded-xl bg-noir-surface-raised/60"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="senha">Password</Label>
-            <Input
-              id="senha"
-              name="senha"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Your password"
-              className="h-11 rounded-xl bg-noir-surface-raised/60"
-              required
-            />
-          </div>
-        </>
-      )}
+      <p className="text-sm text-muted-foreground">
+        Create a password to access your care timeline.
+      </p>
+      <div className="space-y-2">
+        <Label htmlFor="novaSenha">Create a password</Label>
+        <Input
+          id="novaSenha"
+          name="novaSenha"
+          type="password"
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          className="h-11 rounded-xl bg-noir-surface-raised/60"
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="confirmar">Confirm password</Label>
+        <Input
+          id="confirmar"
+          name="confirmar"
+          type="password"
+          autoComplete="new-password"
+          placeholder="Repeat your password"
+          className="h-11 rounded-xl bg-noir-surface-raised/60"
+          required
+        />
+      </div>
 
       <Button
         type="submit"
         disabled={pending}
         className="portal-tap h-11 w-full rounded-xl bg-primary text-primary-foreground hover:bg-purple-dark"
       >
-        {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : modoConvite ? (
+        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : (
           <>
             <KeyRound className="mr-2 h-4 w-4" />
             Create password and sign in
           </>
-        ) : (
-          <>
-            <Mail className="mr-2 h-4 w-4" />
-            Sign in
-          </>
+        )}
+      </Button>
+    </form>
+  )
+}
+
+const PatientPasswordAccess = ({ next, onBack, onForgot }: { next: string; onBack: () => void; onForgot: () => void }) => {
+  const [state, action, pending] = useActionState(entrarComSenha, inicial)
+
+  return (
+    <form action={action} className="space-y-4">
+      <input type="hidden" name="next" value={next} />
+
+      {state.error && (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{state.error}</span>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          className="h-11 rounded-xl bg-noir-surface-raised/60"
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="senha">Password</Label>
+        <Input
+          id="senha"
+          name="senha"
+          type="password"
+          autoComplete="current-password"
+          placeholder="Your password"
+          className="h-11 rounded-xl bg-noir-surface-raised/60"
+          required
+        />
+      </div>
+
+      <Button
+        type="submit"
+        disabled={pending}
+        className="portal-tap h-11 w-full rounded-xl bg-primary text-primary-foreground hover:bg-purple-dark"
+      >
+        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+          <><Mail className="mr-2 h-4 w-4" /> Sign in</>
         )}
       </Button>
 
-      {!modoConvite && (
-        <div className="space-y-2 text-center">
-          <button
-            type="button"
-            onClick={() => setOutroAcesso(false)}
-            className="block w-full text-xs font-medium text-primary underline-offset-2 hover:underline"
-          >
-            Back to one-click fictional access
-          </button>
-          <button
-            type="button"
-            onClick={() => setEsqueci(true)}
-            className="text-xs text-primary underline-offset-2 hover:underline"
-          >
-            Forgot my password
-          </button>
-          <p className="text-xs text-muted-foreground">
-            Received an invitation by email? Open its link to create your password.
-          </p>
-        </div>
-      )}
+      <div className="space-y-2 text-center">
+        <button type="button" onClick={onBack} className="block w-full text-xs font-medium text-primary underline-offset-2 hover:underline">
+          Back to one-click fictional access
+        </button>
+        <button type="button" onClick={onForgot} className="text-xs text-primary underline-offset-2 hover:underline">
+          Forgot my password
+        </button>
+        <p className="text-xs text-muted-foreground">
+          Received an invitation by email? Open its link to create your password.
+        </p>
+      </div>
     </form>
+  )
+}
+
+export function EntrarForm({ token, next, demoEnabled }: { token?: string; next: string; demoEnabled: boolean }) {
+  const [view, setView] = useState<"demo" | "credentials" | "forgot">("demo")
+
+  if (token) return <InvitationAccess token={token} next={next} />
+  if (view === "forgot") return <EsqueciSenhaForm onVoltar={() => setView("credentials")} />
+  if (view === "credentials") {
+    return (
+      <PatientPasswordAccess
+        next={next}
+        onBack={() => setView("demo")}
+        onForgot={() => setView("forgot")}
+      />
+    )
+  }
+
+  return (
+    <FictionalPatientAccess
+      next={next}
+      enabled={demoEnabled}
+      onOtherAccount={() => setView("credentials")}
+    />
   )
 }
