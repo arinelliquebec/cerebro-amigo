@@ -9,6 +9,9 @@ This is the canonical description of the public Cérebro Amigo portfolio environ
 | Database | Azure Database for PostgreSQL Flexible Server |
 | Azure region | `eastus2` (United States) |
 | Data | Fictional, reproducible demonstration data only |
+| Frontend delivery | Vercel Git Integration from `main` |
+| Backend delivery | Deliberate Azure Container Apps/ACR promotion via `infra/azure/` |
+| GitHub Actions | CI gates only; no active AWS deploy workflow |
 
 The current public environment is a portfolio demonstration, not an active medical
 service. It does **not** claim that data is resident in Brazil. Real patient or

@@ -76,7 +76,11 @@ contexto regulatório, sem dependência da memória do autor.
 | [054](ADR-054-cifragem-em-repouso-rds.md) | Cifragem em repouso do RDS clínico (migração para instância KMS-encrypted via snapshot+restore) | Accepted | Infra / Segurança clínica / LGPD |
 | [055](ADR-055-sem-trial-paywall-assinatura.md) | Sem trial — acesso por assinatura com prazo de pagamento (paywall) + cadência mensal/trimestral | Proposed | Produto / Negócio / Segurança clínica |
 | [074](ADR-074-web-na-vercel-decommission-aws.md) | `apps/web` volta para a Vercel (Pro, gru1); decomissão da stack EC2 ASG+ALB+CloudFront do web | ❌ Superseded (ADR-076) | Infra / Arquitetura / Compliance |
-| [076](ADR-076-web-permanece-no-ec2-lgpd.md) | `apps/web` permanece no EC2 — migração para a Vercel abandonada por LGPD (residência de dado no BR) | Accepted | Infra / Arquitetura / Compliance |
+| [076](ADR-076-web-permanece-no-ec2-lgpd.md) | `apps/web` permanece no EC2 — migração para a Vercel abandonada por LGPD (residência de dado no BR) | ❌ Superseded no portfólio (ADR-080) | Infra / Arquitetura / Compliance |
+| [078](ADR-078-checkup-box-unico-relancamento.md) | Relançamento do Check-up em box único EC2 | ❌ Superseded no portfólio (ADR-080) | Infra / Operação |
+| [079](ADR-079-clinico-relancado-box-unico.md) | Relançamento do stack clínico em box único EC2 | ❌ Superseded no portfólio (ADR-080) | Infra / Operação |
+| [080](ADR-080-portfolio-vercel-azure.md) | Ambiente de portfólio na Vercel + Azure | Accepted | Infra / Arquitetura / Portfólio |
+| [081](ADR-081-resilient-public-demo.md) | Demo pública resiliente sem dependência do backend clínico | Accepted | Produto / Portfólio / Segurança |
 
 ## Status possíveis
 
