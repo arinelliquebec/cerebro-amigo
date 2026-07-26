@@ -49,7 +49,6 @@ docs/
   DEBT.md         dívida técnica viva — fonte da verdade do "o que falta"
   runbooks/       operação: restore RDS, swap de roles de banco, aplicação de RLS
   adrs/           ADR-001..044
-_v2-ref/          espelho somente-leitura do V2 — não editar, não usar em build
 .github/workflows/ ci.yml (lint + pytest + xUnit + build) · deploy.yml (ÓRFÃO pós-ADR-079 — apontava p/ topologia ECR/ASG desmontada; não usar até revisão)
 ```
 
