@@ -38,7 +38,7 @@ A fonte canônica é `docs/CURRENT-PORTFOLIO-RUNTIME.md`; a decisão está no AD
 
 O sistema opera entre o dashboard médico, o portal PWA do paciente, check-ins, mensagens, agenda, notificações e serviços internos de IA. A demonstração pública usa dados exclusivamente fictícios e reproduzíveis.
 
-Para avaliação por recrutadores, `/demo` abre diretamente uma conta fictícia read-only, sem cadastro ou credenciais, e conduz por `Dashboard → Patient record → AI briefing → Architecture`. Essa rota é um snapshot frontend do mesmo seed ficcional do portfólio e não depende do backend clínico; o produto autenticado continua usando o runtime completo Vercel + Azure.
+Para avaliação por recrutadores, `/demo` abre diretamente uma conta médica fictícia read-only e permite alternar para `/demo/patient-app`, sem cadastro ou credenciais. O tour médico conduz por `Dashboard → Patient record → AI briefing → Architecture`; o tour do paciente conduz por `Today → Check-in → Voice journal → Architecture`. Ambos são snapshots frontend do seed ficcional e não dependem do backend clínico; interações ficam na aba, e a voz é simulada sem acessar microfone. O produto autenticado continua usando o runtime completo Vercel + Azure.
 
 O runtime mantém as fronteiras Next.js BFF, gateway .NET 10, serviços Python e PostgreSQL com RLS. Qualquer ambiente com dados reais exige uma nova decisão sobre residência, rede privada, HA, RPO/RTO e validação LGPD.
 
@@ -72,7 +72,7 @@ O runtime mantém as fronteiras Next.js BFF, gateway .NET 10, serviços Python e
 - Código dos serviços e frontend no monorepo `apps/`.
 - Migrations SQL e políticas de isolamento em `infra/migrations/`.
 - História do fundador em `apps/web/app/(landing)/sobre/page.tsx`.
-- Demonstração pública resiliente em `/demo`, com três pacientes sintéticos e tour guiado em inglês.
+- Demonstração pública resiliente em `/demo`, com perspectivas de médico e paciente, dados sintéticos e tours guiados em inglês.
 - Logo em `apps/web/public/brain-logo.png` e componente `apps/web/components/logo.tsx`.
 - Não há métricas comerciais, benchmarks públicos ou logos de clientes autorizados; trabalhos futuros não devem fabricá-los.
 

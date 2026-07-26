@@ -58,10 +58,13 @@ Azure eastus2 — somente dados fictícios
 ### Demo pública resiliente
 
 `/demo` é a entrada pública para recrutadores: abre sem credenciais uma conta
-fictícia read-only com três pacientes sintéticos e o percurso `Dashboard → Patient
-record → AI briefing → Architecture`. A rota é renderizada integralmente na
-Vercel a partir de um snapshot versionado alinhado a `infra/seed/portfolio.sql`;
-não cria sessão clínica, não permite escrita e não chama Azure, banco ou LLM.
+médica fictícia read-only com três pacientes sintéticos e permite alternar para a
+perspectiva PWA em `/demo/patient-app`. Os percursos são `Dashboard → Patient
+record → AI briefing → Architecture` e `Today → Check-in → Voice journal →
+Architecture`. As rotas são renderizadas integralmente na Vercel a partir de um
+snapshot versionado alinhado a `infra/seed/portfolio.sql`; não criam sessão
+clínica e não chamam Azure, banco ou LLM. Interações do paciente são efêmeras na
+aba, e a gravação de voz é simulada sem solicitar microfone ou criar áudio.
 Assim, cold start ou indisponibilidade do backend não bloqueiam a inspeção. O
 dashboard autenticado `/dashboard/*` continua usando o runtime completo e não deve
 ser confundido com esta amostra. Decisão: ADR-081.
