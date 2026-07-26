@@ -328,16 +328,12 @@ public static class PacienteAuthEndpoints
             var pid = GetPacienteId(user);
             if (pid is null) return Results.Unauthorized();
 
-            // A conta compartilhada do portfólio precisa permanecer estável para
-            // todos os avaliadores. Perfis reais continuam com o fluxo normal.
-            var ehPortfolio = await db.Database.ExecuteScalarAsync<bool>(
-                "SELECT COALESCE(contexto->>'portfolio', 'false') = 'true' FROM clientes WHERE id = {0}",
-                pid.Value);
-            if (ehPortfolio)
-                return Results.Conflict(new { error = "portfolio_credential_locked" });
-
             var atual = await db.Database.ExecuteScalarAsync<string>(
-                "SELECT senha_hash FROM pacientes_credenciais WHERE paciente_id = {0}",
+                @"SELECT pc.senha_hash
+                    FROM pacientes_credenciais pc
+                    JOIN clientes c ON c.id = pc.paciente_id
+                   WHERE pc.paciente_id = {0}
+                     AND COALESCE(c.contexto->>'portfolio', 'false') <> 'true'",
                 pid.Value);
             if (atual is null || !hasher.Verify(req.SenhaAtual, atual))
                 return Results.Unauthorized();

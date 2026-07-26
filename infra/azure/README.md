@@ -56,8 +56,9 @@ Microsoft.Insights
 - Senha das contas fictícias (médico e paciente Aurora): somente no segredo
   `demo-login-password` do Key Vault. O mesmo valor é configurado como
   `DEMO_LOGIN_PASSWORD` server-only na Vercel para o acesso de paciente em um clique;
-  ele nunca é enviado ao navegador. O gateway impede a troca de senha em perfis
-  com `contexto.portfolio=true`, mantendo o acesso compartilhado estável.
+  ele nunca é enviado ao navegador. O gateway exclui perfis com
+  `contexto.portfolio=true` da consulta de troca de senha, mantendo o acesso
+  compartilhado estável.
 
 ## Reset do portfólio
 

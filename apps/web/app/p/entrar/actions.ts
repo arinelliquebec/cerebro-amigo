@@ -116,10 +116,10 @@ export async function entrarComSenha(
 // Acesso de portfólio: usa o login real do gateway, mas mantém a credencial
 // compartilhada exclusivamente no servidor. A senha nunca integra o FormData,
 // HTML ou bundle enviado ao navegador.
-export async function entrarComoPacienteDemo(
+export const entrarComoPacienteDemo = async (
   _prev: PacienteAuthState,
   formData: FormData,
-): Promise<PacienteAuthState> {
+): Promise<PacienteAuthState> => {
   const senha = process.env.DEMO_LOGIN_PASSWORD
 
   if (!senha) {
@@ -136,7 +136,7 @@ export async function entrarComoPacienteDemo(
     return { error: "We could not open the fictional patient portal. Please try again." }
   }
 
-  redirect(destinoSeguro(formData.get("next")))
+  return redirect(destinoSeguro(formData.get("next")))
 }
 
 // ─── Troca de senha (autenticado) ──────────────────────────────────────────
@@ -158,8 +158,6 @@ export async function trocarSenha(
   } catch (err) {
     if (err instanceof GatewayPacienteError && err.status === 401)
       return { error: "Your current password is incorrect." }
-    if (err instanceof GatewayPacienteError && err.status === 409)
-      return { error: "The shared fictional account password cannot be changed." }
     return { error: "We could not change your password. Please try again." }
   }
 
