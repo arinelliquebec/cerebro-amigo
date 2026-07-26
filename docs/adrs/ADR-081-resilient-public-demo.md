@@ -33,6 +33,8 @@ narrativa de produto.
 5. A interface declara explicitamente que os dados são fictícios, a sessão é
    read-only e o briefing não contém diagnóstico, prescrição, recomendação de
    tratamento ou ajuste de dose.
+   Nomes de medicamentos podem aparecer somente como fatos sintéticos de
+   prontuário, sem dose, posologia, indicação ou recomendação.
 6. O produto autenticado em `/dashboard/*` permanece separado e continua a usar o
    runtime completo Vercel + Azure descrito no ADR-080. A demo não é evidência de
    que requests clínicos, RLS ou serviços de IA foram executados naquele acesso.
