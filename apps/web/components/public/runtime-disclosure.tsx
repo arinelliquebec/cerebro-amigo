@@ -7,7 +7,7 @@ const runtime = [
   ["Region", "eastus2 · United States"],
 ]
 
-export function RuntimeDisclosure() {
+export const RuntimeDisclosure = () => {
   return (
     <section className={styles.runtime} aria-labelledby="current-runtime-title">
       <header>
