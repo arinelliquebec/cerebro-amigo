@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-29
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Segurança / Custo / apps/checkup
 **Relaciona:** ADR-044 (LLM via Anthropic API direta), ADR-045 (checkup em ASG+ALB próprio), ADR-061/073 (e-mail por Resend), ADR-018 (cifragem/LGPD), ADR-055 (Turnstile no signup médico)
 

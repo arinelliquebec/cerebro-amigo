@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Logo } from "@/components/logo"
+import { AuthShell } from "@/components/public/public-chrome"
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile"
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react"
 
@@ -15,18 +15,18 @@ const UFS = [
 ]
 
 const ERRO_MSG: Record<string, string> = {
-  campos_obrigatorios: "Preencha todos os campos.",
-  crm_uf_obrigatorio: "Selecione a UF do seu CRM.",
-  email_em_uso: "Este e-mail já tem cadastro. Tente fazer login.",
-  crm_invalido: "CRM não encontrado ou fora de situação regular no CFM.",
-  nome_divergente: "O nome informado não confere com o cadastro do seu CRM no CFM.",
-  crm_indisponivel: "Não foi possível validar seu CRM agora. Tente novamente em instantes.",
-  crm_validacao_nao_configurada: "Validação de CRM indisponível no momento. Tente mais tarde.",
-  cpf_obrigatorio: "Informe seu CPF para concluir o cadastro.",
-  cpf_invalido: "CPF inválido. Confira os números.",
-  rate_limited: "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
-  captcha_invalido: "Falha na verificação de segurança. Recarregue a página e tente de novo.",
-  erro_interno: "Algo deu errado. Tente novamente.",
+  campos_obrigatorios: "Complete every required field.",
+  crm_uf_obrigatorio: "Select the Brazilian state for your CRM registration.",
+  email_em_uso: "This email is already registered. Try signing in.",
+  crm_invalido: "The CRM registration was not found or is not in good standing with CFM.",
+  nome_divergente: "The name does not match the CFM record for this CRM registration.",
+  crm_indisponivel: "CRM validation is temporarily unavailable. Try again shortly.",
+  crm_validacao_nao_configurada: "CRM validation is currently unavailable. Try again later.",
+  cpf_obrigatorio: "Enter your CPF to complete registration.",
+  cpf_invalido: "Invalid CPF. Check the digits.",
+  rate_limited: "Too many attempts. Wait a few minutes and try again.",
+  captcha_invalido: "Security verification failed. Reload the page and try again.",
+  erro_interno: "Something went wrong. Please try again.",
 }
 
 function CadastroForm() {
@@ -75,11 +75,11 @@ function CadastroForm() {
       return
     }
     if (!consent) {
-      setErro("É necessário concordar com o tratamento dos dados para continuar.")
+      setErro("You must consent to professional-data processing to continue.")
       return
     }
     if (siteKey && !turnstileToken) {
-      setErro("Confirme que você não é um robô antes de continuar.")
+      setErro("Complete the security verification before continuing.")
       return
     }
     setEstado("enviando")
@@ -118,13 +118,13 @@ function CadastroForm() {
     return (
       <div className="text-center space-y-4">
         <CheckCircle2 className="mx-auto h-12 w-12 text-success" aria-hidden />
-        <h1 className="text-2xl font-semibold text-foreground">Confira seu e-mail</h1>
+        <h2 className="text-2xl font-semibold text-foreground">Check your email</h2>
         <p className="text-muted-foreground">
-          Enviamos um link para <strong>{email}</strong> para você criar sua senha e ativar o acesso.
-          O link vale por 24 horas.
+          We sent a link to <strong>{email}</strong> so you can create a password and activate access.
+          The link is valid for 24 hours.
         </p>
         <p className="text-sm text-muted-foreground">
-          Não chegou? Verifique o spam ou tente novamente em alguns minutos.
+          Nothing arrived? Check your spam folder or try again in a few minutes.
         </p>
       </div>
     )
@@ -133,9 +133,9 @@ function CadastroForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
       <div className="space-y-1.5 text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Cadastro de médico</h1>
+        <h2 className="text-2xl font-semibold text-foreground">Physician registration</h2>
         <p className="text-sm text-muted-foreground">
-          Validamos seu CRM no CFM. Após o cadastro, enviamos um e-mail para você ativar o acesso.
+          We validate your CRM registration with CFM, then email you an activation link.
         </p>
       </div>
 
@@ -150,22 +150,22 @@ function CadastroForm() {
       )}
 
       <div className="space-y-1.5">
-        <Label htmlFor="nome">Nome completo</Label>
+        <Label htmlFor="nome">Full name</Label>
         <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)}
-          autoComplete="name" placeholder="Como consta no seu CRM" required />
+          autoComplete="name" placeholder="Exactly as registered with CFM" required />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">E-mail</Label>
+        <Label htmlFor="email">Email</Label>
         <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email" placeholder="voce@exemplo.com" required />
+          autoComplete="email" placeholder="you@example.com" required />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="crm">CRM</Label>
           <Input id="crm" value={crm} onChange={(e) => setCrm(e.target.value)}
-            inputMode="numeric" placeholder="Número do CRM" required />
+            inputMode="numeric" placeholder="CRM number" required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="crmUf">UF</Label>
@@ -178,17 +178,17 @@ function CadastroForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="cpf">CPF <span className="text-muted-foreground font-normal">(necessário para a cobrança)</span></Label>
+        <Label htmlFor="cpf">CPF <span className="text-muted-foreground font-normal">(required for billing)</span></Label>
         <Input id="cpf" value={cpf} onChange={(e) => setCpf(e.target.value)} required
-          inputMode="numeric" placeholder="Só números" autoComplete="off" />
+          inputMode="numeric" placeholder="Digits only" autoComplete="off" />
       </div>
 
       <label className="flex items-start gap-2 text-sm text-muted-foreground">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 rounded border-input" />
         <span>
-          Concordo com o tratamento dos meus dados profissionais (CRM, nome, e-mail) para
-          validação e criação da conta, conforme a LGPD.
+          I consent to the processing of my professional data (CRM, name, and email) for
+          validation and account creation under Brazil’s LGPD.
         </span>
       </label>
 
@@ -196,11 +196,11 @@ function CadastroForm() {
 
       <Button type="submit" className="w-full" disabled={estado === "enviando" || (!!siteKey && !turnstileToken)}>
         {estado === "enviando" && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />}
-        {estado === "enviando" ? "Validando CRM…" : "Criar conta"}
+        {estado === "enviando" ? "Validating CRM…" : "Create account"}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        Já tem conta? <a href="/login" className="underline">Entrar</a>
+        Already registered? <a href="/login" className="underline">Sign in</a>
       </p>
     </form>
   )
@@ -208,17 +208,8 @@ function CadastroForm() {
 
 export default function CadastroMedicoPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex justify-center">
-          <Logo />
-        </div>
-        <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
-          <Suspense fallback={<div className="text-center text-sm text-muted-foreground">Carregando…</div>}>
-            <CadastroForm />
-          </Suspense>
-        </div>
-      </div>
-    </main>
+    <AuthShell eyebrow="PHYSICIAN ACCESS / REGISTRATION" title={<>Create a verified <em>physician account.</em></>} description="Registration is currently available to Brazilian physicians with an active CRM record." context={["CRM and identity validation through CFM", "Activation link delivered by email", "Monthly plans billed in Brazilian reais"]}>
+      <div><Suspense fallback={<div className="text-center text-sm text-muted-foreground">Loading…</div>}><CadastroForm /></Suspense></div>
+    </AuthShell>
   )
 }

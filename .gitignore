@@ -49,3 +49,7 @@ docker-compose.override.yml
 .sentry/
 .env.sentry-build-plugin
 .vercel
+
+# Local design previews and generated review artifacts
+.tmp/
+.impeccable/live/

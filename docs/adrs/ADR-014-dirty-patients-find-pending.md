@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Data:** 2026-05-31
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Performance / Arquitetura analítica
 **Relaciona:** ADR-009 (separação batch/interativo), ADR-003 (agentes analíticos)
 **Pré-condição:** ADR-009 PR 6 (higiene de batch) e PR 5 (agents-py batch puro)

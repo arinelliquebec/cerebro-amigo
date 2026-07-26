@@ -32,10 +32,10 @@ export async function entrarComLink(
   const novaSenha = formData.get("novaSenha") as string
   const confirmar = formData.get("confirmar") as string
 
-  if (!token) return { error: "Convite inválido. Peça um novo link ao seu médico." }
+  if (!token) return { error: "Invalid invitation. Ask your physician for a new link." }
   if (!novaSenha || novaSenha.length < 8)
-    return { error: "A senha precisa ter pelo menos 8 caracteres." }
-  if (novaSenha !== confirmar) return { error: "As senhas não coincidem." }
+    return { error: "Your password must contain at least 8 characters." }
+  if (novaSenha !== confirmar) return { error: "The passwords do not match." }
 
   try {
     const data = await gatewayPaciente.post<{ token: string }>(
@@ -45,8 +45,8 @@ export async function entrarComLink(
     ;(await cookies()).set(COOKIE_NAME, data.token, COOKIE_OPTS)
   } catch (err) {
     if (err instanceof GatewayPacienteError && err.status === 401)
-      return { error: "Este convite expirou ou já foi usado. Peça um novo ao seu médico." }
-    return { error: "Não foi possível ativar sua conta. Tente novamente." }
+      return { error: "This invitation expired or has already been used. Ask your physician for a new one." }
+    return { error: "We could not activate your account. Please try again." }
   }
 
   redirect(destinoSeguro(formData.get("next")))
@@ -61,15 +61,15 @@ export interface EsqueciSenhaState {
 }
 
 const MSG_NEUTRA =
-  "Se houver uma conta com esse e-mail, enviamos um link para redefinir a senha. " +
-  "Verifique sua caixa de entrada (e o spam)."
+  "If an account exists for this email, we sent a password-reset link. " +
+  "Check your inbox and spam folder."
 
 export async function esqueciSenha(
   _prev: EsqueciSenhaState,
   formData: FormData,
 ): Promise<EsqueciSenhaState> {
   const email = (formData.get("email") as string)?.trim()
-  if (!email) return { ok: false, msg: "Informe seu e-mail." }
+  if (!email) return { ok: false, msg: "Enter your email address." }
 
   try {
     await gatewayPaciente.post("/api/v1/auth/paciente/esqueci-senha", { email })
@@ -88,7 +88,7 @@ export async function entrarComSenha(
   const email = formData.get("email") as string
   const senha = formData.get("senha") as string
 
-  if (!email || !senha) return { error: "E-mail e senha são obrigatórios." }
+  if (!email || !senha) return { error: "Email and password are required." }
 
   let senhaTemporaria = false
   try {
@@ -100,13 +100,13 @@ export async function entrarComSenha(
     senhaTemporaria = data.senhaTemporaria
   } catch (err) {
     if (err instanceof GatewayPacienteError) {
-      if (err.status === 401) return { error: "E-mail ou senha incorretos." }
+      if (err.status === 401) return { error: "Incorrect email or password." }
       if (err.status === 409)
-        return { error: "Este e-mail é de acesso do médico. Use o portal em /login." }
+        return { error: "This email belongs to a physician account. Use /login." }
       if (err.status === 429)
-        return { error: "Muitas tentativas. Tente novamente em alguns minutos." }
+        return { error: "Too many attempts. Try again in a few minutes." }
     }
-    return { error: "Erro de conexão. Tente novamente." }
+    return { error: "Connection error. Please try again." }
   }
 
   redirect(senhaTemporaria ? "/p/trocar-senha" : destinoSeguro(formData.get("next")))

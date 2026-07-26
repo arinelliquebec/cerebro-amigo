@@ -3,7 +3,7 @@
 // distribuída em phqscreeners.com.
 // VALIDADO: conferido char-a-char contra PDF oficial phqscreeners "Portuguese for Brazil"
 // (2026-06-11) — itens 1-7, opções e enunciado IDÊNTICOS, sem defeito de conteúdo.
-// Cosmética decidida (Rafael, 2026-06-11): notação (a)/(o) + ortografia moderna = house style,
+// Cosmética decidida (Patrick, 2026-06-11): notação (a)/(o) + ortografia moderna = house style,
 // não altera o conteúdo clínico do instrumento oficial.
 
 import type { Scale, ScaleResult } from "./types";

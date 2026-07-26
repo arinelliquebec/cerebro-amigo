@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
-import { inter, playfair, jetbrainsMono } from '@/lib/fonts'
+import { barlowCondensed, inter, playfair, jetbrainsMono } from '@/lib/fonts'
 import './globals.css'
 
 const SITE_URL = 'https://www.cerebroamigo.com.br'
@@ -20,8 +20,8 @@ export const metadata: Metadata = {
     'check-in de humor', 'diário por voz', 'briefing pré-consulta', 'LGPD saúde mental',
     'software psiquiatria', 'telepsiquiatria', 'saúde mental tecnologia',
   ],
-  authors: [{ name: 'Rafael Arinelli', url: SITE_URL }],
-  creator: 'Rafael Arinelli',
+  authors: [{ name: 'Patrick Arinelli', url: SITE_URL }],
+  creator: 'Patrick Arinelli',
   publisher: SITE_NAME,
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   manifest: '/manifest.json',
@@ -55,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
+    <html lang="pt-BR" className={`${inter.variable} ${playfair.variable} ${jetbrainsMono.variable} ${barlowCondensed.variable}`}>
       <head>
       </head>
       <body className={`${inter.className} bg-background antialiased`}>

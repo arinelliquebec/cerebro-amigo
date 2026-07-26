@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Data:** 2026-06-20
-- **Decisor:** Dono (Rafael).
+- **Decisor:** Dono (Patrick).
 - **Relacionados:** ADR-024 (MEMED = prescrição legal), ADR-056 (espelho MEMED → rascunho +
   confirmação do médico), ADR-062 (medicações em uso / reconciliação), ADR-032 (catálogo de
   interações A5), ADR-042 (RLS), skill `clinical-safety`.

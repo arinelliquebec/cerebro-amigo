@@ -1,4 +1,4 @@
-import { Inter, Playfair_Display, JetBrains_Mono } from "next/font/google"
+import { Barlow_Condensed, Inter, Playfair_Display, JetBrains_Mono } from "next/font/google"
 
 export const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -20,4 +20,11 @@ export const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono-jb",
   display: "swap",
   weight: ["400", "500", "600"],
+})
+
+export const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  variable: "--font-barlow-condensed",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 })

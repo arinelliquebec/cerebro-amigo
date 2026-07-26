@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-21
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Stack / Arquitetura
 **Supersede:** ADR-067 (migração .NET→Scala via strangler)
 **Reafirma:** ADR-007 / ADR-001 (gateway transacional em .NET, não Go)

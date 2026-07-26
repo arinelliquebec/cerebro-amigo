@@ -1,7 +1,7 @@
 # ADR-080 — Ambiente de portfólio na Vercel + Azure
 
 - **Status:** aceito (2026-07-25)
-- **Decisor:** Rafael Arinelli
+- **Decisor:** Patrick Arinelli
 - **Escopo:** ambiente público de demonstração com dados exclusivamente fictícios
 - **Supersede no ambiente de portfólio:** ADR-076, ADR-078 e ADR-079
 - **Não altera:** ADR-018 (cifragem), ADR-035/041/063 (crise), ADR-042 (RLS),

@@ -6,7 +6,7 @@
 // notação de gênero (a)/(o), consistente com PHQ-9/GAD-7. Estrutura real: Parte A = 9
 // itens (desatenção, índices 1-9), Parte B = 9 itens (hiperatividade-impulsividade, 10-18).
 //
-// ⚠️ SCORING QUALITATIVO, SEM VERDICT (decisão Patrick/Rafael, 2026-06-11).
+// ⚠️ SCORING QUALITATIVO, SEM VERDICT (decisão Patrick, 2026-06-11).
 // Mattos 2006 é adaptação transcultural — adverte EXPLICITAMENTE que NÃO há dados/pontos
 // de corte validados para a população brasileira e recomenda cautela em usar a pontuação
 // dos itens ou tratar "algumas vezes" como positivo. Portanto NÃO aplicamos os cutoffs

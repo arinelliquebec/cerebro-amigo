@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-14
-**Decisores:** Rafael e Adonai Arinelli (cutover executado via `aws ssm send-command` no box, autorizado por Rafael)
+**Decisores:** Patrick e Adonai Arinelli (cutover executado via `aws ssm send-command` no box, autorizado por Patrick)
 **Categoria:** Infra / Segurança clínica / LGPD (categoria especial — saúde mental)
 **Relaciona:** ADR-018 (cifragem de coluna — **complementar**, não substituída), ADR-042 (roles/RLS preservadas no snapshot), ADR-053 (Multi-AZ era pré-requisito), ADR-045/ADR-052 (checkup no ASG `cerebro-checkup-asg`), T0-5 do `docs/DEBT.md`
 

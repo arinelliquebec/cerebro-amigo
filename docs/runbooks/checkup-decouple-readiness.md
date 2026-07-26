@@ -6,7 +6,7 @@ provisionar. Vira blocker quando o lançamento for **full público** (SEO/ads): 
 checkup roda no box clínico (`A → 18.229.175.231`); um spike público **compete por CPU/RAM
 com os serviços clínicos no mesmo EC2**. Decouple = isolá-lo em ASG+ALB próprio.
 
-> Provisionamento custa (t3.small min:2) e mexe em superfície pública → **go do Rafael/Patrick**.
+> Provisionamento custa (t3.small min:2) e mexe em superfície pública → **go do Patrick**.
 
 ## O que o IaC provisiona (`infra/aws/checkup-asg-alb.yaml`)
 ALB internet-facing 80/443 (ACM, 3 AZs) · SG do ALB (80/443 público) + SG das instâncias

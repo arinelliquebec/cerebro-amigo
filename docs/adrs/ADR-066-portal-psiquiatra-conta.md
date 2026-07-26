@@ -7,7 +7,7 @@
 - Revisão clinical-safety da fronteira: o portal é **doctor-facing**, não toca conteúdo clínico de paciente nem trilhas de auditoria (Regra 5).
 
 **Data:** 2026-06-18
-**Decisores:** Patrick (Rafael) Arinelli
+**Decisores:** Patrick Arinelli
 **Categoria:** Produto / autosserviço do médico / monetização / LGPD
 
 ## Contexto

@@ -7,7 +7,7 @@
 - Revisão clinical-safety da fronteira (crise/portal/escalação seguem isentos — ver Consequências).
 
 **Data:** 2026-06-18  **Implementado:** 2026-06-18
-**Decisores:** Patrick (Rafael) Arinelli
+**Decisores:** Patrick Arinelli
 **Categoria:** Monetização / aquisição / gate de acesso
 
 ## Contexto

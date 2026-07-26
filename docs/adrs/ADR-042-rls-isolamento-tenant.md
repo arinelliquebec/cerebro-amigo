@@ -4,7 +4,7 @@
 (roles + swap de DSN), 3 (testes/CI) e 1+2 (middleware + RLS) deployados e
 verificados em 2026-06-08. RLS LIVE: 17 tabelas, fail-closed confirmado em prod.
 **Data:** 2026-06-08
-**Decisores:** Equipe de engenharia + Rafael Arinelli (responsável pelo projeto)
+**Decisores:** Equipe de engenharia + Patrick Arinelli (responsável pelo projeto)
 **Categoria:** Segurança / LGPD (categoria especial — saúde mental)
 
 ## Contexto

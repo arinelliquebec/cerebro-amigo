@@ -2,7 +2,7 @@
 
 **Status:** Accepted (formaliza decisão já em produção — ver nota de formalização no fim)
 **Data:** 2026-06-13
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Stack / Compliance / Operação
 **Complementa:** [ADR-015](ADR-015-llm-provider-switchavel.md) (camada provider-switchável)
 **Mantém suspenso:** [ADR-008](ADR-008-llm-bedrock-nao-anthropic-api.md) (Bedrock-only — já *superseded* pelo ADR-015)

@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-29
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Infra / Arquitetura / Compliance
 **Supersede:** **ADR-074** (web → Vercel) — o cutover **nunca foi executado**.
 **Relaciona:** ADR-052 (checkup não migra — mesma fronteira), ADR-073 (zona DNS na Vercel), ADR-008/ADR-044 (residência de dado no Brasil), ADR-018/054 (cifragem em repouso).

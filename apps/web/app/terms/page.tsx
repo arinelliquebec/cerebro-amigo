@@ -1,84 +1,25 @@
 import Link from "next/link"
-import { Logo } from "@/components/logo"
-import { ArrowLeft } from "lucide-react"
+import { PublicFooter, PublicHeader } from "@/components/public/public-chrome"
+import access from "@/components/access/signal-access.module.css"
+import styles from "@/components/public/public-surface.module.css"
 
-export const metadata = {
-  title: "Termos de Uso — Cérebro Amigo",
-  description: "Termos de uso da plataforma Cérebro Amigo",
-  alternates: { canonical: "https://www.cerebroamigo.com.br/terms" },
-}
+export const metadata = { title: "Terms of Use — Cérebro Amigo", description: "Cérebro Amigo terms of use", alternates: { canonical: "https://www.cerebroamigo.com.br/terms" } }
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto max-w-3xl px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo size="sm" />
-          </Link>
-          <Link
-            href="/login"
-            className="text-sm text-muted-foreground hover:text-navy transition-colors flex items-center gap-1.5"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar para login
-          </Link>
+    <main className={`${access.page} ${styles.contentPage}`} lang="en">
+      <PublicHeader />
+      <div className={styles.legalWrap}>
+        <aside className={styles.legalAside}><p>TERMS / OPERATING BOUNDARY</p><h1>Terms of use</h1><p>Last updated: June 2026</p></aside>
+        <div className={styles.legalBody}>
+          <section><h2>1. Nature of the platform</h2><p>Cérebro Amigo is clinical-management software for psychiatrists. It does not replace clinical judgment and does not provide diagnoses or prescriptions. Every therapeutic decision remains the responsibility of the licensed healthcare professional.</p></section>
+          <section><h2>2. Permitted use</h2><p>Professional access is limited to properly registered healthcare professionals. Sharing access credentials or using the platform outside legitimate clinical-practice management is prohibited.</p></section>
+          <section><h2>3. Data and privacy</h2><p>Patient data is processed under Brazil’s LGPD (Law 13,709/2018). See the <Link href="/privacy">Privacy Policy</Link> for information about collection, safeguards, retention, and data-subject rights.</p></section>
+          <section><h2>4. Responsibility and availability</h2><p>Cérebro Amigo is provided without a guarantee of uninterrupted availability. Healthcare professionals retain final responsibility for clinical decisions, regardless of information organized or displayed by the platform.</p></section>
+          <section><h2>5. Contact</h2><p>Questions about these terms can be sent to <Link href="mailto:arinpar@gmail.com">arinpar@gmail.com</Link>.</p></section>
         </div>
-      </header>
-
-      <main className="container mx-auto max-w-3xl px-6 py-16">
-        <h1 className="text-3xl font-semibold text-navy mb-2">Termos de Uso</h1>
-        <p className="text-muted-foreground text-sm mb-10">Última atualização: junho de 2026</p>
-
-        <div className="prose prose-slate max-w-none space-y-8">
-          <section>
-            <h2 className="text-xl font-semibold text-navy mb-3">1. Natureza da plataforma</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              O Cérebro Amigo é um software de gestão clínica (CRM) voltado a médicos psiquiatras.
-              A plataforma <strong>não substitui o julgamento clínico</strong> e não fornece diagnósticos
-              ou prescrições médicas. Todas as decisões terapêuticas são de responsabilidade exclusiva
-              do profissional de saúde.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-navy mb-3">2. Uso permitido</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Acesso restrito a profissionais de saúde devidamente registrados em seus conselhos
-              profissionais. É proibido o compartilhamento de credenciais de acesso, bem como o uso
-              da plataforma para fins diferentes da gestão de prática clínica.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-navy mb-3">3. Dados e privacidade</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Todos os dados de pacientes são tratados conforme a LGPD (Lei 13.709/2018).
-              Consulte nossa{" "}
-              <Link href="/privacy" className="text-primary hover:underline font-medium">
-                Política de Privacidade
-              </Link>{" "}
-              para detalhes sobre coleta, armazenamento e exclusão de dados.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-navy mb-3">4. Limitação de responsabilidade</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              O Cérebro Amigo é fornecido &quot;como está&quot;, sem garantias de disponibilidade ininterrupta.
-              O profissional de saúde mantém a responsabilidade final por todas as decisões clínicas,
-              independentemente das informações apresentadas pela plataforma.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-navy mb-3">5. Contato</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Dúvidas sobre estes termos podem ser enviadas para o responsável pela plataforma.
-            </p>
-          </section>
-        </div>
-      </main>
-    </div>
+      </div>
+      <PublicFooter />
+    </main>
   )
 }

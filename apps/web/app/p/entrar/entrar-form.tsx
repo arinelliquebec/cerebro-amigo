@@ -29,7 +29,7 @@ export function EntrarForm({ token, next }: { token?: string; next: string }) {
       {token && <input type="hidden" name="token" value={token} />}
 
       {state.error && (
-        <div className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{state.error}</span>
         </div>
@@ -38,28 +38,28 @@ export function EntrarForm({ token, next }: { token?: string; next: string }) {
       {modoConvite ? (
         <>
           <p className="text-sm text-muted-foreground">
-            Defina uma senha para acessar seu acompanhamento.
+            Create a password to access your care timeline.
           </p>
           <div className="space-y-2">
-            <Label htmlFor="novaSenha">Crie sua senha</Label>
+            <Label htmlFor="novaSenha">Create a password</Label>
             <Input
               id="novaSenha"
               name="novaSenha"
               type="password"
               autoComplete="new-password"
-              placeholder="Mínimo 8 caracteres"
+              placeholder="At least 8 characters"
               className="h-11 rounded-xl bg-noir-surface-raised/60"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmar">Confirme a senha</Label>
+            <Label htmlFor="confirmar">Confirm password</Label>
             <Input
               id="confirmar"
               name="confirmar"
               type="password"
               autoComplete="new-password"
-              placeholder="Repita a senha"
+              placeholder="Repeat your password"
               className="h-11 rounded-xl bg-noir-surface-raised/60"
               required
             />
@@ -68,25 +68,25 @@ export function EntrarForm({ token, next }: { token?: string; next: string }) {
       ) : (
         <>
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
-              placeholder="seu@email.com"
+              placeholder="you@example.com"
               className="h-11 rounded-xl bg-noir-surface-raised/60"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="senha">Senha</Label>
+            <Label htmlFor="senha">Password</Label>
             <Input
               id="senha"
               name="senha"
               type="password"
               autoComplete="current-password"
-              placeholder="Sua senha"
+              placeholder="Your password"
               className="h-11 rounded-xl bg-noir-surface-raised/60"
               required
             />
@@ -104,12 +104,12 @@ export function EntrarForm({ token, next }: { token?: string; next: string }) {
         ) : modoConvite ? (
           <>
             <KeyRound className="mr-2 h-4 w-4" />
-            Criar senha e entrar
+            Create password and sign in
           </>
         ) : (
           <>
             <Mail className="mr-2 h-4 w-4" />
-            Entrar
+            Sign in
           </>
         )}
       </Button>
@@ -121,10 +121,10 @@ export function EntrarForm({ token, next }: { token?: string; next: string }) {
             onClick={() => setEsqueci(true)}
             className="text-xs text-primary underline-offset-2 hover:underline"
           >
-            Esqueci minha senha
+            Forgot my password
           </button>
           <p className="text-xs text-muted-foreground">
-            Recebeu um convite por e-mail? Abra o link da mensagem para criar sua senha.
+            Received an invitation by email? Open its link to create your password.
           </p>
         </div>
       )}

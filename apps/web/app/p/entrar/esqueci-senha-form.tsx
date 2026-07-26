@@ -24,7 +24,7 @@ export function EsqueciSenhaForm({ onVoltar }: { onVoltar: () => void }) {
         </div>
         <Button type="button" variant="ghost" className="w-full gap-2" onClick={onVoltar}>
           <ArrowLeft className="h-4 w-4" />
-          Voltar ao login
+          Back to sign in
         </Button>
       </div>
     )
@@ -33,7 +33,7 @@ export function EsqueciSenhaForm({ onVoltar }: { onVoltar: () => void }) {
   return (
     <form action={action} className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Informe o e-mail do seu acesso. Enviaremos um link para você criar uma nova senha.
+        Enter the email linked to your access. We will send a link to create a new password.
       </p>
 
       {state.msg && (
@@ -44,13 +44,13 @@ export function EsqueciSenhaForm({ onVoltar }: { onVoltar: () => void }) {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="email-reset">E-mail</Label>
+        <Label htmlFor="email-reset">Email</Label>
         <Input
           id="email-reset"
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="seu@email.com"
+          placeholder="you@example.com"
           className="h-11 rounded-xl bg-noir-surface-raised/60"
           required
         />
@@ -62,12 +62,12 @@ export function EsqueciSenhaForm({ onVoltar }: { onVoltar: () => void }) {
         className="portal-tap h-11 w-full gap-2 rounded-xl bg-primary text-primary-foreground hover:bg-purple-dark"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-        Enviar link de recuperação
+        Send recovery link
       </Button>
 
       <Button type="button" variant="ghost" className="w-full gap-2" onClick={onVoltar}>
         <ArrowLeft className="h-4 w-4" />
-        Voltar ao login
+        Back to sign in
       </Button>
     </form>
   )

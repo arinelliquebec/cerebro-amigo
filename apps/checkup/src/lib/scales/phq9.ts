@@ -41,7 +41,7 @@ export const phq9: Scale = {
   ],
   // Conferido char-a-char contra PDF oficial phqscreeners "Portuguese for Brazil" (2026-06-11):
   // conteúdo bate (itens 1-7,9 e opções idênticos; item 8 corrigido — faltava "muito").
-  // Cosmética decidida (Rafael, 2026-06-11): notação (a)/(o) + ortografia moderna = house style.
+  // Cosmética decidida (Patrick, 2026-06-11): notação (a)/(o) + ortografia moderna = house style.
   validated: true,
   source: "PHQ-9 oficial PT-BR, autorrelato (tradução Pfizer/MapiTrust; back-translation Fraguas Jr. et al., J Affect Disord 2006; phqscreeners.com)",
 };

@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-01
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Produto / Segurança clínica
 **Relaciona:** ADR-007 (gateway .NET), regra clínica "médico no loop"
 

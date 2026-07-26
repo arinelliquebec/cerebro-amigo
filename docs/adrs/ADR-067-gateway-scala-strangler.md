@@ -2,7 +2,7 @@
 
 **Status:** ❌ **Superseded by [ADR-071](ADR-071-manter-dotnet-remover-scala.md)** (era Accepted 2026-06-18 → Paused 2026-06-21 → Superseded 2026-06-21)
 **Data:** 2026-06-18 · **Superseded:** 2026-06-21
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Stack / Arquitetura
 **Supersede:** ADR-007 (gateway = .NET 10, não Go) — **suspenso enquanto pausado: o gateway segue .NET 10 em prod**
 **Relaciona:** ADR-042 (RLS de tenant), ADR-035 (trava server-side de prompts), ADR-018 (cifragem em repouso), ADR-041 (entrega garantida do alerta de crise)

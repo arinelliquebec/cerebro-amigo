@@ -2,7 +2,7 @@
 
 **Status:** Accepted — Fases A/B/D implementadas (PRs #58/#59); Fase C/E pendentes.
 **Data:** 2026-06-15
-**Decisores:** Dono (Rafael) + equipe de engenharia; revisão `clinical-safety` do gate: **OK** (ver "Decisão de implementação do gate").
+**Decisores:** Dono (Patrick) + equipe de engenharia; revisão `clinical-safety` do gate: **OK** (ver "Decisão de implementação do gate").
 **Categoria:** Produto / Negócio / Segurança clínica
 **Relação:** estende e revê a premissa de **trial** do **ADR-034** (cobrança recorrente)
 e do **ADR-046** (onboarding cria assinatura `trial` de 30 dias). Não cria modelo
