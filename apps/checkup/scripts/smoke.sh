@@ -2,7 +2,7 @@
 # Smoke E2E do checkup contra um servidor já no ar (BASE_URL, default localhost:3001).
 # CI-safe: sem DB nem ANTHROPIC_API_KEY — devolutiva cai no fallback estático,
 # /api/events retorna ok sem gravar, e o PDF (puro server-side) é o check que pegou
-# o 500 do @react-pdf/renderer. Usado como gate pré-deploy (.github/workflows/deploy.yml).
+# o 500 do @react-pdf/renderer. Pode ser usado como gate antes da promoção Vercel.
 set -uo pipefail
 BASE="${1:-http://localhost:3001}"
 UUID="00000000-0000-4000-8000-000000000000"

@@ -53,6 +53,15 @@ Azure eastus2 — somente dados fictícios
 > `sa-east-1` abaixo documentam o deployment anterior, integrações opcionais ou
 > runbooks históricos. Elas não descrevem a hospedagem pública atual.
 
+### Delivery atual
+
+- `apps/web` e `apps/checkup`: promoção pela Git Integration da Vercel a partir
+  de `main`.
+- backend e banco: Azure Container Apps/ACR/PostgreSQL conforme `infra/azure/`,
+  com promoção deliberada.
+- GitHub Actions: somente gates de CI. Os workflows AWS órfãos de deploy e restore
+  drill foram removidos na implementação operacional do ADR-080.
+
 ---
 
 ### Demo pública resiliente
@@ -288,7 +297,7 @@ SCHEDULER_INTERVAL_SECONDS
 - `apps/notifier-py/` — portado Python + pywebpush
 - `infra/migrations/` — DDL completo (`0001_init`, `0002_fix_agente_execucoes`, `0003_add_automacao_pausada`), aplicado em RDS
 - `infra/seed/` — seed de demonstração (3 pacientes com histórico clínico, insights, notificações)
-- **ADR-009 (parte deploy):** `.github/workflows/deploy.yml` reescrito — builds no CI (GitHub Actions → ECR `sa-east-1`); EC2 faz `compose pull + up -d` (sem `--build`); health+ready checks pós-deploy. `docker-compose.yml` com `image:` ECR + limites de recurso batch (mem_limit/cpus em agents-py e notifier-py; orchestrator sem teto).
+- **ADR-009 (histórico de deploy AWS):** o antigo workflow GitHub Actions → ECR → EC2 foi removido após o ADR-080. Os Dockerfiles, compose e limites de recurso permanecem como referência local/histórica, sem automação ativa contra AWS.
 - `infra/aws/setup-ecr.sh` — script de bootstrap ECR (5 repos, lifecycle policy, IAM pull policy)
 - Testes unitários verdes: orchestrator-py 19/19, agents-py 52/52 ✓; conftest fixado
 
@@ -298,7 +307,7 @@ SCHEDULER_INTERVAL_SECONDS
 - **PR 3**: scipy/numpy no agents-py (`padroes.py`) para `asyncio.to_thread` — impede bloqueio do event loop na triagem de crise do diário
 - **PR 4 (ADR a criar)**: fechar lacuna de SHADOW_MODE em agents-py (default `true`, crise isenta). NOTA: o número 011 referido no ADR-009 já foi usado pelo enforcement de custo; renumerar ao criar.
 - **PR 5 (ADR a criar)**: consolidar triagem de crise do diário (`services/crisis.py`, `/internal/diario/*`) no orchestrator-py; agents-py vira batch puro
-- **PR 7 (ops)**: criar repositórios ECR (`setup-ecr.sh`), configurar secrets CI, primeiro deploy via ECR
+- **PR 7 (ops, histórico AWS):** criação de ECR e primeiro deploy; supersedido para o portfólio pelo ADR-080.
 - **PR 8**: multi-stage Dockerfiles Python (remover `build-essential` do runtime)
 - **ADR-014**: implementar Fase 1 (dedup-no-SQL em `_listar_candidatos` do risco_silencioso)
 

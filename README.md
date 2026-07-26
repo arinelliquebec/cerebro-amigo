@@ -131,7 +131,7 @@ Boundaries were drawn by responsibility, not by language preference:
 | Transactional core | ASP.NET Core / .NET 10 | REST, JWT, access rules, EF Core, and event proxying. |
 | AI & automation | Python 3.12, FastAPI, LangGraph | Orchestration, classification, RAG, jobs, and integrations. |
 | Data | PostgreSQL, pgvector, pgcrypto | Relational model, vector search, encryption, and multi-tenant RLS. |
-| Delivery | Vercel, Azure Container Apps, GitHub Actions | Public portfolio delivery, reproducible builds, and quality gates. |
+| Delivery | Vercel Git Integration, Azure Container Apps/ACR, GitHub Actions CI | Public portfolio delivery, reproducible builds, and quality gates without an active AWS deploy workflow. |
 
 For the full map, see [docs/CONTEXT.md](./docs/CONTEXT.md). Architectural decisions are recorded in [docs/adrs](./docs/adrs).
 

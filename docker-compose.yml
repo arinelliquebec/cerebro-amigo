@@ -6,8 +6,8 @@
 #
 # image: → ECR em produção (tag = IMAGE_TAG=$GITHUB_SHA, definido pelo CI).
 # build: → SÓ dev local; "docker compose up --build" constrói localmente.
-#   PROD NUNCA builda: o deploy (deploy.yml) usa `up -d --no-build` → box só dá pull
-#   do ECR; build é 100% no CI (build-clinical/bake). Ver docs/runbooks/ec2-disk-hygiene.md.
+#   HISTÓRICO AWS: o antigo deploy usava `up -d --no-build` → box só dava pull
+#   do ECR. Não há workflow AWS ativo; o portfólio atual segue o ADR-080.
 # IMAGE_TAG não setado em dev → usa tag "latest" (construa local antes: docker compose build).
 #
 # ─── Isolamento de recurso (ADR-009, revisado pelo ADR-077) ──────────────────
@@ -165,7 +165,7 @@ services:
   # parou em 1/62 rotas (só /api/v1/auth/me, nunca flipado no BFF → ocioso em prod).
   # Coexistência custava JVM ~192MB + travava o rightsizing da EC2, sem ganho. Source
   # segue em apps/api-gateway-scala/ + imagem no ECR (recuperável). Reativar = restaurar
-  # este bloco + religar o target no bake/deploy.yml. Ver ADR-067 (Paused).
+  # este bloco + religar o target no bake e definir um novo deploy. Ver ADR-067 (Paused).
 
   orchestrator-py:
     image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/orchestrator-py:${IMAGE_TAG:-latest}
@@ -288,4 +288,4 @@ services:
   # própria (ALB + Auto Scaling Group), ver ADR-045 + infra/aws/checkup-asg-alb.yaml.
   # Superfície pública anônima isolada do box clínico (caminho de crise). Deploy do
   # checkup = build no CI → ECR → bump SSM /cerebro-amigo/checkup/image-tag + instance
-  # refresh do ASG `cerebro-checkup-asg` (job `deploy-checkup` em deploy.yml).
+  # refresh do antigo ASG `cerebro-checkup-asg` (histórico ADR-045).

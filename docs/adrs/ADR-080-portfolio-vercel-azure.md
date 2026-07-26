@@ -120,3 +120,25 @@ AWS só pode ser removida depois de todos os itens abaixo:
 - Schedulers não ficam residentes; jobs agendados serão adicionados após o core.
 - Algumas integrações caras ficam desligadas até ganharem provider Azure.
 - O compromisso AWS continua sendo cobrado durante a coexistência.
+
+## Amendment operacional — 2026-07-26
+
+O workflow `.github/workflows/deploy.yml` ainda disparava em todo push para
+`main` e tentava publicar em ECR, uma instância SSM e ASGs já ausentes ou
+inativos. O problema foi observado em produção: o build ECR terminou, mas o
+deploy falhou com instância inválida e ASG inexistente, embora o domínio público
+continuasse atendido pela Vercel.
+
+Para alinhar a automação a este ADR:
+
+- o workflow AWS órfão foi removido;
+- o restore drill agendado do antigo RDS também foi removido, pois seu banco e
+  box de validação não pertencem ao runtime atual;
+- `apps/web` e `apps/checkup` continuam promovidos pela Git Integration da
+  Vercel;
+- o backend permanece em Azure Container Apps/ACR conforme `infra/azure/`, com
+  promoção deliberada até que um workflow Azure específico seja aprovado.
+
+Os arquivos em `infra/aws/` permanecem somente como material histórico ou de
+referência. Nenhum workflow ativo deve tratar AWS como destino do portfólio sem
+novo ADR.

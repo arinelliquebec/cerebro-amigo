@@ -72,7 +72,7 @@ infra/
 docs/
   CONTEXT.md        arquitetura completa (leia ao planejar)
   DEBT.md           dívida técnica viva (consulte antes de propor melhorias)
-  adrs/             ADR-001..073
+  adrs/             ADR-001..081+
   runbooks/         operação (restore RDS, swap de roles, drills, cutovers)
 .claude/skills/     conhecimento de domínio carregado sob demanda
 ```
@@ -97,7 +97,8 @@ docs/
 ```bash
 docker compose up -d --build      # precisa de .env preenchido
 ```
-> Em **prod nunca** se builda: o deploy faz `docker compose pull && up -d --no-build` com `IMAGE_TAG` do ECR.
+> O compose é apenas para desenvolvimento/local. No portfólio atual, os frontends
+> são promovidos pela Git Integration da Vercel e o backend segue `infra/azure/`.
 
 ### Web (`apps/web`) — porta 3000
 ```bash
@@ -225,8 +226,9 @@ Rode os testes da área que você tocou antes de considerar a tarefa pronta.
 ## CI/CD
 
 - **CI (`.github/workflows/ci.yml`):** Trivy (gate CRITICAL) · Python ruff + pytest (3 serviços) · .NET build + xUnit/Testcontainers · integração Postgres real + smoke · build web · checkup vitest + build.
-- **Workflow AWS histórico (`deploy.yml`):** preserva o pipeline do deployment anterior e não descreve o runtime público atual. O portfólio atual segue o ADR-080: frontend Vercel, imagens no ACR e backend/banco Azure em `eastus2`.
-- **CI não builda o checkup em PR** (só `apps/web`); o checkup é validado no job próprio.
+- **Deploy frontend:** Git Integration da Vercel promove os projetos `apps/web` e `apps/checkup`; não há workflow AWS ativo.
+- **Deploy backend:** Azure Container Apps/ACR conforme `infra/azure/`; mudanças de infraestrutura são promovidas deliberadamente, não por um pipeline AWS legado.
+- **CI valida web e checkup em PR:** build strict do web; Vitest + build strict do checkup.
 
 ---
 

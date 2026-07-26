@@ -59,15 +59,15 @@ docs/
   CONTEXT.md      arquitetura completa (fonte da verdade — leia ao planejar)
   DEBT.md         dívida técnica viva — fonte da verdade do "o que falta"
   runbooks/       operação: restore RDS, swap de roles de banco, aplicação de RLS
-  adrs/           ADR-001..044
-.github/workflows/ ci.yml (lint + pytest + xUnit + build) · deploy.yml (ÓRFÃO pós-ADR-079 — apontava p/ topologia ECR/ASG desmontada; não usar até revisão)
+  adrs/           ADR-001..081+
+.github/workflows/ ci.yml (lint + pytest + xUnit + builds); deploy dos frontends pela Git Integration da Vercel
 ```
 
 ## Portas (dev) e health
 
 web `:3000` · api-gateway `:5050`→`:5000` · orchestrator-py `:8081` · agents-py `:8082` · notifier-py `:8083` · checkup `:3001`. Serviços Python e .NET expõem `GET /health` e `GET /ready`; checkup expõe `GET /api/health`. Postgres é **externo** (não vai no docker-compose).
 
-> **Prod (ADR-078/079 — supersede ADR-045):** dois boxes EC2 independentes, cada um com `docker compose` próprio. `cerebro-clinical-box` roda os 5 serviços clínicos + postgres (container) + caddy (TLS) + coturn; `cerebro-checkup-box` roda o checkup isolado (regra de isolamento clínico ⇄ público mantida). **Sem ECR, sem ASG, sem CloudFront, sem RDS.** Build acontece no próprio box (source via tarball no S3). Gestão sem SSH — SSM Session Manager/send-command. Deploy real: `infra/clinical-box/` e `infra/checkup-box/`.
+> **Histórico AWS (ADR-078/079, supersedido no portfólio pelo ADR-080):** os dois boxes EC2 e seus scripts permanecem no repositório apenas como referência/rollback durante a transição. Eles não integram o request path público atual.
 
 ## Comandos
 
@@ -76,7 +76,7 @@ web `:3000` · api-gateway `:5050`→`:5000` · orchestrator-py `:8081` · agent
 - Checkup isolado: `cd apps/checkup && pnpm dev` (porta 3001)
 - Gateway isolado: `cd apps/api-gateway && dotnet run`
 - Migrations: `cd apps/api-gateway && dotnet ef migrations add <Nome> && dotnet ef database update`
-- Deploy (prod): `infra/clinical-box/deploy.sh` / `infra/checkup-box/` (tarball p/ S3 → build e `compose up` no box via SSM — ADR-078/079). O `deploy.yml` do Actions está **órfão** (topologia antiga); push em `main` roda só o `ci.yml` (testes).
+- Deploy do portfólio: Git Integration da Vercel para `apps/web` e `apps/checkup`; Azure Container Apps/ACR conforme `infra/azure/`. Os workflows AWS órfãos foram removidos na implementação do ADR-080.
 
 > Use **pnpm**, não npm/yarn, no `apps/web` e no `apps/checkup`.
 

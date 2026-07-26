@@ -1,7 +1,7 @@
 name: CI
 
-# Gate de testes para pull requests e branches de trabalho. O mesmo gate roda
-# (como pré-requisito do build) em .github/workflows/deploy.yml no push a main.
+# Gate de testes para pull requests e branches de trabalho. O frontend aprovado
+# é promovido pela Git Integration da Vercel; o runtime Azure segue o ADR-080.
 # Tier 0 de segurança clínica: o fail-safe do classificador de crise (ADR-006)
 # e a integridade do dataset de crise são verificados aqui.
 
