@@ -58,9 +58,9 @@ target "api-gateway" {
   platforms  = ["linux/amd64"]
 }
 
-// target "api-gateway-scala" REMOVIDO — ADR-067 PAUSADO (2026-06-21). Não buildado
-// no CI. Source em apps/api-gateway-scala/ + imagem antiga no ECR (recuperável).
-// Reativar = restaurar este target + religar nos groups default/clinical.
+// target "api-gateway-scala" REMOVIDO — ADR-067 pausado, ADR-071 decomissionou.
+// Source fora da árvore desde 2026-07-26: tag git `archive/api-gateway-scala`.
+// Reativar exige novo ADR (restaurar source + target + groups default/clinical).
 
 target "orchestrator-py" {
   context    = "apps/orchestrator-py"

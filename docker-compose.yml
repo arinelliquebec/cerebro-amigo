@@ -161,11 +161,10 @@ services:
       retries: 5
       start_period: 15s
 
-  # api-gateway-scala REMOVIDO do box — ADR-067 PAUSADO (2026-06-21). O strangler
-  # parou em 1/62 rotas (só /api/v1/auth/me, nunca flipado no BFF → ocioso em prod).
-  # Coexistência custava JVM ~192MB + travava o rightsizing da EC2, sem ganho. Source
-  # segue em apps/api-gateway-scala/ + imagem no ECR (recuperável). Reativar = restaurar
-  # este bloco + religar o target no bake e definir um novo deploy. Ver ADR-067 (Paused).
+  # api-gateway-scala REMOVIDO do box — ADR-067 pausado, ADR-071 decomissionou. O
+  # strangler parou em 1/62 rotas (só /api/v1/auth/me, nunca flipado no BFF → ocioso).
+  # Source removida da árvore em 2026-07-26 — preservada na tag git
+  # `archive/api-gateway-scala`. Reativar exige novo ADR.
 
   orchestrator-py:
     image: 004177894935.dkr.ecr.sa-east-1.amazonaws.com/cerebro-amigo/orchestrator-py:${IMAGE_TAG:-latest}

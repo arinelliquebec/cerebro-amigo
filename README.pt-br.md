@@ -187,7 +187,7 @@ docs/
 └── runbooks/            Procedimentos operacionais simulados
 ```
 
-`apps/api-gateway-scala` é código descomissionado preservado apenas como registro histórico; o gateway ativo é .NET 10.
+O experimento descomissionado do gateway em Scala (ADR-067/071) foi removido da árvore; a source está preservada na tag git `archive/api-gateway-scala`. O gateway ativo é .NET 10.
 
 ## Rodando localmente
 
