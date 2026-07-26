@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { ArrowRight, CalendarClock, FileText, ShieldCheck } from "lucide-react"
-import { demoPatients, demoTimeline } from "@/lib/portfolio-demo"
+import { ArrowRight, CalendarClock, CircleCheck, FileText, Fingerprint, Pill, ShieldCheck } from "lucide-react"
+import { demoMedications, demoPatientProfile, demoPatients, demoTimeline } from "@/lib/portfolio-demo"
 import styles from "../demo.module.css"
 
 const weeklyMood = [
@@ -36,6 +36,30 @@ const PatientTimeline = () => (
   </section>
 )
 
+const PatientProfile = () => (
+  <section className={styles.patientProfile} aria-labelledby="patient-profile-title">
+    <header><Fingerprint aria-hidden="true" /><div><p>PATIENT FILE</p><h2 id="patient-profile-title">Synthetic profile</h2></div></header>
+    <dl>{demoPatientProfile.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+  </section>
+)
+
+const MedicationRow = ({ medication }: { medication: (typeof demoMedications)[number] }) => (
+  <article>
+    <span className={styles.medicationIcon}><Pill aria-hidden="true" /></span>
+    <div><strong>{medication.name}</strong><small>{medication.category}</small></div>
+    <span className={styles.medicationState}><CircleCheck aria-hidden="true" /> {medication.state}</span>
+    <time>{medication.confirmation}</time>
+  </article>
+)
+
+const MedicationPanel = () => (
+  <section className={styles.medicationPanel} aria-labelledby="medication-title">
+    <header><div><p>MEDICATION RECORD</p><h2 id="medication-title">Reported current medications</h2></div><span>3 SYNTHETIC ENTRIES</span></header>
+    <div className={styles.medicationList}>{demoMedications.map((medication) => <MedicationRow key={medication.name} medication={medication} />)}</div>
+    <p className={styles.medicationBoundary}><ShieldCheck aria-hidden="true" /><span><strong>Demonstration record only.</strong> Names are illustrative chart facts—not a prescription, regimen, dose or treatment recommendation.</span></p>
+  </section>
+)
+
 const PatientReadout = () => (
   <aside className={styles.patientReadout}>
     <p>SIX-WEEK SYNTHETIC TRACE</p>
@@ -57,6 +81,11 @@ const DemoPatientPage = () => {
   return (
     <>
       <PatientHeader />
+
+      <div className={styles.patientOverviewGrid}>
+        <PatientProfile />
+        <MedicationPanel />
+      </div>
 
       <div className={styles.recordGrid}>
         <PatientTimeline />

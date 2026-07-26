@@ -54,6 +54,36 @@ export const demoTimeline = [
   },
 ] as const
 
+export const demoPatientProfile = [
+  ["Record", "SYN-001"],
+  ["Age range", "35–39"],
+  ["Pronouns", "She / her"],
+  ["Care window", "90 synthetic days"],
+  ["Contact", "Hidden in public demo"],
+  ["Data class", "Fictional only"],
+] as const
+
+export const demoMedications = [
+  {
+    name: "Sertraline",
+    category: "Antidepressant · SSRI",
+    state: "Recorded as current",
+    confirmation: "Fictional confirmation · today",
+  },
+  {
+    name: "Quetiapine",
+    category: "Antipsychotic",
+    state: "Recorded as current",
+    confirmation: "Fictional confirmation · yesterday",
+  },
+  {
+    name: "Clonazepam",
+    category: "Benzodiazepine",
+    state: "Recorded in chart",
+    confirmation: "Fictional confirmation · 5 days ago",
+  },
+] as const
+
 export const demoBriefingFacts = [
   ["Mood entries", "14 synthetic records"],
   ["Journal entries", "3 synthetic records"],
