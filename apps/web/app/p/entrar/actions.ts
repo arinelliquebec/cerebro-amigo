@@ -151,6 +151,12 @@ const validarTrocaSenha = (
   return null
 }
 
+const mensagemErroTrocaSenha = (err: unknown): string => {
+  if (err instanceof GatewayPacienteError && err.status === 401)
+    return "Your current password is incorrect."
+  return "We could not change your password. Please try again."
+}
+
 // ─── Troca de senha (autenticado) ──────────────────────────────────────────
 export async function trocarSenha(
   _prev: PacienteAuthState,
@@ -166,12 +172,10 @@ export async function trocarSenha(
   try {
     await gatewayPaciente.post("/api/v1/auth/paciente/senha", { senhaAtual, novaSenha })
   } catch (err) {
-    if (err instanceof GatewayPacienteError && err.status === 401)
-      return { error: "Your current password is incorrect." }
-    return { error: "We could not change your password. Please try again." }
+    return { error: mensagemErroTrocaSenha(err) }
   }
 
-  redirect("/p")
+  return redirect("/p")
 }
 
 // ─── Logout ────────────────────────────────────────────────────────────────
