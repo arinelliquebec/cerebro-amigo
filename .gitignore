@@ -5,6 +5,7 @@ __v0_jsx-dev-runtime.ts
 .snowflake/
 .v0-trash/
 .vercel/
+.azure-cerebro/
 
 # Environment variables
 .env
@@ -14,6 +15,7 @@ __v0_jsx-dev-runtime.ts
 
 # Common ignores
 node_modules/
+.pnpm-store/
 .next/
 .DS_Store
 
