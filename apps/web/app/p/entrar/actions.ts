@@ -9,6 +9,7 @@ export interface PacienteAuthState {
 }
 
 const COOKIE_NAME = "paciente_token"
+const PACIENTE_DEMO_EMAIL = "aurora@demo.invalid"
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -112,6 +113,32 @@ export async function entrarComSenha(
   redirect(senhaTemporaria ? "/p/trocar-senha" : destinoSeguro(formData.get("next")))
 }
 
+// Acesso de portfólio: usa o login real do gateway, mas mantém a credencial
+// compartilhada exclusivamente no servidor. A senha nunca integra o FormData,
+// HTML ou bundle enviado ao navegador.
+export async function entrarComoPacienteDemo(
+  _prev: PacienteAuthState,
+  formData: FormData,
+): Promise<PacienteAuthState> {
+  const senha = process.env.DEMO_LOGIN_PASSWORD
+
+  if (!senha) {
+    return { error: "The fictional patient session is temporarily unavailable." }
+  }
+
+  try {
+    const data = await gatewayPaciente.post<{ token: string }>(
+      "/api/v1/auth/paciente/login",
+      { email: PACIENTE_DEMO_EMAIL, senha },
+    )
+    ;(await cookies()).set(COOKIE_NAME, data.token, COOKIE_OPTS)
+  } catch {
+    return { error: "We could not open the fictional patient portal. Please try again." }
+  }
+
+  redirect(destinoSeguro(formData.get("next")))
+}
+
 // ─── Troca de senha (autenticado) ──────────────────────────────────────────
 export async function trocarSenha(
   _prev: PacienteAuthState,
@@ -121,17 +148,19 @@ export async function trocarSenha(
   const novaSenha = formData.get("novaSenha") as string
   const confirmar = formData.get("confirmar") as string
 
-  if (!senhaAtual) return { error: "Informe a senha atual." }
+  if (!senhaAtual) return { error: "Enter your current password." }
   if (!novaSenha || novaSenha.length < 8)
-    return { error: "A nova senha precisa ter pelo menos 8 caracteres." }
-  if (novaSenha !== confirmar) return { error: "As senhas não coincidem." }
+    return { error: "Your new password must contain at least 8 characters." }
+  if (novaSenha !== confirmar) return { error: "The passwords do not match." }
 
   try {
     await gatewayPaciente.post("/api/v1/auth/paciente/senha", { senhaAtual, novaSenha })
   } catch (err) {
     if (err instanceof GatewayPacienteError && err.status === 401)
-      return { error: "Senha atual incorreta." }
-    return { error: "Não foi possível trocar a senha. Tente novamente." }
+      return { error: "Your current password is incorrect." }
+    if (err instanceof GatewayPacienteError && err.status === 409)
+      return { error: "The shared fictional account password cannot be changed." }
+    return { error: "We could not change your password. Please try again." }
   }
 
   redirect("/p")

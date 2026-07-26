@@ -4,23 +4,101 @@ import { useActionState, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, Loader2, KeyRound, Mail } from "lucide-react"
-import { entrarComLink, entrarComSenha, type PacienteAuthState } from "./actions"
+import { AlertCircle, ArrowRight, KeyRound, Loader2, LockKeyhole, Mail, UserRound } from "lucide-react"
+import { entrarComLink, entrarComoPacienteDemo, entrarComSenha, type PacienteAuthState } from "./actions"
 import { EsqueciSenhaForm } from "./esqueci-senha-form"
 
 const inicial: PacienteAuthState = { error: null }
 
-export function EntrarForm({ token, next }: { token?: string; next: string }) {
+export function EntrarForm({ token, next, demoEnabled }: { token?: string; next: string; demoEnabled: boolean }) {
   const modoConvite = Boolean(token)
   const [esqueci, setEsqueci] = useState(false)
+  const [outroAcesso, setOutroAcesso] = useState(false)
   const [state, action, pending] = useActionState(
     modoConvite ? entrarComLink : entrarComSenha,
+    inicial,
+  )
+  const [demoState, demoAction, demoPending] = useActionState(
+    entrarComoPacienteDemo,
     inicial,
   )
 
   // Fluxo de recuperação de senha (só no modo login, sem token de convite).
   if (!modoConvite && esqueci) {
     return <EsqueciSenhaForm onVoltar={() => setEsqueci(false)} />
+  }
+
+  if (!modoConvite && !outroAcesso) {
+    return (
+      <div className="space-y-5">
+        <form action={demoAction} className="space-y-4">
+          <input type="hidden" name="next" value={next} />
+
+          <div className="rounded-2xl border border-primary/20 bg-primary/[0.07] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
+                <UserRound className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.65rem] font-semibold tracking-[0.18em] text-primary">FICTIONAL PORTFOLIO PROFILE</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Aurora · patient portal</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  A ready-to-use synthetic account with medication, mood, journal, and appointment examples.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-primary/15 pt-3 text-xs">
+              <div>
+                <span className="block text-muted-foreground">Login</span>
+                <span className="mt-0.5 block font-medium text-foreground">Already selected</span>
+              </div>
+              <div>
+                <span className="block text-muted-foreground">Password</span>
+                <span className="mt-0.5 flex items-center gap-1.5 font-medium text-foreground">
+                  <LockKeyhole className="h-3 w-3 text-primary" aria-hidden="true" /> Loaded securely
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {demoState.error && (
+            <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{demoState.error}</span>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={demoPending || !demoEnabled}
+            className="portal-tap h-11 w-full rounded-xl bg-primary text-primary-foreground hover:bg-purple-dark"
+          >
+            {demoPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+              <>Enter fictional patient portal <ArrowRight className="h-4 w-4" /></>
+            )}
+          </Button>
+
+          <p className="text-center text-[0.7rem] leading-relaxed text-muted-foreground">
+            No real patient data. The shared credential stays server-side.
+          </p>
+        </form>
+
+        <div className="flex items-center gap-3" aria-hidden="true">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-[0.65rem] font-medium uppercase tracking-[0.16em] text-muted-foreground">or</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setOutroAcesso(true)}
+          className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
+        >
+          Use a different patient account <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -116,6 +194,13 @@ export function EntrarForm({ token, next }: { token?: string; next: string }) {
 
       {!modoConvite && (
         <div className="space-y-2 text-center">
+          <button
+            type="button"
+            onClick={() => setOutroAcesso(false)}
+            className="block w-full text-xs font-medium text-primary underline-offset-2 hover:underline"
+          >
+            Back to one-click fictional access
+          </button>
           <button
             type="button"
             onClick={() => setEsqueci(true)}

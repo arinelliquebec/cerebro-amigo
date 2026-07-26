@@ -111,3 +111,34 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
 END
 $$;
+
+-- Mantém o acesso autenticado da paciente fictícia Aurora sincronizado com o
+-- mesmo segredo gerenciado. O valor em texto puro nunca é persistido.
+INSERT INTO pacientes_credenciais
+  (paciente_id, email, senha_hash, senha_definida_em, senha_temporaria)
+VALUES
+  ('10000000-0000-4000-8000-000000000001', 'aurora@demo.invalid',
+   crypt(:'demo_login_password', gen_salt('bf', 12)), NOW(), FALSE)
+ON CONFLICT (paciente_id) DO NOTHING;
+
+UPDATE pacientes_credenciais
+   SET email = 'aurora@demo.invalid',
+       senha_hash = CASE
+         WHEN senha_hash IS NULL OR senha_hash <> crypt(:'demo_login_password', senha_hash)
+           THEN crypt(:'demo_login_password', gen_salt('bf', 12))
+         ELSE senha_hash
+       END,
+       senha_definida_em = CASE
+         WHEN senha_hash IS NULL OR senha_hash <> crypt(:'demo_login_password', senha_hash)
+           THEN NOW()
+         ELSE senha_definida_em
+       END,
+       senha_temporaria = FALSE,
+       falhas_seguidas = 0,
+       bloqueado_ate = NULL,
+       token_version = token_version + CASE
+         WHEN senha_hash IS NULL OR senha_hash <> crypt(:'demo_login_password', senha_hash)
+           THEN 1
+         ELSE 0
+       END
+ WHERE paciente_id = '10000000-0000-4000-8000-000000000001';

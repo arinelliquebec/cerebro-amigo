@@ -53,7 +53,11 @@ Microsoft.Insights
 - Gateway: `ca-cerebro-gateway` com ingress externo protegido por
   `EDGE_AUTH_SECRET`; `/health` e `/ready` são as únicas probes públicas.
 - Serviços Python: ingress interno, escala `0..1`, modos `shadow`/`manual`.
-- Senha da conta fictícia: somente no segredo `demo-login-password` do Key Vault.
+- Senha das contas fictícias (médico e paciente Aurora): somente no segredo
+  `demo-login-password` do Key Vault. O mesmo valor é configurado como
+  `DEMO_LOGIN_PASSWORD` server-only na Vercel para o acesso de paciente em um clique;
+  ele nunca é enviado ao navegador. O gateway impede a troca de senha em perfis
+  com `contexto.portfolio=true`, mantendo o acesso compartilhado estável.
 
 ## Reset do portfólio
 

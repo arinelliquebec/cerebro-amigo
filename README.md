@@ -1,6 +1,6 @@
 <p align="center"><strong><a href="https://www.cerebroamigo.com.br">www.cerebroamigo.com.br</a></strong></p>
 
-<p align="center"><strong><a href="https://www.cerebroamigo.com.br/demo">View live demo</a></strong> · no account or credentials required · three synthetic patients</p>
+<p align="center"><strong><a href="https://www.cerebroamigo.com.br/demo">View live demo</a></strong> · <strong><a href="https://www.cerebroamigo.com.br/p/entrar">Enter the fictional patient portal</a></strong> · no credentials required</p>
 
 # Cérebro Amigo V3
 
@@ -48,7 +48,7 @@ The goal is not just to simulate screens. The monorepo implements service bounda
 
 This public environment is a portfolio demonstration, not an active medical service. It makes **no claim of data residency in Brazil**, and real patient or clinical data must not be entered. AWS files and runbooks describe the previous deployment or reference architecture; AWS is not part of the current public request path. See the [canonical runtime statement](./docs/CURRENT-PORTFOLIO-RUNTIME.md) and [ADR-080](./docs/adrs/ADR-080-portfolio-vercel-azure.md).
 
-The recruiter-facing [`/demo`](https://www.cerebroamigo.com.br/demo) experience offers separate physician and patient tours from the same fictional portfolio snapshot. It deliberately does not depend on the clinical backend, so Azure cold starts cannot block inspection. The patient route includes local mood, medication and simulated voice-recording interactions without accessing the microphone. The authenticated product continues to exercise the full runtime above. See [ADR-081](./docs/adrs/ADR-081-resilient-public-demo.md).
+The recruiter-facing [`/demo`](https://www.cerebroamigo.com.br/demo) experience offers separate physician and patient tours from the same fictional portfolio snapshot. It deliberately does not depend on the clinical backend, so Azure cold starts cannot block inspection. The patient route includes local mood, medication and simulated voice-recording interactions without accessing the microphone. Recruiters can also enter the [authenticated fictional patient portal](https://www.cerebroamigo.com.br/p/entrar) in one click: the shared credential remains server-side while the normal gateway authentication and `httpOnly` session flow are exercised. See [ADR-081](./docs/adrs/ADR-081-resilient-public-demo.md).
 
 ## Product
 
