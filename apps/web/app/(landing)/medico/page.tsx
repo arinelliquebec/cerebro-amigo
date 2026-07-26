@@ -65,7 +65,7 @@ export default function MedicoLandingPage() {
           <Link href="/precos">Pricing</Link>
           <Link href="/paciente">For patients</Link>
         </nav>
-        <Link className={styles.headerAction} href="/login">Sign in <ArrowRight aria-hidden="true" /></Link>
+        <Link className={styles.headerAction} href="/demo">View live demo <ArrowRight aria-hidden="true" /></Link>
       </header>
       <Suspense fallback={null}>
         <CheckupQrBanner variant="signal" />
@@ -77,10 +77,10 @@ export default function MedicoLandingPage() {
           <h1 id="physician-title">No follow-up appointment should start from zero<em>.</em></h1>
           <p className={styles.heroCopy}>The patient records the interval. The system organizes the signals. You arrive with context — and remain the clinical authority.</p>
           <div className={styles.heroActions}>
-            <Link className={styles.primaryAction} href="/medicos/cadastro">Create account <ArrowRight aria-hidden="true" /></Link>
-            <Link className={styles.secondaryAction} href="/login">I already have an account</Link>
+            <Link className={styles.primaryAction} href="/demo">View live demo <ArrowRight aria-hidden="true" /></Link>
+            <Link className={styles.secondaryAction} href="/login">Physician sign in</Link>
           </div>
-          <p className={styles.inviteNote}>Care, clinical records, scheduling and briefings in one flow.</p>
+          <p className={styles.inviteNote}>No credentials. Three synthetic patients. A four-step read-only tour.</p>
         </div>
 
         <div className={styles.signalConsole} aria-label="Clinical flow between appointments">
@@ -146,10 +146,10 @@ export default function MedicoLandingPage() {
       </section>
 
       <section className={styles.finalCta} aria-labelledby="physician-cta-title">
-        <div><p>PHYSICIAN WORKSPACE · PROFESSIONAL ACCESS</p><h2 id="physician-cta-title">Follow the interval. Decide with context.</h2><span>Create your account and configure the first care cycle.</span></div>
+        <div><p>PHYSICIAN WORKSPACE · PUBLIC DEMO</p><h2 id="physician-cta-title">Follow one signal through the system.</h2><span>Enter the fictional account instantly—no credentials or clinical backend required.</span></div>
         <div className={styles.ctaActions}>
-          <Link className={styles.primaryAction} href="/medicos/cadastro">Create account <ArrowRight aria-hidden="true" /></Link>
-          <Link className={styles.secondaryAction} href="/precos">View pricing</Link>
+          <Link className={styles.primaryAction} href="/demo">View live demo <ArrowRight aria-hidden="true" /></Link>
+          <Link className={styles.secondaryAction} href="/medicos/cadastro">Create physician account</Link>
         </div>
       </section>
 
