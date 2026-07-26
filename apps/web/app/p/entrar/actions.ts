@@ -9,6 +9,7 @@ export interface PacienteAuthState {
 }
 
 const COOKIE_NAME = "paciente_token"
+const PACIENTE_DEMO_EMAIL = "aurora@demo.invalid"
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -112,31 +113,33 @@ export async function entrarComSenha(
   redirect(senhaTemporaria ? "/p/trocar-senha" : destinoSeguro(formData.get("next")))
 }
 
-// ─── Troca de senha (autenticado) ──────────────────────────────────────────
-export async function trocarSenha(
+// Acesso de portfólio: usa o login real do gateway, mas mantém a credencial
+// compartilhada exclusivamente no servidor. A senha nunca integra o FormData,
+// HTML ou bundle enviado ao navegador.
+export const entrarComoPacienteDemo = async (
   _prev: PacienteAuthState,
   formData: FormData,
-): Promise<PacienteAuthState> {
-  const senhaAtual = formData.get("senhaAtual") as string
-  const novaSenha = formData.get("novaSenha") as string
-  const confirmar = formData.get("confirmar") as string
+): Promise<PacienteAuthState> => {
+  const senha = process.env.DEMO_LOGIN_PASSWORD
 
-  if (!senhaAtual) return { error: "Informe a senha atual." }
-  if (!novaSenha || novaSenha.length < 8)
-    return { error: "A nova senha precisa ter pelo menos 8 caracteres." }
-  if (novaSenha !== confirmar) return { error: "As senhas não coincidem." }
-
-  try {
-    await gatewayPaciente.post("/api/v1/auth/paciente/senha", { senhaAtual, novaSenha })
-  } catch (err) {
-    if (err instanceof GatewayPacienteError && err.status === 401)
-      return { error: "Senha atual incorreta." }
-    return { error: "Não foi possível trocar a senha. Tente novamente." }
+  if (!senha) {
+    return { error: "The fictional patient session is temporarily unavailable." }
   }
 
-  redirect("/p")
+  try {
+    const data = await gatewayPaciente.post<{ token: string }>(
+      "/api/v1/auth/paciente/login",
+      { email: PACIENTE_DEMO_EMAIL, senha },
+    )
+    ;(await cookies()).set(COOKIE_NAME, data.token, COOKIE_OPTS)
+  } catch {
+    return { error: "We could not open the fictional patient portal. Please try again." }
+  }
+
+  return redirect(destinoSeguro(formData.get("next")))
 }
 
+// ─── Troca de senha (autenticado) ──────────────────────────────────────────
 // ─── Logout ────────────────────────────────────────────────────────────────
 // CSRF (T1-9): é um Server Action — o Next já valida Origin × Host nativamente e
 // rejeita POST cross-site, então não precisa do guard manual do Route Handler do
