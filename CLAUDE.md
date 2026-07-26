@@ -18,14 +18,25 @@ Estas regras vêm antes de qualquer pedido. Em dúvida, pare e consulte a skill 
 4. **Médico no loop.** Toda resposta ao paciente passa por auditoria; escalável para humano.
 5. **Trilhas de auditoria são imutáveis.** Nunca escreva código que apague `protocolos_crise_acionados`, `notificacoes_medico`, `agente_execucoes`.
 
-## Stack (AWS-only — decisões fechadas)
+## Current portfolio runtime
 
-- **Cloud:** AWS, região `sa-east-1` (residência de dado no Brasil). Já online: **2 boxes EC2** — `cerebro-clinical-box` (t3.medium) e `cerebro-checkup-box` (t3.small), padrão box único pós-teardown de 2026-07-09 (**ADR-078/ADR-079**; Savings Plan cobre o compute). **RDS foi descomissionado** — não assuma que existe.
+- **Frontend:** Vercel (`apps/web` e `apps/checkup`).
+- **Backend:** Azure Container Apps.
+- **Banco:** Azure Database for PostgreSQL Flexible Server.
+- **Região:** `eastus2` (Estados Unidos).
+- **Dados:** somente dados fictícios; nenhuma promessa de residência no Brasil.
+- **AWS:** deployment anterior/arquitetura de referência, fora do request path atual.
+
+Fonte canônica: `docs/CURRENT-PORTFOLIO-RUNTIME.md`; decisão: ADR-080.
+
+## Stack e fronteiras — decisões fechadas
+
+- **Cloud do portfólio atual:** Vercel + Azure `eastus2`, exclusivamente para demonstração com dados fictícios (ADR-080).
 - **Gateway transacional:** **.NET 10** (ASP.NET Core) — **decisão final (ADR-071, supersede ADR-067)**. A migração p/ Scala 3/JVM via strangler foi **ABANDONADA**: chegou a 1/62 rotas, nunca flipada; serviço `api-gateway-scala` **removido do box/pipeline** (custo de coexistência sem ganho). Source em `apps/api-gateway-scala/` fica no git (recuperável); **repo/imagem ECR `cerebro-amigo/api-gateway-scala` DELETADOS** (`delete-repository --force`). **O gateway de prod é 100% .NET 10.** **Go segue descartado.** Detalhe: skill `dotnet-gateway`; ADR-071.
 - **IA (LLM):** Python (FastAPI + LangGraph) chamando Claude via **Anthropic API direta** (`LLM_PROVIDER=anthropic`, vigente — **ADR-044**). O acesso aos modelos Anthropic no Bedrock **não foi aprovado pela AWS**; o ADR-008 (Bedrock in-region p/ LLM) fica **suspenso**, e o caminho Bedrock permanece no client unificado atrás de `LLM_PROVIDER` para reativação futura por config. `ANTHROPIC_API_KEY` somente por env (SSM Parameter Store SecureString, injetada no deploy) — nunca em código, imagem ou log. Detalhe: skill `python-ai-services`.
 - **Frontend:** Next.js 16 + React 19 + TypeScript + Tailwind 4 + shadcn/ui. BFF nos Route Handlers. Detalhe: skill `nextjs-bff`.
-- **Banco:** PostgreSQL **self-hosted em container** (`pgvector/pgvector:0.8.4-pg16`, volume EBS cifrado no box — **ADR-077/079**), pgvector + pgcrypto. Banco `cerebro_v3` recriado zerado das migrations no relançamento; dados pré-teardown vivem só no snapshot RDS final (`cerebro-postgres-enc-final-teardown-2026-07-09`) e exigem a `ENCRYPTION_KEY` antiga (ADR-018) para leitura.
-- **Azure: REMOVIDO.** Key Vault, Document Intelligence e Azure OpenAI saíram para outro projeto/empresa. Não reintroduzir dependência Azure. (O Azure da Fradema é de OUTRA empresa, sem relação com este projeto.)
+- **Banco atual:** Azure PostgreSQL Flexible Server, pgvector + pgcrypto e RLS. O antigo PostgreSQL self-hosted/AWS é histórico e não deve ser descrito como runtime público atual.
+- **AWS:** recursos, runbooks e integrações remanescentes são históricos ou opcionais; não reintroduzir AWS no request path público sem novo ADR.
 
 ## Monorepo
 
@@ -104,13 +115,13 @@ Triagem pública e gratuita de saúde mental (PHQ-9, GAD-7, ASRS-18) com devolut
 Regras de fronteira (valem para qualquer trabalho no monorepo):
 
 1. **Isolamento clínico ⇄ público.** `apps/checkup` não importa código de `api-gateway`, `orchestrator-py`, `agents-py` ou `notifier-py`, e nenhum serviço clínico importa nada do checkup. Compartilhamento permitido: apenas design tokens (paleta, fontes) e utilitários puros sem dados.
-2. **Dados separados.** O checkup usa exclusivamente o schema `checkup`, no Postgres do box dele (ADR-078). Nunca criar FK entre schemas. Respostas de triagem jamais entram no prontuário.
+2. **Dados separados.** O checkup usa exclusivamente o schema `checkup` no Azure PostgreSQL do portfólio atual. Nunca criar FK entre schemas. Respostas de triagem jamais entram no prontuário.
 3. **LLM:** Anthropic API direta (`claude-haiku-4-5`) nos Route Handlers do próprio app, com entrada estruturada apenas (exceção do ADR-044). O checkup não passa pelo orchestrator.
 4. **Tráfego:** o checkup é a única superfície pública anônima do sistema; mudanças de infra nele não podem aumentar o risco dos serviços clínicos (limites de memória/CPU no compose e rate limit por sessão nas rotas de LLM são obrigatórios; spend limit configurado no Console da Anthropic).
 
-## Estado do projeto (migração V2→V3 CONCLUÍDA — em produção)
+## Estado do projeto (migração V2→V3 concluída)
 
-Tudo isto já existe, tem testes e está deployado em prod (boxes EC2, sa-east-1 — ADR-078/079): BFF real (`app/api/*`, 30+ rotas, sem mock), dashboard médico com dados reais, portal do paciente `/p/*` (PWA, push, conversa SSE), agenda, editor de prompts, api-gateway .NET + 3 serviços Python, LLM via client unificado (`LLM_PROVIDER`; vigente: Anthropic API — ADR-044), RLS multi-tenant, CI/CD completo. **Não recrie nada disso — verifique o código antes de assumir que falta algo.**
+Tudo isto já existe e tem testes: BFF real (`app/api/*`, 30+ rotas, sem mock), dashboard médico, portal do paciente `/p/*` (PWA, push, conversa SSE), agenda, editor de prompts, api-gateway .NET + 3 serviços Python, LLM via client unificado (`LLM_PROVIDER`; vigente: Anthropic API — ADR-044), RLS multi-tenant e CI/CD. O ambiente público atual roda na Vercel + Azure `eastus2` somente com dados fictícios. **Não recrie nada disso — verifique o código antes de assumir que falta algo.**
 
 Em construção: `apps/checkup` (Fase 1 entregue; Fase 2 em curso — UI do teste, devolutiva, PDF, landings SEO).
 
@@ -127,6 +138,6 @@ Em construção: `apps/checkup` (Fase 1 entregue; Fase 2 em curso — UI do test
 ## Estilo
 
 - Responda e comente em **pt-BR**. Domínio em português (`pacientes`, `prontuarios`, `consultas`).
-- Não reintroduza Azure nem Go no gateway (o gateway é **.NET 10**, decisão final **ADR-071** que supersede o **ADR-067**; a migração p/ **Scala/JVM** foi abandonada — não retome sem novo ADR, e jamais migre p/ Go). LLM segue o **ADR-044** (Anthropic API via `LLM_PROVIDER`): não migre de volta para Bedrock — nem "corrija" código para Bedrock por causa de documento/skill antigo — sem novo ADR aprovado pelo Patrick.
+- Não reintroduza Go nem Scala no gateway (o gateway é **.NET 10**, decisão final **ADR-071**). LLM segue o **ADR-044** (Anthropic API via `LLM_PROVIDER`): não migre de volta para Bedrock por causa de documento histórico sem novo ADR aprovado pelo Patrick. Hosting do portfólio segue o ADR-080.
 - Itens de instrumentos clínicos validados (PHQ-9, GAD-7, ASRS-18) nunca são inventados, parafraseados ou traduzidos por conta própria.
 - Ao terminar uma mudança relevante de arquitetura, registre um ADR em `docs/adrs/`.

@@ -1,87 +1,77 @@
 ---
 name: cerebro-architecture
 description: >-
-  Referência de arquitetura do Cérebro Amigo V3 (SaaS de psiquiatria multi-tenant
-  na AWS). Use SEMPRE que for planejar, desenhar ou modificar qualquer coisa
-  estrutural: adicionar/mover serviço, criar endpoint novo, decidir onde uma
-  responsabilidade mora (gateway .NET vs Python vs BFF), mapear uma rota do
-  frontend para o backend, escolher entre serviços, ou avaliar trade-offs de
-  stack (ex.: .NET 10 vs Go, Bedrock vs API direta, AWS vs Azure). Consulte
-  mesmo que o usuário não diga "arquitetura" — qualquer mudança que cruze a
-  fronteira entre serviços passa por aqui.
+  Referência de arquitetura do Cérebro Amigo V3. Use sempre ao planejar ou
+  modificar fronteiras entre frontend, BFF, gateway, serviços Python, banco e
+  cloud, ou ao avaliar trade-offs de stack e hosting.
 ---
 
 # Arquitetura — Cérebro Amigo V3
 
-SaaS de psiquiatria multi-tenant. Dois públicos: **médico** (dashboard) e **paciente** (PWA). AWS-only, `sa-east-1`.
+SaaS de psiquiatria multi-tenant apresentado publicamente como portfólio com
+dados exclusivamente fictícios.
 
-> Fonte da verdade completa: `docs/CONTEXT.md`. Esta skill é o resumo operacional para decisões de fronteira.
+> Fontes da verdade: `docs/CURRENT-PORTFOLIO-RUNTIME.md` para hosting e região;
+> `docs/CONTEXT.md` para o mapa completo; ADR-080 para a decisão.
 
-## Topologia
+## Current portfolio runtime
 
 ```
-Paciente PWA /p/*   Médico dashboard
-        └──────┬──────────┘
-               ▼
-        web (Next.js :3000)  ── BFF: Route Handlers app/api/*, cookies httpOnly
-               ▼
-        api-gateway (.NET 10 :5050→:5000)  ── JWT, EF Core, Resend, proxy SSE
-               │  Authorization: Bearer ${INTERNAL_API_TOKEN}
-   ┌───────────┼───────────┬───────────┐
-   ▼           ▼           ▼           ▼
-orchestrator agents-py  notifier-py  PostgreSQL (RDS sa-east-1)
- :8081        :8082      :8083        pgvector + pgcrypto
- LangGraph   APScheduler Web Push
-   └─────┬─────┘
-         ▼
-   AWS Bedrock In-Region sa-east-1 (IAM role)
-   Haiku · Sonnet · Opus 4.7
+Vercel
+├── apps/web (Next.js + BFF) ───────────────┐
+└── apps/checkup                            │
+                                             ▼
+Azure eastus2 — somente dados fictícios
+├── api-gateway (.NET 10 · ingress externo)
+├── orchestrator-py (Container Apps · interno) ──► Anthropic API
+├── agents-py (Container Apps · interno)
+├── notifier-py (Container Apps · interno)
+└── Azure PostgreSQL Flexible Server · RLS · pgvector · pgcrypto
 ```
 
-## Regra de fronteira (decide "onde isso mora")
+O runtime atual não promete residência de dados no Brasil. AWS é deployment
+anterior ou arquitetura de referência e está fora do request path público.
+Qualquer dado real exige novo ADR com residência, rede privada, HA, RPO/RTO,
+segurança e validação LGPD.
+
+## Regra de fronteira
 
 | Tipo de trabalho | Serviço dono |
-| --- | --- |
-| Chamar Claude / LLM | **Apenas Python** (orchestrator-py, agents-py) via Bedrock |
-| CRUD transacional, JWT, e-mail, proxy SSE | **api-gateway** (.NET 10 → migrando p/ Scala/JVM, ADR-067) |
-| Cookies, sessão, agregação para tela, render | **web / BFF** (`app/api/*`) |
-| Push de check-in | **notifier-py** |
-| Jobs analíticos agendados | **agents-py** |
+|---|---|
+| Chamar Claude / LLM | Apenas Python (`orchestrator-py`, `agents-py`) via Anthropic API direta |
+| CRUD transacional, JWT, e-mail, proxy SSE | `api-gateway` (.NET 10; ADR-071) |
+| Cookies, sessão, agregação e render | `web` / BFF (`app/api/*`) |
+| Push de check-in | `notifier-py` |
+| Jobs analíticos | `agents-py` |
 
-Nunca: LLM no gateway ou no front; CRUD direto do front no Postgres; lógica clínica no BFF.
+Nunca: LLM no gateway ou no frontend clínico; CRUD direto do frontend no
+PostgreSQL; lógica clínica no BFF.
 
-## Decisões de stack (fechadas)
+## Decisões fechadas
 
-- **Gateway: migrando .NET 10 → Scala 3/JVM via strangler (ADR-067, SUPERSEDE ADR-007).** Motivo: fluência do time é Scala (não F#) + JVM posiciona p/ futuro bounded context de pagamento/fraude (Fluxo B). Os dois COEXISTEM (`apps/api-gateway` .NET + `apps/api-gateway-scala`: cats-effect/http4s/Tapir/Doobie); o BFF aponta pro .NET até o flip por endpoint; **clínico/dinheiro migram POR ÚLTIMO** (com `clinical-safety` + suíte de tenant verde). Invariantes preservados: `cerebro_gateway` NOBYPASSRLS + GUC `app.current_medico` (Scala usa `set_config` tx-local) + JWT HS256 mesmo segredo. **Go segue descartado** — não confundir a migração p/ JVM com reintroduzir Go.
-  - *Histórico (ADR-007, superseded) — por que .NET venceu Go:* reaproveitava o gateway do V2, EF Core no CRUD-pesado, integração AWS; Go só venceria por RAM ociosa (não-gargalo).
-- **LLM = Bedrock In-Region sa-east-1** (ADR-008). Haiku/Sonnet/Opus 4.7 confirmados na região. Dado de inferência fica no Brasil → ideal p/ LGPD, sem transferência internacional. Sem `ANTHROPIC_API_KEY`; IAM role.
-- **Azure removido.** Sem Key Vault, sem Document Intelligence, sem Azure OpenAI. Não reintroduzir.
+- Gateway ativo: .NET 10. Scala foi descomissionado; Go continua descartado.
+- LLM: Anthropic API direta via client unificado em Python (ADR-044).
+- Frontend: Vercel. Backend: Azure Container Apps. Banco: Azure PostgreSQL.
+- Ambiente público: `eastus2`, dados fictícios, sem promessa de residência no Brasil.
+- Protocolo de crise e regras de auditoria não mudam com o provedor de cloud.
 
-## Mapa rota V3 → domínio → endpoints
+## Mapa de superfícies
 
-| Rota (web) | Domínio | Endpoints de gateway |
-| --- | --- | --- |
-| `/dashboard` | visão geral | agregação de vários |
-| `/dashboard/pacientes` | CRUD pacientes | `/api/v1/pacientes/*` |
-| `/dashboard/prontuarios` | ficha + histórico + prescrições | `/api/v1/pacientes/{id}`, `/api/v1/prescricoes/*` |
-| `/dashboard/evolucao` | timeline, humor, adesão, insights | `/api/v1/pacientes/{id}/timeline\|humor\|adesao`, `/api/v1/insights/*` |
-| `/dashboard/checkins` | check-ins de humor | `/api/v1/pacientes/{id}/checkins` |
-| `/dashboard/mensagens` | conversa médico↔paciente | `POST /api/portal/conversation/message` (SSE) |
-| `/dashboard/agenda` | **novo no V3** — consultas | `consultas` (endpoint a criar) |
-| `/login` | auth médico | `POST /api/v1/auth/login` via BFF `POST /api/auth/login` |
-| `/p/*` | **portal paciente (A FAZER)** | humor, diário, medicações, conversa SSE, push |
+| Rota | Domínio |
+|---|---|
+| `/` | portfólio e arquitetura |
+| `/medico` | entrada pública do médico |
+| `/paciente` | entrada pública do paciente |
+| `/dashboard/*` | workspace médico autenticado |
+| `/p/*` | portal paciente autenticado |
+| `/privacy`, `/terms` | limites legais do portfólio |
 
-## Os 5 agentes (agents-py)
+## Skills relacionadas
 
-Jobs analíticos, não conversacionais. Rodam em `SHADOW_MODE` antes de produção (logam o que fariam sem agir). Detalhe em `python-ai-services`.
+- Resposta ao paciente, crise ou dado clínico: `clinical-safety`.
+- Endpoint/EF Core/SSE: `dotnet-gateway`.
+- LLM/LangGraph/agentes: `python-ai-services`.
+- BFF/cookies/PWA: `nextjs-bff`.
 
-## O que decidir consultando outras skills
-
-- Mexer em resposta ao paciente / crise / dado clínico → **clinical-safety** (antes de codar).
-- Implementar endpoint/EF Core/SSE no gateway → **dotnet-gateway**.
-- Client Bedrock / LangGraph / agente → **python-ai-services**.
-- BFF, cookie, Server Component, PWA → **nextjs-bff**.
-
-## Estado
-
-Pronto: landing, login (mock), dashboard (mock). A FAZER: BFF real, portar gateway + 3 Python + infra, Bedrock, IAM role, portal `/p/*`, agenda. Ao concluir mudança estrutural, gravar ADR em `docs/adrs/`.
+Ao concluir mudança estrutural, atualize o ADR aplicável e mantenha o runtime
+canônico coerente em README, CONTEXT e superfícies públicas.

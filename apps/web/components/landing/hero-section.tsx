@@ -88,7 +88,7 @@ export async function HeroSection() {
 
             <Reveal delay={0.3}>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                {["LGPD", "AWS Brasil · sa-east-1", "Protocolo de crise"].map((tag) => (
+                {["Dados fictícios", "Azure · eastus2", "Protocolo de crise"].map((tag) => (
                   <div key={tag} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="grid h-5 w-5 place-items-center rounded-full bg-success/10">
                       <CheckCircle className="h-3 w-3 text-success" />

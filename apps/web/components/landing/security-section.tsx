@@ -7,7 +7,7 @@ import { AuroraBackdrop } from "@/components/landing/aurora-backdrop"
 import { Reveal, RevealGroup, RevealItem } from "@/components/landing/reveal"
 
 const securityItems = [
-  "Dados armazenados exclusivamente em servidores AWS no Brasil (sa-east-1)",
+  "Portfólio público com dados exclusivamente fictícios",
   "Criptografia em repouso e em trânsito",
   "Trilhas de auditoria imutáveis para todos os eventos clínicos",
   "Acesso por perfil: médico visualiza apenas seus próprios pacientes",
@@ -15,7 +15,7 @@ const securityItems = [
 
 const securityBadges = [
   { label: "LGPD", desc: "Categoria especial de dado — saúde mental" },
-  { label: "AWS Brasil", desc: "sa-east-1 — residência de dado no País" },
+  { label: "Azure", desc: "eastus2 — sem promessa de residência no Brasil" },
   { label: "Auditoria", desc: "Logs imutáveis de cada evento clínico" },
   { label: "Crise", desc: "Protocolo fixo, pré-aprovado — sem geração dinâmica por IA" },
 ]

@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { InstallPWA } from "@/components/portal/install-pwa"
+import { RuntimeDisclosure } from "@/components/public/runtime-disclosure"
 import styles from "@/components/access/signal-access.module.css"
 
 export const metadata = {
@@ -122,6 +123,8 @@ export default function PacienteLandingPage() {
           <Link href="#privacy">Inspect the boundaries <ArrowRight aria-hidden="true" /></Link>
         </aside>
       </section>
+
+      <RuntimeDisclosure />
 
       <section className={styles.flowSection} id="care-flow" aria-labelledby="daily-title">
         <div className={styles.sectionLead}>

@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { CheckupQrBanner } from "@/components/landing/checkup-qr-banner"
+import { RuntimeDisclosure } from "@/components/public/runtime-disclosure"
 import { Schema, softwareSchema, websiteSchema, breadcrumb } from "@/components/seo/schema"
 import styles from "@/components/access/signal-access.module.css"
 
@@ -109,6 +110,8 @@ export default function MedicoLandingPage() {
           <Link href="#governance">Inspect governance <ArrowRight aria-hidden="true" /></Link>
         </aside>
       </section>
+
+      <RuntimeDisclosure />
 
       <section className={styles.flowSection} id="clinical-flow" aria-labelledby="workflow-title">
         <div className={styles.sectionLead}>

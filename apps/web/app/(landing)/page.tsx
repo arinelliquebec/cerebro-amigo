@@ -28,6 +28,7 @@ import {
   Workflow,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
+import { RuntimeDisclosure } from "@/components/public/runtime-disclosure"
 import styles from "./home.module.css"
 
 export const metadata = {
@@ -70,17 +71,17 @@ const layers = [
   },
   {
     number: "4",
-    name: "POSTGRESQL + RLS",
-    role: "Data + tenant isolation",
-    proof: "Policies, encryption, pgvector and audit trails",
+    name: "AZURE POSTGRESQL",
+    role: "Managed data · eastus2",
+    proof: "Flexible Server, RLS, encryption and audit trails",
     paths: ["infra/migrations/0037_rls_tenant.sql", "0038_rls_tenant_iteracao2.sql"],
     kind: "runtime",
   },
   {
     number: "5",
-    name: "VERCEL",
+    name: "VERCEL FRONTEND",
     role: "Frontend host",
-    proof: "Edge delivery, analytics and preview deployments",
+    proof: "Global edge delivery and preview deployments",
     paths: ["apps/web/vercel.json", "apps/web/next.config.mjs"],
     kind: "hosting",
   },
@@ -88,7 +89,7 @@ const layers = [
     number: "6",
     name: "AZURE CONTAINER APPS",
     role: "Service host",
-    proof: "Scale-to-zero services, managed identity and budgets",
+    proof: "eastus2, scale-to-zero services and managed identity",
     paths: ["infra/azure/apps.bicep", "foundation.bicep"],
     kind: "hosting",
   },
@@ -155,7 +156,7 @@ type SignalStyle = CSSProperties & {
 
 function SignalStack() {
   return (
-    <div className={styles.stackScene} role="img" aria-label="Cérebro Amigo architecture: four runtime layers inside Vercel and Azure hosting envelopes, ending at a human authority boundary">
+    <div className={styles.stackScene} role="img" aria-label="Cérebro Amigo portfolio architecture: frontend on Vercel, services and PostgreSQL in Azure eastus2, fictional demo data only, ending at a human authority boundary">
       <div className={styles.beam} aria-hidden="true" />
       <div className={styles.beamOrigin} aria-hidden="true" />
       <div className={styles.stackGroups} aria-hidden="true">
@@ -305,6 +306,8 @@ export default function RecruiterHomepage() {
           </div>
         </aside>
       </section>
+
+      <RuntimeDisclosure />
 
       <section className={styles.governance} id="governance" aria-labelledby="governance-title">
         <div className={styles.sectionLead}>

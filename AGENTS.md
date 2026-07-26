@@ -8,9 +8,20 @@ Guia para agentes de IA de código (Cursor, Codex, Copilot, Claude Code, etc.) q
 
 ## O que é
 
-SaaS de **psiquiatria, multi-tenant**, que trabalha *entre consultas*: acompanha pacientes, organiza condutas, automatiza lembretes e check-ins. Dois públicos: **médico** (dashboard web) e **paciente** (PWA `/p/*`). Em produção na AWS (EC2 + RDS, `sa-east-1`).
+SaaS de **psiquiatria, multi-tenant**, que trabalha *entre consultas*: acompanha pacientes, organiza condutas, automatiza lembretes e check-ins. Dois públicos: **médico** (dashboard web) e **paciente** (PWA `/p/*`). O ambiente público atual é um portfólio com dados exclusivamente fictícios.
 
-Produto-satélite: **Check-up Mental** (`apps/checkup`) — triagem pública e anônima (PHQ-9, GAD-7, ASRS-18), motor de aquisição. Roda em infra própria (ALB + ASG).
+Produto-satélite: **Check-up Mental** (`apps/checkup`) — triagem pública e anônima (PHQ-9, GAD-7, ASRS-18), motor de aquisição.
+
+## Current portfolio runtime
+
+- Frontend: Vercel.
+- Backend: Azure Container Apps.
+- Banco: Azure Database for PostgreSQL Flexible Server.
+- Região: `eastus2` (Estados Unidos).
+- Dados: somente dados fictícios; nenhuma promessa de residência no Brasil.
+- AWS: deployment anterior/arquitetura de referência, fora do request path atual.
+
+Fonte canônica: `docs/CURRENT-PORTFOLIO-RUNTIME.md`; decisão: ADR-080.
 
 ---
 
@@ -32,12 +43,12 @@ Antes de tocar em resposta ao paciente, conteúdo clínico, crise, prompt de LLM
 
 ## Stack (decisões fechadas — não regredir)
 
-- **Cloud:** AWS, `sa-east-1` (residência de dado no Brasil). EC2 + RDS Postgres.
+- **Cloud do portfólio atual:** Vercel + Azure `eastus2`, somente dados fictícios (ADR-080).
 - **Gateway transacional:** **.NET 10** (ASP.NET Core) — decisão final **ADR-071**. ❌ Não migrar para Go nem Scala (strangler Scala abandonado; source só recuperável). Go descartado.
 - **IA (LLM):** **Python** (FastAPI + LangGraph) chamando Claude via **Anthropic API direta** (`LLM_PROVIDER=anthropic`, **ADR-044**). ❌ Não migrar de volta para Bedrock sem novo ADR. Bedrock continua só para embeddings/RAG in-region (LGPD).
 - **Frontend/BFF:** Next.js 16 + React 19 + TypeScript (strict) + Tailwind 4 + shadcn/ui. BFF nos Route Handlers (`app/api/*`).
-- **Banco:** PostgreSQL (RDS), pgvector + pgcrypto. RLS multi-tenant.
-- ❌ **Azure: REMOVIDO.** Não reintroduzir nenhuma dependência Azure.
+- **Banco:** Azure PostgreSQL Flexible Server, pgvector + pgcrypto. RLS multi-tenant.
+- **AWS:** material histórico/de referência; não descreve o runtime público atual.
 
 ---
 
@@ -55,6 +66,7 @@ apps/
   notifier-py/      FastAPI + pywebpush — Web Push / e-mail de check-ins e crise (:8083)
 infra/
   migrations/       DDL versionado do Postgres (0001..0058+) — FONTE DA VERDADE do schema
+  azure/             Runtime atual do portfólio (Vercel + Container Apps + PostgreSQL)
   aws/              EC2, RDS, ALB, ASG, CloudFront, Lambdas, watchdogs, policies
   ci/, caddy/, scripts/
 docs/
@@ -199,13 +211,13 @@ Rode os testes da área que você tocou antes de considerar a tarefa pronta.
 
 ---
 
-## Segurança / defesas estruturais já em produção (não regrida)
+## Segurança / defesas estruturais implementadas (não regrida)
 
 - **RLS de tenant (ADR-042):** ~17 tabelas com Row-Level Security. Gateway conecta como `cerebro_gateway` (NOBYPASSRLS; tenant via `TenantSessionMiddleware` setando GUC `app.current_medico`/`app.current_paciente`/`app.tenant_bypass`). Workers Python como `cerebro_workers` (BYPASSRLS). **Endpoint/query novo mantém o filtro explícito de tenant E conta com a RLS por baixo.** Só `role=owner` recebe bypass; `admin` (financeiro) não vê tabelas clínicas.
 - **Trava server-side dos prompts de salvaguarda (ADR-035):** prompts de crise/auditoria são bloqueados contra alteração via editor (`PromptValidation.cs`).
 - **Entrega garantida do alerta de crise (ADR-041):** retry com backoff + escalonamento até o médico confirmar.
 - **Cifragem em repouso (ADR-018):** `mensagens.conteudo` cifrada no INSERT (orchestrator-py) e decifrada no SELECT (gateway). Não crie caminho que contorne isso.
-- **Segredos:** `ANTHROPIC_API_KEY`, `JWT_SECRET`, etc. só por env (SSM Parameter Store SecureString em prod). ❌ Nunca em código, imagem Docker ou log.
+- **Segredos:** `ANTHROPIC_API_KEY`, `JWT_SECRET`, etc. só por env e Azure Key Vault no runtime atual. SSM pertence ao deployment AWS anterior. ❌ Nunca em código, imagem Docker ou log.
 - CSP: web em Report-Only; checkup enforcing em prod. HSTS + X-Frame-Options DENY em ambos.
 
 ---
@@ -213,7 +225,7 @@ Rode os testes da área que você tocou antes de considerar a tarefa pronta.
 ## CI/CD
 
 - **CI (`.github/workflows/ci.yml`):** Trivy (gate CRITICAL) · Python ruff + pytest (3 serviços) · .NET build + xUnit/Testcontainers · integração Postgres real + smoke · build web · checkup vitest + build.
-- **Deploy (`deploy.yml`):** push em `main` → testes → build de 6 imagens clínicas + 1 checkup → ECR (sa-east-1) → SSM na EC2 (`docker compose pull && up -d --no-build` + health checks) · checkup e web via instance refresh do ASG (zero-downtime).
+- **Workflow AWS histórico (`deploy.yml`):** preserva o pipeline do deployment anterior e não descreve o runtime público atual. O portfólio atual segue o ADR-080: frontend Vercel, imagens no ACR e backend/banco Azure em `eastus2`.
 - **CI não builda o checkup em PR** (só `apps/web`); o checkup é validado no job próprio.
 
 ---

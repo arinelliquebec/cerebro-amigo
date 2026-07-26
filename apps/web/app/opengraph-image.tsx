@@ -96,7 +96,7 @@ export default function OgImage() {
         >
           <span>LGPD</span>
           <span>·</span>
-          <span>AWS BRASIL · SA-EAST-1</span>
+          <span>AZURE · EASTUS2 · FICTIONAL DATA</span>
           <span>·</span>
           <span>PROTOCOLO DE CRISE</span>
         </div>
