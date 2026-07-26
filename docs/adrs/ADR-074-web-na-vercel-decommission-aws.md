@@ -2,7 +2,7 @@
 
 **Status:** ❌ Superseded por [ADR-076](ADR-076-web-permanece-no-ec2-lgpd.md) — **ABANDONADO**. O cutover de DNS **nunca foi executado**; a análise LGPD no momento do flip vetou a transferência de dado de saúde para operadora US. O `apps/web` **permanece no EC2** `sa-east-1`. (Preparo técnico aproveitado como hardening — ver ADR-076.)
 **Data:** 2026-06-29
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Infra / Arquitetura / Compliance
 **Supersede:** a migração **web Vercel→EC2** (jun/2026 — infra-only, sem ADR próprio: `infra/aws/web-asg-alb.yaml` + `infra/aws/cloudfront-web.yaml` + job `deploy-web` no `deploy.yml` + runbook `web-vercel-to-ec2-cutover.md`).
 **Relaciona:** ADR-052 (Check-up roda no EC2, não na Vercel — mesma fronteira, decisão oposta por dependência de RDS), ADR-045 (checkup decouple ASG/ALB), ADR-047 (CloudFront + header secreto de origem `X-CF-Origin-Secret`), ADR-073 (zona DNS na Vercel), ADR-008/ADR-044 (residência de dado no Brasil), ADR-042 (RLS/least-privilege), ADR-026/ADR-040 (teleconsulta/escriba — SSE).

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Data:** 2026-06-16
-- **Decisor:** Dono (Rafael).
+- **Decisor:** Dono (Patrick).
 - **Relacionados:** ADR-050 (checkup longitudinal / nudge), ADR-018 (cifra em repouso),
   CK-4 (DEBT), `clinical-safety` regra #4 (LGPD / dado em sa-east-1), `apps/checkup/CLAUDE.md` regra #3.
 

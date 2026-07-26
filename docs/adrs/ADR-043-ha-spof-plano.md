@@ -5,7 +5,7 @@
 **Item A (Multi-AZ): ATIVADO 2026-06-14 → REVERTIDO p/ Single-AZ em 2026-06-21
 (postura de piloto — ver Adendo).** Falta: redundância de EC2 (item B) e RDS Proxy (item D).
 **Data:** 2026-06-09 · **Adendo Single-AZ:** 2026-06-21
-**Decisores:** Rafael Arinelli (responsável / decisão de custo)
+**Decisores:** Patrick Arinelli (responsável / decisão de custo)
 **Categoria:** Infra / disponibilidade
 
 ## Adendo 2026-06-21 — Single-AZ é decisão deliberada de piloto

@@ -17,7 +17,7 @@
   `asaas_subscription_id` → devolve `invoiceUrl`.
 - Sandbox já configurado (key/token via SSM 2026-06-06).
 
-## Fase 0 — Conta Asaas produção (KYC) — **externo, Rafael (painel Asaas)**
+## Fase 0 — Conta Asaas produção (KYC) — **externo, Patrick (painel Asaas)**
 
 KYC = aprovação cadastral da conta de **produção** (`app.asaas.com` — sandbox e prod são
 contas/keys **separadas**). Sem código; é painel + análise do compliance Asaas.
@@ -40,7 +40,7 @@ Referências (Asaas): [Situação cadastral e documentos](https://central.ajuda.
 [Onboarding/envio de documentos](https://docs.asaas.com/docs/onboarding-e-envio-de-documentos-via-link) ·
 [Consultar situação cadastral (API)](https://docs.asaas.com/reference/consultar-situacao-cadastral-da-conta).
 
-## Fase 1 — Envs no SSM + recriar containers — **Rafael (segredo)**
+## Fase 1 — Envs no SSM + recriar containers — **Patrick (segredo)**
 
 Setar (SSM SecureString; injetadas no `.env` do box no deploy):
 - `ASAAS_API_KEY` = chave de **produção**
@@ -58,7 +58,7 @@ aws ssm put-parameter --region sa-east-1 --type SecureString --overwrite \
 # depois: redeploy/recriar containers do gateway p/ recarregar o .env
 ```
 
-## Fase 2 — Registrar webhook no painel Asaas — **externo, Rafael**
+## Fase 2 — Registrar webhook no painel Asaas — **externo, Patrick**
 
 - **URL:** `https://api.cerebroamigo.com.br/api/v1/asaas/webhook` (pública via Caddy/ALB)
 - **Token de autenticação** (header `asaas-access-token`): **igual** ao `ASAAS_WEBHOOK_TOKEN` da Fase 1

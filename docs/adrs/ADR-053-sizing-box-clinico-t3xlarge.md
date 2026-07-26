@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-14
-**Decisores:** Rafael e Adonai Arinelli
+**Decisores:** Patrick e Adonai Arinelli
 **Categoria:** Infra / Operação / Segurança clínica (caminho de crise)
 **Relaciona:** ADR-009 (separação plano interativo/batch), ADR-007 (gargalo é RAM, não CPU), ADR-043 (HA/SPOF — segue aberto), ADR-026/ADR-040 (teleconsulta/escriba), ADR-028 (RAG/embeddings)
 

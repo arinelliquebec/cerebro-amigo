@@ -1,7 +1,7 @@
 # ADR-079 — Relançamento do stack clínico em box único EC2 (pós-teardown)
 
 - **Status:** aceito (2026-07-15)
-- **Decisores:** Rafael Arinelli
+- **Decisores:** Patrick Arinelli
 - **Contexto relacionado:** ADR-078 (checkup em box único — padrão espelhado),
   ADR-077 (Postgres self-hosted em container), ADR-076 (web permanece fora da
   Vercel por LGPD — **reafirmado aqui**), ADR-074 (X-Edge-Auth), ADR-044 (Anthropic
@@ -19,7 +19,7 @@ Antes do teardown, o stack clínico **já rodava no Postgres self-hosted** (cuto
 ADR-077 concluído em 2026-07-06; o gate de observação de 72h venceu exatamente em
 07-09). Este ADR re-executa aquele formato final, sem RDS.
 
-**Frontend na Vercel foi considerado e descartado de novo:** o ADR-076 (Rafael +
+**Frontend na Vercel foi considerado e descartado de novo:** o ADR-076 (Patrick +
 Adonai) vetou o BFF na Vercel porque dado de saúde em trânsito sairia do controle
 nacional (operadora US = transferência internacional, art. 33 LGPD). Nada mudou
 nesse cenário; o web roda no box, e a Vercel segue apenas com a zona DNS.

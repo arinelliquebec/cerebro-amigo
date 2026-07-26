@@ -96,7 +96,7 @@ na env do web (Vercel + container do EC2).
 > 1. **Modelo de e-mail inviável e mal-rotulado** — não dá pra enviar um nudge dias depois a um `bcrypt(email)`
 >    (hash é mão-única). Para disparar no `due_at` é preciso guardar o endereço de forma **recuperável**
 >    (cifrado em repouso, padrão ADR-018). Isso torna a série **pseudônima, não anônima** — o rótulo "anônimo"
->    do rascunho original era otimista. Decisão (Rafael, 2026-06-13): **encrypt-and-own** — cifrar e assumir a
+>    do rascunho original era otimista. Decisão (Patrick, 2026-06-13): **encrypt-and-own** — cifrar e assumir a
 >    barra LGPD (consentimento + eliminação + retenção).
 > 2. **Faltava via de eliminação (direito do titular, LGPD).** Unsubscribe ≠ erasure. Guardar escores de saúde
 >    mental ligados a um e-mail (recuperável) sem rota de exclusão é violação. Resolvido: `deleted_at` + CASCADE +

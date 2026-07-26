@@ -1,54 +1,24 @@
 import Link from "next/link"
-import { BrandWordmark } from "@/components/brand-wordmark"
-import { AuroraBackdrop } from "@/components/landing/aurora-backdrop"
-import { BackButton } from "@/components/back-button"
+import { AuthShell } from "@/components/public/public-chrome"
 import { EntrarForm } from "./entrar-form"
 
-// Tela de entrada do PORTAL DO PACIENTE — distinta do /login do médico.
-// Mobile-first, Neural Noir (herda .theme-noir do layout do portal).
-// Modo "convite" (token na URL, vindo do magic link) cria a senha;
-// modo "login" (sem token) autentica por e-mail+senha.
-export default async function EntrarPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ token?: string; next?: string }>
-}) {
+export default async function PatientSignInPage({ searchParams }: { searchParams: Promise<{ token?: string; next?: string }> }) {
   const sp = await searchParams
   const next = sp.next?.startsWith("/p") ? sp.next : "/p"
-
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12">
-      <AuroraBackdrop />
-      <div className="relative w-full max-w-sm space-y-8">
-        <BackButton href="/" className="text-noir-text-dim hover:text-foreground" />
-        <div className="space-y-4 text-center">
-          <BrandWordmark layout="inline" size="lg" className="justify-center" />
-          <div>
-            <p className="portal-eyebrow">{sp.token ? "Ativação" : "Portal do paciente"}</p>
-            <h1 className="portal-display mt-2.5 text-[1.7rem] font-medium leading-tight text-foreground">
-              {sp.token ? "Ative sua conta" : "Bem-vindo de volta"}
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">Acompanhamento entre consultas</p>
-          </div>
-        </div>
-
-        <div className="glass-noir portal-hairline relative rounded-[1.5rem] border border-noir-line p-6 glow-purple-lg">
-          <EntrarForm token={sp.token} next={next} />
-        </div>
-
-        <div className="space-y-2.5 text-center">
-          <p className="text-xs text-muted-foreground">
-            Em caso de crise: <span className="nums font-mono text-foreground">CVV 188</span> (24h) ·{" "}
-            <span className="nums font-mono text-foreground">SAMU 192</span>
-          </p>
-          <p className="text-xs text-noir-text-dim">
-            É médico?{" "}
-            <Link href="/login" className="font-medium text-primary hover:underline">
-              Entre aqui
-            </Link>
-          </p>
-        </div>
+    <AuthShell
+      eyebrow={sp.token ? "PATIENT ACCESS / ACTIVATION" : "PATIENT ACCESS / AUTH"}
+      title={sp.token ? <>Activate your <em>private space.</em></> : <>Continue your <em>care timeline.</em></>}
+      description="A private channel for check-ins, journal entries, and the information you choose to share between appointments."
+      context={["Access begins with a physician invitation", "Your entries remain part of your care context", "Clinical decisions always remain with your physician"]}
+    >
+      <div>
+        <h2 className="text-xl font-semibold text-foreground">{sp.token ? "Create your password" : "Patient sign in"}</h2>
+        <p className="mb-6 mt-1 text-sm text-muted-foreground">{sp.token ? "Complete your invitation to enter the portal." : "Use the credentials linked to your invitation."}</p>
+        <EntrarForm token={sp.token} next={next} />
+        <p className="mt-6 text-xs text-muted-foreground">In a crisis, call <a href="tel:188">CVV 188</a> (24/7) or <a href="tel:192">SAMU 192</a>.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Are you a physician? <Link href="/login">Use physician sign in</Link>.</p>
       </div>
-    </div>
+    </AuthShell>
   )
 }

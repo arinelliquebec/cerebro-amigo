@@ -17,17 +17,17 @@ Anthropic console "último uso = NUNCA". Risco real das vazadas = **BAIXO** → 
 
 Status: `[ ]` pendente · `[~]` em andamento · `[x]` rotacionado+verificado.
 
-## Prioridade 1 — abusável da INTERNET por qualquer um (só Rafael rota, nos consoles)
+## Prioridade 1 — abusável da INTERNET por qualquer um (só Patrick rota, nos consoles)
 
 Zero impacto clínico em rotacionar (troca no console + atualiza env). FAZER PRIMEIRO.
 
 - [ ] **MEMED** (`MEMED_API_KEY`, `MEMED_SECRET_KEY`) — prescrição digital / receita. MAIS sensível.
       Console MEMED → gerar novas → atualizar `.env` do box.
 - [~] **Anthropic** (`ANTHROPIC_API_KEY` clínico + `CHECKUP_ANTHROPIC_API_KEY`) — gasto $$.
-      Rafael gerou nova hoje (2026-06-11). CONFIRMAR: a key VELHA (vazada) está REVOKED no
+      Patrick gerou nova hoje (2026-06-11). CONFIRMAR: a key VELHA (vazada) está REVOKED no
       console (não só criada nova) + box rodando a nova (não só `.env` local). Checkup →
       SSM `/cerebro-amigo/checkup/anthropic-api-key` + instance refresh do ASG.
-- [ ] **Resend** (`RESEND_API_KEY`) — DEFERIDO p/ migração SES-clínico (Rafael). RISCO RESIDUAL:
+- [ ] **Resend** (`RESEND_API_KEY`) — DEFERIDO p/ migração SES-clínico (Patrick). RISCO RESIDUAL:
       clínico AINDA usa Resend (magic-link médico); a key vazada segue VIVA até o SES assumir
       o magic-link. Rotacionar agora OU expedir SES-clínico + revogar. Não esquecer.
 - [ ] **Infosimples** (`INFOSIMPLES_TOKEN`) — validação CRM (pago). Painel Infosimples.
@@ -36,7 +36,7 @@ Zero impacto clínico em rotacionar (troca no console + atualiza env). FAZER PRI
 
 ## Prioridade 2 — coordenado, com restart clínico (blip controlado; RDS já privado = menos urgente)
 
-Cada um exige atualizar `.env` do box + recriar serviços. Fazer em janela calma, Rafael presente.
+Cada um exige atualizar `.env` do box + recriar serviços. Fazer em janela calma, Patrick presente.
 
 - [ ] **Senha master RDS** (`POSTGRES_PASSWORD` / `POSTGRES_DSN` / `POSTGRES_DSN_URL` = `cerebroadmin`).
       Claude: `aws rds modify-db-instance --master-user-password <novo> --apply-immediately`.

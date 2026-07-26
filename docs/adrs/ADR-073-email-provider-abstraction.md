@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-22
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Stack / Infra / E-mail
 **Espelha:** ADR-044 / ADR-015 (LLM provider-switchável por `LLM_PROVIDER`)
 **Relaciona:** ADR-041 (entrega garantida do alerta de crise), ADR-018 (cifragem/LGPD), ADR-050 (nudge longitudinal do checkup, dep. SES CK-4), ADR-022 (notificação externa de crise)

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (revisado em 2026-06-16)
 - **Data:** 2026-06-16
-- **Decisor:** Dono (Rafael).
+- **Decisor:** Dono (Patrick).
 - **Relacionados:** ADR-055 (sem trial / paywall / cadência), ADR-034 (cobrança do médico
   via Asaas, Fluxo A), ADR-040 (escriba), ADR-028 (RAG), ADR-027 (MBC), skill `dotnet-gateway`.
 

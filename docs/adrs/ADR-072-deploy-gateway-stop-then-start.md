@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-06-21
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Infra / Deploy
 **Relaciona:** ADR-071 (gateway = .NET 10, Scala removido), `docs/infra-baseline.md` (rightsizing), ADR-041 (entrega garantida do alerta de crise)
 

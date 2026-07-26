@@ -90,7 +90,7 @@ Revisado com a skill antes da Fase 3 (1ª rota anônima de criação de conta no
 5. Smoke E2E: QR → /medico (qr_scanned) → /medicos/cadastro (doctor_signup_started) → e-mail → ativar → login;
    conferir `medicos.signup_source/checkup_rid` + junção métrica.
 
-## Decisões fechadas (Rafael, 2026-06-12)
+## Decisões fechadas (Patrick, 2026-06-12)
 1. **E-mail-verify obrigatório: SIM** — reusa o fluxo `/ativar-conta` (prova posse do e-mail + define senha). CRM não prova posse.
 2. **Aprovação admin de conta self: NÃO** (MVP) — auto na CRM Regular; revisar só se aparecer fraude.
 3. **Rota: `/medicos/cadastro`** (zona marketing; não acopla à rede social `/rede`).

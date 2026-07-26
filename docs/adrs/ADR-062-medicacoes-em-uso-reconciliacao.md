@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Data:** 2026-06-16
-- **Decisor:** Dono (Rafael).
+- **Decisor:** Dono (Patrick).
 - **Relacionados:** ADR-024 (MEMED = prescrição legal), ADR-056/057 (espelho MEMED + barreira A5),
   ADR-032 (catálogo de interações A5), ADR-042 (RLS), skill `clinical-safety`.
 

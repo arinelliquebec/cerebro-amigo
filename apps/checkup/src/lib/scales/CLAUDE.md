@@ -49,7 +49,7 @@ Este diretório é o coração clínico do produto. Regras absolutas:
 - Estrutura real: **Parte A = 9 itens** (desatenção, 1–9), **Parte B = 9 itens**
   (hiperatividade-impulsividade, 10–18). Itens transcritos verbatim da Tabela 2
   (house style: ortografia moderna + notação (a)); `validated: true` desde 2026-06-11.
-- **SCORING QUALITATIVO, SEM VERDICT** (decisão Patrick/Rafael, 2026-06-11). Mattos 2006
+- **SCORING QUALITATIVO, SEM VERDICT** (decisão Patrick, 2026-06-11). Mattos 2006
   adverte EXPLICITAMENTE que **não há pontos de corte validados para o Brasil** e recomenda
   cautela em usar a pontuação dos itens ou tratar "algumas vezes" como positivo. Por isso
   **NÃO** aplicamos os cutoffs americanos (Kessler) nem a tabela de células sombreadas:

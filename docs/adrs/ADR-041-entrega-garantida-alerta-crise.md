@@ -10,7 +10,7 @@ nome do paciente via Resend — PII mínima, sem detalhe clínico, mesmo padrão
 anterior; (b) timings da escada permanecem ajustáveis por env e qualquer
 mudança exige novo sign-off (ver "Timings").
 **Data:** 2026-06-08
-**Decisores:** Equipe de engenharia + Rafael Arinelli (responsável pelo projeto)
+**Decisores:** Equipe de engenharia + Patrick Arinelli (responsável pelo projeto)
 **Categoria:** Segurança clínica
 
 ## Contexto
@@ -99,7 +99,7 @@ quiet-hours e opt-in de marketing.
 **Sign-off (regra #2):** estes timings, a escada (e-mail → reforço+OPS → OPS
 crítico; SMS/WhatsApp/retaguarda ficam para F2/F3) e a **remoção do gate de
 opt-in** (crise passa a alertar sempre, independente de `notif_prefs.crise_email`)
-foram **APROVADOS por Rafael Arinelli (responsável pelo projeto) em 2026-06-08**.
+foram **APROVADOS por Patrick Arinelli (responsável pelo projeto) em 2026-06-08**.
 Se o responsável clínico formal for outra pessoa (ex.: psiquiatra do projeto),
 nomeá-la aqui ao revisar. Mudança futura desses parâmetros exige novo sign-off
 documentado.

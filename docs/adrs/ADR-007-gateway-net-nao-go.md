@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-05-29
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Stack
 **Supersede:** Complementa ADR-001 com contexto específico do V3
 

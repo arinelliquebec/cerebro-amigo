@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Data:** 2026-05-31
-**Decisores:** Rafael Arinelli, Adonai Arinelli
+**Decisores:** Patrick Arinelli, Adonai Arinelli
 **Categoria:** Arquitetura / Operação / Segurança clínica
 **Relaciona:** ADR-004 (traços LGPD), ADR-005 (texto de crise versionado),
 ADR-006 (fail-safe do classificador), ADR-010 (crise no diário)
