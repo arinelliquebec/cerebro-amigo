@@ -157,7 +157,7 @@ Navigation uses tracked evidence labels on a full-width top rail. Hover reveals 
 
 ### Signal Stack
 
-Seven elliptical planes map to Next.js, .NET, Python/LangGraph, PostgreSQL/RLS, Vercel, Azure Container Apps and Human Review. A cyan beam crosses the first six layers; the final plane changes to Human Coral to mark the limit of autonomy. Motion is limited to proof orbits and is removed under reduced-motion preferences.
+Seven elliptical planes map to Next.js, .NET, Python/LangGraph, Azure PostgreSQL/RLS, the Vercel frontend, Azure Container Apps in `eastus2`, and Human Review. The public runtime contains fictional demo data only and makes no Brazilian data-residency claim. AWS is previous/reference architecture, not a current hosting plane. A cyan beam crosses the first six layers; the final plane changes to Human Coral to mark the limit of autonomy. Motion is limited to proof orbits and is removed under reduced-motion preferences.
 
 ## Do's and Don'ts
 

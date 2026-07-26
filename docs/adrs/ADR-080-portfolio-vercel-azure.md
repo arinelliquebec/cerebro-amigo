@@ -7,6 +7,21 @@
 - **Não altera:** ADR-018 (cifragem), ADR-035/041/063 (crise), ADR-042 (RLS),
   ADR-044 (Anthropic direta) e ADR-071 (.NET 10)
 
+## Current portfolio runtime
+
+| Camada | Runtime atual |
+|---|---|
+| Frontend | Vercel (`apps/web` e `apps/checkup`) |
+| Backend | Azure Container Apps |
+| Banco | Azure Database for PostgreSQL Flexible Server |
+| Região | `eastus2` (Estados Unidos) |
+| Dados | Exclusivamente fictícios e reproduzíveis |
+
+Este é um ambiente público de portfólio, não um serviço médico ativo. Ele não
+promete residência de dados no Brasil. AWS é deployment anterior ou arquitetura
+de referência e está fora do request path público atual. A declaração canônica
+curta fica em `docs/CURRENT-PORTFOLIO-RUNTIME.md`.
+
 ## Contexto
 
 O projeto é apresentado principalmente a recrutadores internacionais. A topologia

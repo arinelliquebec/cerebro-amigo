@@ -11,37 +11,47 @@ SaaS de psiquiatria multi-tenant. Dois públicos: **médico** (dashboard `/dashb
 e **paciente** (PWA `/p/*`). Opera *entre consultas*: check-ins, adesão a medicação,
 protocolo de crise, insights analíticos. Dado de saúde mental = LGPD categoria especial.
 
+O ambiente público atual é uma demonstração de portfólio, não um serviço médico
+ativo. Ele contém somente dados fictícios e reproduzíveis.
+
 ---
 
-## Topologia
+## Current portfolio runtime
+
+| Camada | Runtime atual |
+|---|---|
+| Frontend | Vercel (`apps/web` e `apps/checkup`) |
+| Backend | Azure Container Apps |
+| Banco | Azure Database for PostgreSQL Flexible Server |
+| Região | `eastus2` (Estados Unidos) |
+| Dados | Somente dados fictícios de demonstração |
+
+Este runtime **não promete residência de dados no Brasil**. AWS representa o
+deployment anterior ou arquitetura de referência e não integra o request path
+público atual. A fonte curta e canônica é `docs/CURRENT-PORTFOLIO-RUNTIME.md`; a
+decisão é o ADR-080. Dados clínicos reais exigem novo ADR com residência, rede
+privada, HA, RPO/RTO, segurança e validação LGPD.
+
+## Topologia pública atual
 
 ```
-Paciente PWA /p/*      Médico /dashboard/*
-        └──────────┬──────────┘
-                   ▼
-          web (Next.js :3000)
-          BFF: app/api/* — cookies httpOnly
-          auth_token (médico) · paciente_token (paciente)
-                   ▼
-          api-gateway (.NET 10 :5050→:5000)
-          JWT · EF Core · Resend · proxy SSE
-                   │  Bearer ${INTERNAL_API_TOKEN}
-     ┌─────────────┼─────────────┬──────────────┐
-     ▼             ▼             ▼              ▼
-orchestrator-py  agents-py  notifier-py   PostgreSQL (RDS sa-east-1)
-  :8081           :8082       :8083         pgvector + pgcrypto
-  LangGraph       APScheduler  Web Push
-  SSE conversa    5 agentes    check-ins
-     └──────┬──────┘
-            ▼
-     AWS Bedrock In-Region sa-east-1
-     Haiku · Sonnet · Opus 4.7 (IAM role)
+Vercel
+├── apps/web (Next.js + BFF) ───────────────┐
+└── apps/checkup (triagem isolada)          │
+                                             ▼
+Azure eastus2 — somente dados fictícios
+├── api-gateway (.NET 10 · ingress externo)
+├── orchestrator-py (Container Apps · interno) ──► Anthropic API
+├── agents-py (Container Apps · interno)
+├── notifier-py (Container Apps · interno)
+└── Azure PostgreSQL Flexible Server
+    ├── pgvector + pgcrypto
+    └── RLS multi-tenant
 ```
 
-**Azure: REMOVIDO.** Key Vault, OpenAI, Document Intelligence, Blob, Bicep — fora do V3.
-**`ANTHROPIC_API_KEY`: NÃO EXISTE.** Auth por IAM role. Resíduo V2 = bug.
-
-**Postura de infra — PILOTO (2026-06-21):** box clínico `i-057860cd97edafefb` = **`t3.medium`** (era `t3.large`; right-size pós-decomission do Scala + stop-then-start, pico de deploy 5,8→1,27 GB — ver `docs/infra-baseline.md`). RDS `cerebro-postgres-enc` = **`db.t4g.small` Single-AZ** (era Multi-AZ; revertido p/ piloto — backups 7d/PITR/encryption/deletion-protection mantidos; gatilho p/ religar Multi-AZ = 1º paciente pagante ou crédito Founders Hub — ver **ADR-043 Adendo**). EIP `18.229.175.231` (gateway público). Savings Plan EC2Instance t3 cobre o box (in-family).
+> **Histórico AWS:** referências a EC2, RDS, ECR, SSM, ALB, ASG, Bedrock ou
+> `sa-east-1` abaixo documentam o deployment anterior, integrações opcionais ou
+> runbooks históricos. Elas não descrevem a hospedagem pública atual.
 
 ---
 
@@ -49,7 +59,7 @@ orchestrator-py  agents-py  notifier-py   PostgreSQL (RDS sa-east-1)
 
 | Responsabilidade | Serviço |
 |---|---|
-| Chamar LLM (Claude) | **Apenas Python** (orchestrator-py, agents-py) via Bedrock |
+| Chamar LLM (Claude) | **Apenas Python** (orchestrator-py, agents-py) via Anthropic API direta |
 | REST transacional, JWT, e-mail, proxy SSE | **api-gateway (.NET 10)** |
 | Cookies, sessão, agregação, render | **web / BFF** (`app/api/*`) |
 | Push de check-in | **notifier-py** |

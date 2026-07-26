@@ -22,11 +22,23 @@ Para a audiência de recrutamento, sucesso significa tornar o sistema, as decis�
 
 O produto combina um sistema clínico transacional real, acompanhamento assíncrono entre consultas e serviços de IA com guardrails explícitos: a IA organiza, resume e sinaliza; nunca diagnostica, prescreve ou substitui o médico.
 
+## Current portfolio runtime
+
+- **Frontend:** Vercel (`apps/web` e `apps/checkup`).
+- **Backend:** Azure Container Apps.
+- **Banco:** Azure Database for PostgreSQL Flexible Server.
+- **Região atual:** `eastus2` (Estados Unidos).
+- **Dados:** exclusivamente fictícios e reproduzíveis.
+- **Residência:** o ambiente atual não promete residência de dados no Brasil.
+- **AWS:** deployment anterior e arquitetura de referência; fora do request path público atual.
+
+A fonte canônica é `docs/CURRENT-PORTFOLIO-RUNTIME.md`; a decisão está no ADR-080.
+
 ## Operating Context
 
 O sistema opera entre o dashboard médico, o portal PWA do paciente, check-ins, mensagens, agenda, notificações e serviços internos de IA. A demonstração pública usa dados exclusivamente fictícios e reproduzíveis.
 
-O ambiente de portfólio usa frontend global na Vercel e backend de demonstração em Azure Container Apps e PostgreSQL Flexible Server, conforme ADR-080. O runtime mantém as fronteiras Next.js BFF, gateway .NET 10, serviços Python e PostgreSQL com RLS.
+O runtime mantém as fronteiras Next.js BFF, gateway .NET 10, serviços Python e PostgreSQL com RLS. Qualquer ambiente com dados reais exige uma nova decisão sobre residência, rede privada, HA, RPO/RTO e validação LGPD.
 
 ## Capabilities and Constraints
 
