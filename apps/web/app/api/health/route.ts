@@ -13,6 +13,7 @@ import { connection } from "next/server"
 // (senao o handler seria pre-renderizado no build com ready=false p/ sempre).
 
 const PORT = process.env.PORT || "3000"
+const ON_VERCEL = process.env.VERCEL === "1"
 let ready = false
 let warming = false
 
@@ -31,12 +32,15 @@ async function warm() {
 }
 
 // Dispara no carregamento do modulo — 1o probe ao /api/health no boot da instancia.
-warm()
+// No Vercel nao ha ALB nem processo persistente a aquecer; um 503 no primeiro
+// cold start seria apenas um falso negativo. O warmup continua ativo no EC2.
+if (!ON_VERCEL) warm()
 
 export async function GET() {
   await connection()
-  return new Response(ready ? "ok" : "warming", {
-    status: ready ? 200 : 503,
+  const healthy = ON_VERCEL || ready
+  return new Response(healthy ? "ok" : "warming", {
+    status: healthy ? 200 : 503,
     headers: { "cache-control": "no-store" },
   })
 }
