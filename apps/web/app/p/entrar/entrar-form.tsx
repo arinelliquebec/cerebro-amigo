@@ -213,7 +213,7 @@ const PatientPasswordAccess = ({ next, onBack, onForgot }: { next: string; onBac
   )
 }
 
-export function EntrarForm({ token, next, demoEnabled }: { token?: string; next: string; demoEnabled: boolean }) {
+export const EntrarForm = ({ token, next, demoEnabled }: { token?: string; next: string; demoEnabled: boolean }) => {
   const [view, setView] = useState<"demo" | "credentials" | "forgot">("demo")
 
   if (token) return <InvitationAccess token={token} next={next} />

@@ -329,11 +329,7 @@ public static class PacienteAuthEndpoints
             if (pid is null) return Results.Unauthorized();
 
             var atual = await db.Database.ExecuteScalarAsync<string>(
-                @"SELECT pc.senha_hash
-                    FROM pacientes_credenciais pc
-                    JOIN clientes c ON c.id = pc.paciente_id
-                   WHERE pc.paciente_id = {0}
-                     AND COALESCE(c.contexto->>'portfolio', 'false') <> 'true'",
+                "SELECT senha_hash FROM pacientes_credenciais WHERE paciente_id = {0}",
                 pid.Value);
             if (atual is null || !hasher.Verify(req.SenhaAtual, atual))
                 return Results.Unauthorized();
