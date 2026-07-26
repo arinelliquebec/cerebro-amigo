@@ -17,18 +17,20 @@ Função de negócio: é o motor de aquisição do lançamento do Cérebro Amigo
 - **Isolamento deliberado**: NÃO importa código do gateway (.NET), orchestrator, agents
   ou notifier. NÃO chama serviços clínicos. Compartilha apenas design tokens.
 - LLM: Anthropic API direta (`@anthropic-ai/sdk`), modelo `claude-haiku-4-5`.
-  Chave somente via env `ANTHROPIC_API_KEY` (SSM Parameter Store SecureString,
-  injetada no deploy) — **nunca** no repositório, na imagem Docker ou em log.
+  Chave somente via env `ANTHROPIC_API_KEY` (secret do ambiente — no portfólio
+  atual, env da Vercel; ADR-080) — **nunca** no repositório, na imagem ou em log.
   Implementar atrás da flag `LLM_PROVIDER` (default `anthropic`), com interface
   única, para que uma futura troca de provedor seja config, não refactor.
 - Anti-abuso: o checkup é superfície pública anônima. Rate limit por sessão na
   rota da devolutiva + spend limit no Console da Anthropic são obrigatórios
   antes do deploy público.
-- Banco: schema `checkup` no RDS Postgres existente. Acesso via Drizzle
-  (a menos que apps/web já tenha um padrão de ORM — nesse caso, espelhar).
-- Deploy: 6º serviço no Docker Compose (ver `deploy/compose.snippet.yaml`),
-  imagem própria no ECR, mesmo fluxo GitHub Actions → SSM.
-- Domínio: `checkup.cerebroamigo.com.br` no lançamento (roteado por Host na EC2).
+- Banco: schema `checkup` no Azure PostgreSQL Flexible Server do portfólio
+  (ADR-080). Acesso via Drizzle (a menos que apps/web já tenha um padrão de
+  ORM — nesse caso, espelhar).
+- Deploy: Git Integration da Vercel a partir de `main` (ADR-080). O caminho
+  antigo — compose no checkup-box + ECR + GitHub Actions → SSM (ADR-078) — é
+  histórico/rollback, fora do request path atual.
+- Domínio: `checkup.cerebroamigo.com.br` no lançamento (hospedado na Vercel).
   Migração futura para path no domínio principal é aceitável; não otimizar agora.
 
 ## Stack e convenções (espelhar apps/web)
