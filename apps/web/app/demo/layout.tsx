@@ -7,6 +7,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default function DemoLayout({ children }: { children: React.ReactNode }) {
-  return <DemoShell>{children}</DemoShell>
-}
+const DemoLayout = ({ children }: { children: React.ReactNode }) => <DemoShell>{children}</DemoShell>
+
+export default DemoLayout
