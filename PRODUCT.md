@@ -62,7 +62,7 @@ O runtime mantém as fronteiras Next.js BFF, gateway .NET 10, serviços Python e
 - O fundador/desenvolvedor apresentado publicamente é Patrick Arinelli.
 - Contatos públicos autorizados:
   - LinkedIn: https://linkedin.com/in/patrick-arinelli
-  - GitHub: https://github.com/arinelliquebec
+  - GitHub: https://github.com/arinellidu
   - E-mail: arinpar@gmail.com
 
 ## Evidence on Hand
