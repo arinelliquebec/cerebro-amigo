@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { FileText, Lock, Loader2, RefreshCw, AlertCircle } from "lucide-react"
 import { promptTravado } from "@/lib/prompts-guard"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface PromptAtivo {
   id: string
@@ -27,7 +28,7 @@ export default function AdminPromptsPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/prompts/")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar os prompts."); return }
       setPrompts(await r.json())
     } catch {

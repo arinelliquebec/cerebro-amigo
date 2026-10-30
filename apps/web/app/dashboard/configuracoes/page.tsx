@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Header } from "@/components/header"
@@ -76,7 +76,7 @@ export default function ConfiguracoesPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ConfiguracaoFormData>({
@@ -96,11 +96,11 @@ export default function ConfiguracoesPage() {
     },
   })
 
-  const criseEmail = watch("criseEmail")
-  const cpf = watch("cpf")
-  const crmUf = watch("crmUf")
-  const dias = watch("dias")
-  const duracao = watch("duracao")
+  const criseEmail = useWatch({ control, name: "criseEmail" })
+  const cpf = useWatch({ control, name: "cpf" })
+  const crmUf = useWatch({ control, name: "crmUf" })
+  const dias = useWatch({ control, name: "dias" })
+  const duracao = useWatch({ control, name: "duracao" })
 
   useEffect(() => {
     fetch("/api/configuracoes")

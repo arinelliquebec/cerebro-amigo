@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
-import { useForm, Controller } from "react-hook-form"
+import { useForm, useWatch, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
@@ -151,7 +151,6 @@ export function NovoPacienteDialog({ onConcluido, trigger }: { onConcluido: () =
     register,
     handleSubmit,
     control,
-    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
@@ -159,7 +158,7 @@ export function NovoPacienteDialog({ onConcluido, trigger }: { onConcluido: () =
     defaultValues: { usarSenha: false },
   })
 
-  const usarSenha = watch("usarSenha")
+  const usarSenha = useWatch({ control, name: "usarSenha" })
 
   function fechar() {
     setAberto(false)

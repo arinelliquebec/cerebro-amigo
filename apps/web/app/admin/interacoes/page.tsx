@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Pill, Loader2, RefreshCw, Download, ShieldAlert } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
 import { baixarCsv } from "@/lib/csv"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface MedNaoReconhecido {
   medicamento: string
@@ -37,7 +38,7 @@ export default function CoberturaA5Page() {
       const qs = apenasAtivas ? "?ativasApenas=true" : ""
       const r = await fetch(`/api/admin/interacoes-cobertura${qs}`)
       if (myId !== reqIdRef.current) return // resposta obsoleta
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar a cobertura do A5."); return }
       setData(await r.json())
     } catch {

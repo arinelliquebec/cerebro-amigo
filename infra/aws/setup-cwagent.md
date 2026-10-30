@@ -7,7 +7,7 @@ Gatilho de decisão, não chute: enquanto não tocar, a instância fica no `smal
 
 - Instância: `i-057860cd97edafefb` (cerebro-app), região `sa-east-1`
 - Role do box: `EC2-SSM-CerebroAmigo`
-- SNS reusado: `arn:aws:sns:sa-east-1:004177894935:cerebro-amigo-checkup-alertas` (assinante: alerts@arinelli.com)
+- SNS reusado: `arn:aws:sns:sa-east-1:004177894935:cerebro-amigo-checkup-alertas` (assinante: arinelliquebec@gmail.com)
 - Config do agent: [`cwagent-config.json`](./cwagent-config.json) — namespace `CWAgent`, dims `[InstanceId]`
 
 Baseline medido em 2026-06-11 (box ~ocioso, sem usuários): `available` 681 MB / 1913,

@@ -1,12 +1,6 @@
-<p align="center"><strong><a href="https://www.cerebroamigo.com.br">www.cerebroamigo.com.br</a></strong></p>
-
-<p align="center"><strong>The hosted demo has been retired.</strong> · Inspect the system through the <a href="#architecture">architecture</a>, the <a href="./docs/adrs">ADRs</a>, or by running the full stack locally with <code>docker compose up -d --build</code></p>
-
 # Cérebro Amigo V3
 
 A demonstration platform for psychiatric care between appointments, designed to connect the patient's daily routine to the physician's decision-making with safety, context, and traceability.
-
-> Originally built as a commercial product; published here as a sanitized engineering case study — history squashed, credentials rotated, infrastructure decommissioned. The architecture, decisions and code are the artifact.
 
 **🇧🇷 [Versão em português](./README.pt-br.md)**
 
@@ -33,33 +27,10 @@ A demonstration platform for psychiatric care between appointments, designed to 
 | **Solution** | Next.js for the product and BFF, .NET for the transactional core, Python for the AI flows, and PostgreSQL with Row-Level Security as the last line of isolation. |
 | **What this repository demonstrates** | Systems architecture, full-stack development, security by design, product UX, integration testing, and CI/CD. |
 
-The goal is not just to simulate screens. The monorepo implements service boundaries, authentication, auditing, migrations, notifications, asynchronous processing, and clinical safeguards in a public portfolio runtime built only with fictional data.
+The goal is not just to simulate screens. The monorepo implements service boundaries, authentication, auditing, migrations, notifications, asynchronous processing, clinical safeguards, and a reference architecture for AWS in the São Paulo region.
 
 > [!NOTE]
 > Product copy and internal documentation (ADRs, runbooks) are written in Brazilian Portuguese — the product targets the Brazilian market and its data-protection law (LGPD). This README summarizes the key engineering decisions in English.
-
-## Current portfolio runtime
-
-| Layer | Status |
-|---|---|
-| **Frontend** | **Active** — Vercel (`apps/web` and `apps/checkup`) |
-| **Backend** | **Decommissioned** — Azure Container Apps, shut down to stop recurring cost |
-| **Database** | **Decommissioned** — Azure Database for PostgreSQL Flexible Server |
-| **Azure region** | `eastus2` (United States), while the backend was running |
-| **Data** | Fictional, reproducible demonstration data only — no production data ever existed |
-
-The only public runtime still active is the **frontend on Vercel**. The Azure backend and database were decommissioned to stop recurring cost, so any surface that depended on the clinical API — the authenticated patient portal, the physician dashboard, the SSE conversation — no longer answers in the hosted environment.
-
-Inspect the system through the **code**, the **[ADRs](./docs/adrs)**, and a **local run**:
-
-```bash
-cp .env.example .env
-docker compose up -d --build
-```
-
-That brings up the same topology the hosted environment ran: Next.js, the .NET gateway, the three Python services, and PostgreSQL with RLS. See [Running locally](#running-locally).
-
-This was always a portfolio demonstration, not an active medical service. It makes **no claim of data residency in Brazil**, and real patient or clinical data must not be entered. AWS files and runbooks describe the previous deployment or reference architecture. See the [canonical runtime statement](./docs/CURRENT-PORTFOLIO-RUNTIME.md), [ADR-080](./docs/adrs/ADR-080-portfolio-vercel-azure.md), and [ADR-081](./docs/adrs/ADR-081-resilient-public-demo.md) for the design of the demo experience that ran while the backend was live.
 
 ## Product
 
@@ -118,20 +89,16 @@ This was always a portfolio demonstration, not an active medical service. It mak
 
 ```mermaid
 flowchart LR
-    subgraph V["Vercel · frontend"]
-      M["Physician · Web"] --> BFF["Next.js · BFF"]
-      P["Patient · PWA"] --> BFF
-      C["Anonymous Check-up"]
-    end
-    subgraph A["Azure eastus2 · fictional demo data only"]
-      BFF --> API[".NET 10 · Container Apps"]
-      API --> DB[("Azure PostgreSQL · RLS")]
-      API --> ORC["Python · Orchestrator"]
-      API --> AGT["Python · Agents / RAG"]
-      API --> NOT["Python · Notifier"]
-      C --> CDB[("Isolated schema")]
-    end
+    M["Physician · Web"] --> BFF["Next.js · BFF"]
+    P["Patient · PWA"] --> BFF
+    BFF --> API[".NET 10 · API Gateway"]
+    API --> DB[("PostgreSQL · RLS")]
+    API --> ORC["Python · Orchestrator"]
+    API --> AGT["Python · Agents / RAG"]
+    API --> NOT["Python · Notifier"]
     ORC --> LLM["Anthropic API"]
+    AGT --> EMB["Bedrock · embeddings"]
+    C["Anonymous Check-up"] --> CDB[("Isolated schema")]
 ```
 
 Boundaries were drawn by responsibility, not by language preference:
@@ -142,7 +109,7 @@ Boundaries were drawn by responsibility, not by language preference:
 | Transactional core | ASP.NET Core / .NET 10 | REST, JWT, access rules, EF Core, and event proxying. |
 | AI & automation | Python 3.12, FastAPI, LangGraph | Orchestration, classification, RAG, jobs, and integrations. |
 | Data | PostgreSQL, pgvector, pgcrypto | Relational model, vector search, encryption, and multi-tenant RLS. |
-| Delivery | Vercel Git Integration, Azure Container Apps/ACR, GitHub Actions CI | Public portfolio delivery, reproducible builds, and quality gates without an active AWS deploy workflow. |
+| Delivery | Docker, GitHub Actions, AWS | Reproducible builds, quality gates, and a regionalized architecture. |
 
 For the full map, see [docs/CONTEXT.md](./docs/CONTEXT.md). Architectural decisions are recorded in [docs/adrs](./docs/adrs).
 
@@ -196,8 +163,7 @@ apps/
 
 infra/
 ├── migrations/          Versioned PostgreSQL DDL
-├── azure/               Current portfolio infrastructure as code
-├── aws/                 Previous/reference architecture and automation
+├── aws/                 Reference architecture and automation
 └── ci/                  Integration scripts and smoke tests
 
 docs/
@@ -207,7 +173,7 @@ docs/
 └── runbooks/            Simulated operational procedures
 ```
 
-The decommissioned Scala gateway experiment (ADR-067/071) was removed from the tree; its source is preserved in an offline archive bundle, available on request. The active gateway is .NET 10.
+`apps/api-gateway-scala` is decommissioned code preserved purely as historical record; the active gateway is .NET 10.
 
 ## Running locally
 
@@ -244,16 +210,9 @@ docker compose up -d --build
 
 - No real patient data should ever be entered.
 - All screens and scenarios shown use fictional information.
-- The hosted backend and database were decommissioned; only the Vercel frontend remains public, and the full system runs locally via Docker Compose.
-- AWS infrastructure is retained only as previous/reference architecture.
+- The AWS infrastructure represents a plausible topology, not a statement of an active clinical environment.
 - Clinical scales and safeguards were treated as controlled artifacts, but real-world use would require independent legal, clinical, security, and privacy validation.
 - Open debts and pending decisions are kept explicit in [docs/DEBT.md](./docs/DEBT.md).
-
-## License
-
-Copyright © 2026 Patrick Arinelli. All rights reserved. This repository is
-publicly accessible for viewing, evaluation, and portfolio review only. See
-the [LICENSE](./LICENSE) file for the complete terms.
 
 ---
 

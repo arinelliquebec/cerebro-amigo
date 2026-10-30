@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Users, MessageSquare, CheckSquare, TrendingUp, DollarSign,
   Activity, RefreshCw, Loader2, Cpu, ShieldCheck,
@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
 import { AdminAtencao } from "@/components/admin/admin-atencao"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface Metricas {
   totalMedicos: number
@@ -80,7 +81,7 @@ export default function AdminOverview() {
     setRefreshing(true)
     try {
       const r = await fetch("/api/admin/metricas")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar as métricas."); return }
       setM(await r.json()); setErro(null)
     } catch {

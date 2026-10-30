@@ -15,7 +15,7 @@ Parameters:
     Default: www.cerebroamigo.com.br
   NotifyEmail:
     Type: String
-    Default: alerts@arinelli.com
+    Default: arinelliquebec@gmail.com
 
 Resources:
   UptimeTopic:

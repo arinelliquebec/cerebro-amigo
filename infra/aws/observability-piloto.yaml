@@ -16,7 +16,7 @@ Parameters:
     Default: cerebro-postgres-enc
   NotifyEmail:
     Type: String
-    Default: alerts@arinelli.com
+    Default: arinelliquebec@gmail.com
   LogRetentionDays:
     Type: Number
     Default: 14

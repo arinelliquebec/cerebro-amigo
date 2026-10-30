@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, Loader2, ShieldCheck } from "lucide-react"
-import { trocarSenha, type PacienteAuthState } from "./actions"
+import { trocarSenha, type PacienteAuthState } from "../entrar/actions"
 
 const inicial: PacienteAuthState = { error: null }
 
@@ -21,12 +21,12 @@ export default function TrocarSenhaPage() {
             <ShieldCheck className="h-5 w-5" />
           </span>
           <div>
-            <p className="portal-eyebrow">Security</p>
+            <p className="portal-eyebrow">Segurança</p>
             <h1 className="portal-display mt-2 text-[1.6rem] font-medium leading-tight text-foreground">
-              Set a new password
+              Defina uma nova senha
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              You are using a temporary password. Create a personal password to continue.
+              Você está usando uma senha provisória. Crie uma senha pessoal para continuar.
             </p>
           </div>
         </div>
@@ -43,7 +43,7 @@ export default function TrocarSenhaPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="senhaAtual">Current temporary password</Label>
+            <Label htmlFor="senhaAtual">Senha atual (provisória)</Label>
             <Input
               id="senhaAtual"
               name="senhaAtual"
@@ -54,19 +54,19 @@ export default function TrocarSenhaPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="novaSenha">New password</Label>
+            <Label htmlFor="novaSenha">Nova senha</Label>
             <Input
               id="novaSenha"
               name="novaSenha"
               type="password"
               autoComplete="new-password"
-              placeholder="At least 8 characters"
+              placeholder="Mínimo 8 caracteres"
               className="h-11 rounded-xl bg-noir-surface-raised/60"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmar">Confirm new password</Label>
+            <Label htmlFor="confirmar">Confirme a nova senha</Label>
             <Input
               id="confirmar"
               name="confirmar"
@@ -82,7 +82,7 @@ export default function TrocarSenhaPage() {
             disabled={pending}
             className="portal-tap h-11 w-full rounded-xl bg-primary text-primary-foreground hover:bg-purple-dark"
           >
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save new password"}
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar nova senha"}
           </Button>
         </form>
       </div>

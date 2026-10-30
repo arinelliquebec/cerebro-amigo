@@ -1,27 +1,84 @@
 import Link from "next/link"
-import { PublicFooter, PublicHeader } from "@/components/public/public-chrome"
-import { RuntimeDisclosure } from "@/components/public/runtime-disclosure"
-import access from "@/components/access/signal-access.module.css"
-import styles from "@/components/public/public-surface.module.css"
+import { Logo } from "@/components/logo"
+import { ArrowLeft } from "lucide-react"
 
-export const metadata = { title: "Terms of Use — Cérebro Amigo", description: "Cérebro Amigo terms of use", alternates: { canonical: "https://www.cerebroamigo.com.br/terms" } }
+export const metadata = {
+  title: "Termos de Uso — Cérebro Amigo",
+  description: "Termos de uso da plataforma Cérebro Amigo",
+  alternates: { canonical: "https://www.cerebroamigo.com.br/terms" },
+}
 
 export default function TermsPage() {
   return (
-    <main className={`${access.page} ${styles.contentPage}`} lang="en">
-      <PublicHeader />
-      <div className={styles.legalWrap}>
-        <aside className={styles.legalAside}><p>TERMS / OPERATING BOUNDARY</p><h1>Terms of use</h1><p>Last updated: July 2026</p></aside>
-        <div className={styles.legalBody}>
-          <section><h2>1. Nature of this environment</h2><p>Cérebro Amigo is presented publicly as a technical portfolio demonstration. It is not an active medical service, emergency channel, diagnostic tool or prescribing service. Every scenario and clinical record in the public demonstration is fictional.</p></section>
-          <section><h2>2. Permitted use</h2><p>You may inspect the product and its architecture for evaluation purposes. Do not submit real patient information, health information or other sensitive personal data. Do not rely on the demonstration for care, diagnosis, treatment or emergency assistance.</p></section>
-          <section><h2>3. Runtime and data location</h2><p>The frontend runs on Vercel; backend services and Azure PostgreSQL run in Azure <strong>eastus2</strong> in the United States. The current portfolio runtime makes no Brazilian data-residency promise. AWS is previous or reference architecture only.</p></section>
-          <section><h2>4. Privacy and responsibility</h2><p>See the <Link href="/privacy">Privacy Policy</Link> for the limited data processed to operate the demonstration. AI does not replace clinical judgment, and the portfolio is provided without a guarantee of uninterrupted availability.</p></section>
-          <section><h2>5. Contact</h2><p>Questions about these terms can be sent to <Link href="mailto:arinpar@gmail.com">arinpar@gmail.com</Link>.</p></section>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/60 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto max-w-3xl px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size="sm" />
+          </Link>
+          <Link
+            href="/login"
+            className="text-sm text-muted-foreground hover:text-navy transition-colors flex items-center gap-1.5"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para login
+          </Link>
         </div>
-      </div>
-      <RuntimeDisclosure />
-      <PublicFooter />
-    </main>
+      </header>
+
+      <main className="container mx-auto max-w-3xl px-6 py-16">
+        <h1 className="text-3xl font-semibold text-navy mb-2">Termos de Uso</h1>
+        <p className="text-muted-foreground text-sm mb-10">Última atualização: junho de 2026</p>
+
+        <div className="prose prose-slate max-w-none space-y-8">
+          <section>
+            <h2 className="text-xl font-semibold text-navy mb-3">1. Natureza da plataforma</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              O Cérebro Amigo é um software de gestão clínica (CRM) voltado a médicos psiquiatras.
+              A plataforma <strong>não substitui o julgamento clínico</strong> e não fornece diagnósticos
+              ou prescrições médicas. Todas as decisões terapêuticas são de responsabilidade exclusiva
+              do profissional de saúde.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-navy mb-3">2. Uso permitido</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Acesso restrito a profissionais de saúde devidamente registrados em seus conselhos
+              profissionais. É proibido o compartilhamento de credenciais de acesso, bem como o uso
+              da plataforma para fins diferentes da gestão de prática clínica.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-navy mb-3">3. Dados e privacidade</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Todos os dados de pacientes são tratados conforme a LGPD (Lei 13.709/2018).
+              Consulte nossa{" "}
+              <Link href="/privacy" className="text-primary hover:underline font-medium">
+                Política de Privacidade
+              </Link>{" "}
+              para detalhes sobre coleta, armazenamento e exclusão de dados.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-navy mb-3">4. Limitação de responsabilidade</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              O Cérebro Amigo é fornecido &quot;como está&quot;, sem garantias de disponibilidade ininterrupta.
+              O profissional de saúde mantém a responsabilidade final por todas as decisões clínicas,
+              independentemente das informações apresentadas pela plataforma.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-navy mb-3">5. Contato</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Dúvidas sobre estes termos podem ser enviadas para o responsável pela plataforma.
+            </p>
+          </section>
+        </div>
+      </main>
+    </div>
   )
 }

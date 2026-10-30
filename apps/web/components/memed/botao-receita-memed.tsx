@@ -1,5 +1,9 @@
 "use client"
 
+/* eslint-disable @typescript-eslint/no-explicit-any --
+   Shim do SDK externo MEMED (injetado via <script>): contrato dinâmico
+   sem tipos publicados. Os acessos já são defensivos (`?.` / `??`). */
+
 import { useCallback, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { FileText, Loader2, AlertTriangle } from "lucide-react"
@@ -154,7 +158,7 @@ export function BotaoReceitaMemed({
           await abrirModulo()
         })
       }
-    } catch (e: any) {
+    } catch (e) {
       // Detalhe técnico só no console (pode ser texto cru/em inglês do SDK do MEMED) — nunca na tela do médico.
       console.error("[BotaoReceitaMemed] falha ao abrir o MEMED:", e)
       setErro("Não foi possível abrir o MEMED para emitir a receita. Verifique sua conexão e tente novamente.")

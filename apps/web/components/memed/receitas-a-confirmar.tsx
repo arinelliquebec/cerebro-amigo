@@ -65,7 +65,16 @@ export function ReceitasMemedAConfirmar({
       const d = await r.json().catch(() => null)
       if (r.ok && Array.isArray(d)) {
         setItens(
-          d.map((x: any) => ({
+          d.map((x: {
+            id: string
+            medicamento: string
+            doseDescricao?: string | null
+            dose_descricao?: string | null
+            receitaTipo?: string | null
+            receita_tipo?: string | null
+            criadaEm?: string | null
+            criada_em?: string | null
+          }) => ({
             id: x.id,
             medicamento: x.medicamento,
             doseDescricao: x.doseDescricao ?? x.dose_descricao ?? "",

@@ -16,37 +16,42 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Azure Blob Storage — SAS de upload/download das features de arquivo (ADR-082) -->
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
     <!-- ASP.NET Core OpenAPI 3.1 nativo do .NET 10 -->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-    <!-- Pin direto: a transitiva Microsoft.OpenApi 2.0.0 tem advisory NU1903
-         (GHSA-v5pm-xwqc-g5wc) e o restore trata como erro — 2.7.5 é a corrigida. -->
-    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.104.8" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
+    <!-- Pin direto: transitivas antigas de Microsoft.OpenApi têm advisory NU1903
+         (GHSA-v5pm-xwqc-g5wc) e o restore trata como erro. AspNetCore.OpenApi
+         exige [2.12.2, 3.0.0) — 2.13.0 é a última 2.x. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.13.0" />
 
     <!-- EF Core 10 + Postgres com JSONB nativo -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
 
     <!-- snake_case: usuario_id, criado_em, etc. -->
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
 
     <!-- Auth -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
 
     <!-- Sentry — rastreio de erros do backend (LGPD: SendDefaultPii=false) -->
-    <PackageReference Include="Sentry.AspNetCore" Version="5.5.1" />
+    <PackageReference Include="Sentry.AspNetCore" Version="6.12.1" />
 
     <!-- HTTP resilience (Polly + Microsoft.Extensions.Http.Resilience) -->
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
 
     <!-- Password hashing: bcrypt (migração gradual de PBKDF2) -->
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+
+    <!-- Pin direto: a transitiva System.Security.Cryptography.Pkcs 9.0.0 tem
+         advisories NU1902/NU1903 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+         e o restore trata como erro — 10.0.14 é a corrigida. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
 </Project>

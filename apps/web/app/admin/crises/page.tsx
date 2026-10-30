@@ -7,6 +7,7 @@ import {
   ShieldAlert, RefreshCw, Loader2, BellOff, Timer, PauseCircle, CheckCircle2,
 } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface CriseEvento {
   id: string
@@ -57,7 +58,7 @@ export default function CrisesPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/admin/crises")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar a supervisão de crise."); return }
       setC(await r.json())
     } catch {

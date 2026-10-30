@@ -18,7 +18,7 @@ STATE=/var/tmp/cerebro-health-state
 val() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'; }
 RESEND_KEY=$(val RESEND_API_KEY)
 FROM=$(val EMAIL_FROM)
-TO=$(val ALERT_EMAIL); [ -z "$TO" ] && TO="alerts@arinelli.com"
+TO=$(val ALERT_EMAIL); [ -z "$TO" ] && TO="arinelliquebec@gmail.com"
 
 check() { curl -sf --max-time 5 "$1" >/dev/null 2>&1 && echo ok || echo DOWN; }
 

@@ -16,7 +16,6 @@ export default function CheckupError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // eslint-disable-next-line no-console
     console.error("Check-up error:", error);
   }, [error]);
 

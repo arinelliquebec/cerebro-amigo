@@ -8,6 +8,7 @@ import {
   TrendingUp, AlertTriangle, ClipboardList, ScanLine,
 } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface EscalaFunil { scale: string; testStarted: number; testCompleted: number; reportGenerated: number }
 interface FunnelMetrics {
@@ -83,7 +84,7 @@ export default function AquisicaoPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/admin/aquisicao")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar o cockpit de aquisição."); return }
       setD(await r.json())
     } catch {

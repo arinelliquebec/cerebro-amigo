@@ -2,7 +2,7 @@
 
 **Status:** Provisionado / Accepted — CloudFront no ar desde 2026-06-14 (ver seção "Provisionado")  
 **Data:** 2026-06-12  
-**Autores:** Patrick Arinelli
+**Autores:** Rafael Arinelli
 
 ---
 

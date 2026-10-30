@@ -7,23 +7,23 @@
     "build": "next build",
     "start": "next start -p 3001",
     "test": "vitest run",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
-    "next": "^16",
-    "react": "^19",
-    "react-dom": "^19",
     "@anthropic-ai/sdk": "latest",
-    "@aws-sdk/client-sesv2": "^3",
-    "@react-pdf/renderer": "^4",
-    "bcryptjs": "^2.4.3",
-    "drizzle-orm": "^0.45.2",
-    "postgres": "^3",
-    "zod": "^4",
+    "@aws-sdk/client-sesv2": "^3.1161.0",
+    "@react-pdf/renderer": "^4.9.0",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.4",
     "lucide-react": "latest",
-    "qrcode": "^1",
-    "clsx": "^2",
-    "tailwind-merge": "^2"
+    "next": "^16.4.3",
+    "postgres": "^4.0.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "3.25.76"
   },
   "browserslist": [
     "chrome >= 100",
@@ -32,15 +32,16 @@
     "safari >= 15.4"
   ],
   "devDependencies": {
-    "typescript": "^5",
-    "vitest": "^3",
-    "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4",
-    "drizzle-kit": "^0.31",
-    "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/qrcode": "^1",
-    "@types/bcryptjs": "^2.4.6"
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
   },
   "//": "Versões: alinhar com o lockfile do monorepo (pnpm). shadcn/ui via CLI (estilo new-york), copiando components.json de apps/web."
 }

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Eye, RefreshCw, Loader2, Search, AlertTriangle, ShieldCheck } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface Acesso {
   id: string
@@ -41,7 +42,7 @@ export default function AcessosPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch(`/api/admin/acessos?q=${encodeURIComponent(q)}`)
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar a trilha de acesso."); return }
       setT(await r.json())
     } catch {
@@ -136,7 +137,7 @@ export default function AcessosPage() {
       )}
 
       <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
-        <Eye className="h-3 w-3" /> Registro append-only das operações de tratamento (LGPD art. 37). "Cruzado" = acesso a paciente que não é do médico — sinal de bypass/anomalia (hoje detectado sobretudo via Exames; os demais reads são bloqueados antes do acesso).
+        <Eye className="h-3 w-3" /> Registro append-only das operações de tratamento (LGPD art. 37). “Cruzado” = acesso a paciente que não é do médico — sinal de bypass/anomalia (hoje detectado sobretudo via Exames; os demais reads são bloqueados antes do acesso).
       </p>
     </div>
   )

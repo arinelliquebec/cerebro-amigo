@@ -10,7 +10,7 @@ import { Header } from "@/components/header"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Loader2, TrendingUp, Users, CalendarCheck, ShieldCheck, HeartPulse,
-  RefreshCw, Lock, FileClock, Activity, Sparkles, AlertTriangle,
+  RefreshCw, Lock, FileClock, Activity, Sparkles,
 } from "lucide-react"
 
 interface Roi {

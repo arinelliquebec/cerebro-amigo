@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Cpu, Loader2, RefreshCw, DollarSign, Download } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
 import { baixarCsv } from "@/lib/csv"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface CustoMes {
   mes: string
@@ -31,7 +32,7 @@ export default function CustosPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/admin/custos-llm")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar os custos de IA."); return }
       setRows(await r.json())
     } catch {

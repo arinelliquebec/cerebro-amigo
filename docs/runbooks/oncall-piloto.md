@@ -1,6 +1,6 @@
 # Runbook — On-call de piloto
 
-> **Objetivo:** saber do problema **antes do médico**. Cobertura mínima de observabilidade enquanto o produto está em piloto (~1 usuário). Alertas chegam por **e-mail** (`alerts@arinelli.com`) via SNS. SMS não está ativo (subscription é 1 comando quando quiser).
+> **Objetivo:** saber do problema **antes do médico**. Cobertura mínima de observabilidade enquanto o produto está em piloto (~1 usuário). Alertas chegam por **e-mail** (`arinelliquebec@gmail.com`) via SNS. SMS não está ativo (subscription é 1 comando quando quiser).
 
 ## Onde os alertas chegam
 

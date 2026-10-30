@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og"
 
-export const runtime = "edge"
 export const alt = "Cérebro Amigo — Acompanhamento entre consultas para psiquiatria"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
@@ -71,6 +70,9 @@ export default function OgImage() {
         {/* tagline */}
         <div
           style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
             fontSize: 22,
             color: "#9B96B5",
             textAlign: "center",
@@ -78,9 +80,8 @@ export default function OgImage() {
             lineHeight: 1.4,
           }}
         >
-          Acompanhamento entre consultas para psiquiatria.
-          <br />
-          Paciente registra. IA organiza. Médico chega preparado.
+          <span>Acompanhamento entre consultas para psiquiatria.</span>
+          <span>Paciente registra. IA organiza. Médico chega preparado.</span>
         </div>
 
         {/* trust bar */}
@@ -96,7 +97,7 @@ export default function OgImage() {
         >
           <span>LGPD</span>
           <span>·</span>
-          <span>AZURE · EASTUS2 · FICTIONAL DATA</span>
+          <span>AWS BRASIL · SA-EAST-1</span>
           <span>·</span>
           <span>PROTOCOLO DE CRISE</span>
         </div>

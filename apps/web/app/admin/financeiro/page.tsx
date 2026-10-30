@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { irParaLogin } from "@/lib/login-redirect"
 
 // Máscara de moeda BRL
 function moedaBrlMask(valor: string): string {
@@ -139,7 +140,7 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
     reset,
   } = useForm<PagamentoFormData>({
@@ -151,8 +152,8 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
     },
   })
 
-  const metodo = watch("metodo")
-  const valorValue = watch("valor")
+  const metodo = useWatch({ control, name: "metodo" })
+  const valorValue = useWatch({ control, name: "valor" })
 
   async function salvar(data: PagamentoFormData) {
     setErro(null)
@@ -204,7 +205,7 @@ function PagamentoDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: () => voi
           </div>
           <div className="space-y-1.5">
             <Label>Método</Label>
-            <Select value={metodo} onValueChange={(v) => setValue("metodo", v as any)}>
+            <Select value={metodo} onValueChange={(v) => setValue("metodo", v as PagamentoFormData["metodo"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="pix">Pix</SelectItem>
@@ -236,23 +237,24 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
     reset,
   } = useForm<EditarAssinaturaFormData>({
     resolver: zodResolver(editarAssinaturaSchema),
     defaultValues: {
-      plano: asn.plano as any,
+      plano: asn.plano as EditarAssinaturaFormData["plano"],
       valor: valorParaMask(asn.valorMensal ?? 0),
-      status: asn.status as any,
+      status: asn.status as EditarAssinaturaFormData["status"],
       notas: asn.notas ?? "",
       cpf: asn.cpf ? cpfMask(asn.cpf) : "",
     },
   })
 
-  const plano = watch("plano")
-  const status = watch("status")
-  const valorValue = watch("valor")
+  const plano = useWatch({ control, name: "plano" })
+  const status = useWatch({ control, name: "status" })
+  const valorValue = useWatch({ control, name: "valor" })
+  const cpfW = useWatch({ control, name: "cpf" })
 
   async function salvar(data: EditarAssinaturaFormData) {
     setErro(null)
@@ -294,7 +296,7 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Plano</Label>
-              <Select value={plano} onValueChange={(v) => setValue("plano", v as any)}>
+              <Select value={plano} onValueChange={(v) => setValue("plano", v as EditarAssinaturaFormData["plano"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["pendente", "trial", "starter", "pro", "master", "enterprise"].map((p) => (
@@ -306,7 +308,7 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
             </div>
             <div className="space-y-1.5">
               <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setValue("status", v as any)}>
+              <Select value={status} onValueChange={(v) => setValue("status", v as EditarAssinaturaFormData["status"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["trial", "pendente", "ativa", "suspensa", "cancelada"].map((s) => (
@@ -329,7 +331,7 @@ function EditarAssinaturaDialog({ asn, onSalvo }: { asn: Assinatura; onSalvo: ()
           </div>
           <div className="space-y-1.5">
             <Label>CPF do médico (p/ cobrança Asaas)</Label>
-            <Input value={watch("cpf")} onChange={(e) => setValue("cpf", cpfMask(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} />
+            <Input value={cpfW} onChange={(e) => setValue("cpf", cpfMask(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} />
             {errors.cpf && <p className="text-xs text-destructive">{errors.cpf.message}</p>}
           </div>
           <DialogFooter>
@@ -356,7 +358,7 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
     reset,
     setError,
@@ -373,10 +375,11 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
     },
   })
 
-  const cpfValue = watch("cpf")
-  const crmUfValue = watch("crmUf")
-  const planoValue = watch("plano")
-  const valorValue = watch("valor")
+  const cpfValue = useWatch({ control, name: "cpf" })
+  const crmUfValue = useWatch({ control, name: "crmUf" })
+  const planoValue = useWatch({ control, name: "plano" })
+  const valorValue = useWatch({ control, name: "valor" })
+  const crmW = useWatch({ control, name: "crm" })
 
   function handleReset() {
     reset()
@@ -493,7 +496,7 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
               <div className="col-span-2 space-y-1.5">
                 <Label>CRM (número)</Label>
                 <Input
-                  value={watch("crm")}
+                  value={crmW}
                   onChange={(e) => setValue("crm", crmMask(e.target.value))}
                   placeholder="123456"
                   maxLength={10}
@@ -528,7 +531,7 @@ function NovaAssinaturaDialog({ onCriado }: { onCriado: () => void }) {
             </div>
             <div className="space-y-1.5">
               <Label>Plano</Label>
-              <Select value={planoValue} onValueChange={(v) => setValue("plano", v as any)}>
+              <Select value={planoValue} onValueChange={(v) => setValue("plano", v as NovaAssinaturaFormData["plano"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{["pendente","trial","starter","pro","master","enterprise"].map((p) => <SelectItem key={p} value={p}>{planoLabel(p)}</SelectItem>)}</SelectContent>
               </Select>
@@ -666,7 +669,7 @@ export default function FinanceiroPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/admin/assinaturas")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) {
         setErro("Não foi possível carregar as assinaturas — a chamada ao servidor falhou (isto não significa que não há dados). Verifique a conexão/sessão e tente de novo.")
         return

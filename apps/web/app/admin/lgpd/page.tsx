@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Scale, RefreshCw, Loader2, Plus, Check, X } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
 import { toast } from "sonner"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface Solicitacao {
   id: string
@@ -50,7 +51,7 @@ export default function LgpdPage() {
     try {
       const qs = filtro === "todas" ? "" : `?status=${filtro}`
       const r = await fetch(`/api/admin/solicitacoes${qs}`)
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar as solicitações."); return }
       const d = await r.json()
       setItens(d.itens ?? []); setAbertas(d.abertas ?? 0)

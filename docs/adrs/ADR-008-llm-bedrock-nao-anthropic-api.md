@@ -2,7 +2,7 @@
 
 **Status:** Superseded by [ADR-015](ADR-015-llm-provider-switchavel.md)
 **Data:** 2026-05-29
-**Decisores:** Patrick Arinelli, Adonai Arinelli
+**Decisores:** Rafael Arinelli, Adonai Arinelli
 **Categoria:** Stack / Compliance
 
 > **Superseded (2026-06-01):** A premissa central deste ADR — residência de dado

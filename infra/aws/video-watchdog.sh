@@ -23,7 +23,7 @@ STATE=/var/tmp/cerebro-video-watchdog-last
 val() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'; }
 RESEND_KEY=$(val RESEND_API_KEY)
 FROM=$(val EMAIL_FROM)
-TO=$(val ALERT_EMAIL); [ -z "$TO" ] && TO="alerts@arinelli.com"
+TO=$(val ALERT_EMAIL); [ -z "$TO" ] && TO="arinelliquebec@gmail.com"
 
 # falhas | conexões | epoch da última falha — janela de 60 min.
 read -r FALHAS CONECTOU ULTIMA <<<"$(cd /opt/cerebro-amigo-v3 && docker compose exec -T orchestrator-py python - <<'PY' 2>/dev/null

@@ -27,19 +27,7 @@ Plataforma demonstrativa de acompanhamento psiquiátrico entre consultas, desenh
 | **Solução** | Next.js no produto e no BFF, .NET no núcleo transacional, Python nos fluxos de IA e PostgreSQL com RLS como última linha de isolamento. |
 | **O que o repositório demonstra** | Arquitetura de sistemas, desenvolvimento full-stack, segurança por design, UX de produto, testes de integração e CI/CD. |
 
-O objetivo não é apenas simular telas. O monorepo implementa fronteiras de serviço, autenticação, auditoria, migrações, notificações, processamento assíncrono e salvaguardas clínicas em um runtime público de portfólio com dados exclusivamente fictícios.
-
-## Current portfolio runtime
-
-| Camada | Runtime atual |
-|---|---|
-| **Frontend** | Vercel (`apps/web` e `apps/checkup`) |
-| **Backend** | Azure Container Apps |
-| **Banco** | Azure Database for PostgreSQL Flexible Server |
-| **Região Azure** | `eastus2` (Estados Unidos) |
-| **Dados** | Apenas dados fictícios e reproduzíveis de demonstração |
-
-Este ambiente público é uma demonstração de portfólio, não um serviço médico ativo. Ele **não promete residência de dados no Brasil**, e dados reais de pacientes ou dados clínicos não devem ser inseridos. Arquivos e runbooks AWS descrevem o deployment anterior ou uma arquitetura de referência; AWS não faz parte do request path público atual. Veja a [declaração canônica de runtime](./docs/CURRENT-PORTFOLIO-RUNTIME.md) e o [ADR-080](./docs/adrs/ADR-080-portfolio-vercel-azure.md).
+O objetivo não é apenas simular telas. O monorepo implementa fronteiras de serviço, autenticação, auditoria, migrações, notificações, processamento assíncrono, salvaguardas clínicas e uma arquitetura de referência para AWS na região de São Paulo.
 
 ## Produto
 
@@ -98,20 +86,16 @@ Este ambiente público é uma demonstração de portfólio, não um serviço mé
 
 ```mermaid
 flowchart LR
-    subgraph V["Vercel · frontend"]
-      M["Médico · Web"] --> BFF["Next.js · BFF"]
-      P["Paciente · PWA"] --> BFF
-      C["Check-up anônimo"]
-    end
-    subgraph A["Azure eastus2 · somente dados fictícios"]
-      BFF --> API[".NET 10 · Container Apps"]
-      API --> DB[("Azure PostgreSQL · RLS")]
-      API --> ORC["Python · Orchestrator"]
-      API --> AGT["Python · Agents / RAG"]
-      API --> NOT["Python · Notifier"]
-      C --> CDB[("Schema isolado")]
-    end
+    M["Médico · Web"] --> BFF["Next.js · BFF"]
+    P["Paciente · PWA"] --> BFF
+    BFF --> API[".NET 10 · API Gateway"]
+    API --> DB[("PostgreSQL · RLS")]
+    API --> ORC["Python · Orchestrator"]
+    API --> AGT["Python · Agents / RAG"]
+    API --> NOT["Python · Notifier"]
     ORC --> LLM["Anthropic API"]
+    AGT --> EMB["Bedrock · embeddings"]
+    C["Check-up anônimo"] --> CDB[("Schema isolado")]
 ```
 
 As fronteiras foram escolhidas por responsabilidade, não por preferência de linguagem:
@@ -122,7 +106,7 @@ As fronteiras foram escolhidas por responsabilidade, não por preferência de li
 | Núcleo transacional | ASP.NET Core / .NET 10 | REST, JWT, regras de acesso, EF Core e proxy de eventos. |
 | IA e automações | Python 3.12, FastAPI, LangGraph | Orquestração, classificação, RAG, jobs e integrações. |
 | Dados | PostgreSQL, pgvector, pgcrypto | Modelo relacional, busca vetorial, cifragem e RLS multi-tenant. |
-| Entrega | Vercel, Azure Container Apps, GitHub Actions | Entrega pública do portfólio, builds reproduzíveis e gates de qualidade. |
+| Entrega | Docker, GitHub Actions, AWS | Builds reproduzíveis, gates de qualidade e arquitetura regionalizada. |
 
 Para o mapa completo, consulte [docs/CONTEXT.md](./docs/CONTEXT.md). As decisões arquiteturais são registradas em [docs/adrs](./docs/adrs).
 
@@ -176,8 +160,7 @@ apps/
 
 infra/
 ├── migrations/          DDL versionado do PostgreSQL
-├── azure/               Infraestrutura como código do portfólio atual
-├── aws/                 Arquitetura anterior/de referência e automações
+├── aws/                 Arquitetura de referência e automações
 └── ci/                  Scripts de integração e smoke tests
 
 docs/
@@ -187,7 +170,7 @@ docs/
 └── runbooks/            Procedimentos operacionais simulados
 ```
 
-O experimento descomissionado do gateway em Scala (ADR-067/071) foi removido da árvore; a source está preservada na tag git `archive/api-gateway-scala`. O gateway ativo é .NET 10.
+`apps/api-gateway-scala` é código descomissionado preservado apenas como registro histórico; o gateway ativo é .NET 10.
 
 ## Rodando localmente
 
@@ -224,8 +207,7 @@ O `.env.example` documenta todas as variáveis. Use somente credenciais própria
 
 - Nenhum dado real de paciente deve ser inserido.
 - As telas e cenários apresentados usam informações fictícias.
-- O runtime público está na Vercel e no Azure `eastus2`; ele não promete residência de dados no Brasil.
-- A infraestrutura AWS é mantida apenas como arquitetura anterior/de referência.
+- A infraestrutura AWS representa uma topologia plausível, não uma declaração de ambiente clínico ativo.
 - Escalas e salvaguardas foram tratadas como artefatos controlados, mas uso real exigiria validação jurídica, clínica, de segurança e privacidade independente.
 - Débitos e decisões ainda abertas são mantidos de forma explícita em [docs/DEBT.md](./docs/DEBT.md).
 

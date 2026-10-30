@@ -44,7 +44,7 @@ WINDOW_MIN=20
 val() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'; }
 RESEND_KEY=$(val RESEND_API_KEY)
 FROM=$(val EMAIL_FROM)
-TO=$(val ALERT_EMAIL); [ -z "$TO" ] && TO="alerts@arinelli.com"
+TO=$(val ALERT_EMAIL); [ -z "$TO" ] && TO="arinelliquebec@gmail.com"
 DSN=$(val POSTGRES_DSN_URL)   # cerebro_workers — BYPASSRLS, enxerga todos os tenants
 
 [ -z "$DSN" ] && { echo "sem POSTGRES_DSN_URL — abortou"; exit 0; }

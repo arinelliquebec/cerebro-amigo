@@ -6,8 +6,8 @@ Guardrails de custo da conta `004177894935` (sa-east-1). Montado 2026-06-22.
 
 | Item | Recurso | Onde |
 |------|---------|------|
-| Budget mensal | `cerebro-amigo-mensal` — teto **US$ 120**, alertas **50/80/100%** ACTUAL + **100%** FORECASTED → `alerts@arinelli.com` | CFN `cerebro-cost-guardrails` (us-east-1), template `infra/aws/cost-guardrails.yaml` |
-| Anomaly Detection | monitor `Default-Services-Monitor` + assinatura nova `cerebro-amigo-anomalia` (abs ≥ **US$ 20**, DAILY) → `alerts@arinelli.com` | criada via `aws ce create-anomaly-subscription` |
+| Budget mensal | `cerebro-amigo-mensal` — teto **US$ 120**, alertas **50/80/100%** ACTUAL + **100%** FORECASTED → `arinelliquebec@gmail.com` | CFN `cerebro-cost-guardrails` (us-east-1), template `infra/aws/cost-guardrails.yaml` |
+| Anomaly Detection | monitor `Default-Services-Monitor` + assinatura nova `cerebro-amigo-anomalia` (abs ≥ **US$ 20**, DAILY) → `arinelliquebec@gmail.com` | criada via `aws ce create-anomaly-subscription` |
 | Tags de custo | `project=cerebro-amigo`, `env=prod-pilot` em 3 EC2 + EBS + RDS + 2 ALB + 2 ASG | `infra/aws/cost-tags.sh` |
 | Stop/start | box clínico + RDS (opcional web/checkup) | `infra/aws/cost-stop-start.sh` |
 
@@ -21,7 +21,7 @@ aws budgets describe-budget --account-id 004177894935 --budget-name cerebro-amig
 # mudar o teto (redeploy do stack)
 aws cloudformation deploy --template-file infra/aws/cost-guardrails.yaml \
   --stack-name cerebro-cost-guardrails --region us-east-1 \
-  --parameter-overrides MonthlyLimitUsd=<novo> NotifyEmail=alerts@arinelli.com
+  --parameter-overrides MonthlyLimitUsd=<novo> NotifyEmail=arinelliquebec@gmail.com
 ```
 
 Budgets manda e-mail direto — **não** exige confirmação de assinatura (diferente de SNS).

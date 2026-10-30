@@ -1,6 +1,8 @@
 using ApiGateway.Auth;
 using ApiGateway.Data;
 using ApiGateway.Services;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
@@ -17,8 +19,8 @@ namespace ApiGateway.Endpoints;
 /// Dois caminhos de captura:
 ///   • Teleconsulta (ADR-040): áudio da videochamada chega em base64 → transcrição SÍNCRONA.
 ///   • Presencial   (ADR-075): médico atesta consentimento verbal → grava mic da sala →
-///     upload via SAS direto no Azure Blob (ADR-082) → transcrição ASSÍNCRONA (fila + worker;
-///     consulta longa não cabe numa request HTTP). O front faz polling na página de revisão.
+///     upload presigned direto no S3 → transcrição ASSÍNCRONA (fila + worker; consulta
+///     longa não cabe numa request HTTP). O front faz polling do status na página de revisão.
 ///
 /// Guardrails (clinical-safety):
 ///   • Regra #1: rascunho é factual; a IA não decide nada clínico (feito no prompt do agents-py).
@@ -32,8 +34,8 @@ public static class EscribaEndpoints
 {
     public static void Map(WebApplication app)
     {
-        // Container efêmero do áudio do escriba — MESMO que o agents-py lê (blob_container_audio).
-        var containerAudio = app.Configuration["BLOB_CONTAINER_AUDIO"] ?? "audio-efemero";
+        // Bucket efêmero do áudio do escriba — MESMO que o agents-py lê (s3_bucket_audio).
+        var bucketAudio = app.Configuration["S3_BUCKET_AUDIO"] ?? "cerebro-amigo-audio-sa-east-1";
 
         // ─── Paciente: consentir / revogar gravação (teleconsulta) ────────────
         app.MapPost("/api/v1/portal/paciente/agenda/{id:guid}/escriba/consentir", async (
@@ -110,10 +112,10 @@ public static class EscribaEndpoints
             return Results.NoContent();
         }).WithTags("escriba-medico").RequireAuthorization().RequireFeature(FeatureKeys.Escriba);
 
-        // ─── Médico: URL de upload SAS (presencial) ───────────────────────────
-        // Browser sobe o áudio direto pro Blob (dodge do cap 25MB base64 / TC-3).
+        // ─── Médico: URL de upload presigned (presencial) ─────────────────────
+        // Browser sobe o áudio direto pro S3 (dodge do cap 25MB base64 / TC-3).
         app.MapPost("/api/v1/consultas/{id:guid}/escriba/upload-url", async (
-            Guid id, JsonElement body, AppDbContext db, ClaimsPrincipal user, BlobStoragePresigner storage) =>
+            Guid id, JsonElement body, AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3) =>
         {
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
@@ -127,7 +129,14 @@ public static class EscribaEndpoints
             // Key namespaceada por paciente → o POST /escriba valida o prefixo (anti-forja).
             var key = $"escriba/{info.PacienteId}/{Guid.NewGuid()}.{ext}";
 
-            var url = storage.PresignPut(containerAudio, key, TimeSpan.FromMinutes(15));
+            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
+            {
+                BucketName  = bucketAudio,
+                Key         = key,
+                Verb        = HttpVerb.PUT,
+                Expires     = DateTime.UtcNow.AddMinutes(15),
+                ContentType = string.IsNullOrEmpty(contentType) ? "audio/webm" : contentType,
+            });
             return Results.Ok(new { uploadUrl = url, s3Key = key });
         }).WithTags("escriba-medico").RequireAuthorization().RequireFeature(FeatureKeys.Escriba);
 
@@ -147,7 +156,7 @@ public static class EscribaEndpoints
             if (info.EscribaConsentidoEm is null)
                 return Results.Conflict(new { erro = "sem_consentimento" });
 
-            // ── Caminho PRESENCIAL: áudio já no Blob (SAS). Transcrição ASSÍNCRONA. ──
+            // ── Caminho PRESENCIAL: áudio já no S3 (presigned). Transcrição ASSÍNCRONA. ──
             if (!string.IsNullOrWhiteSpace(req.S3Key))
             {
                 // Valida ownership da key por prefixo exato (padrão anti-forja, MensagensAudio).
@@ -178,7 +187,7 @@ public static class EscribaEndpoints
             var internalToken = cfg["INTERNAL_API_TOKEN"]
                 ?? throw new InvalidOperationException("INTERNAL_API_TOKEN ausente");
 
-            // LLM/transcrição (Azure Speech) vivem só no Python (ADR-044/081). Gateway só orquestra + persiste.
+            // LLM/Transcribe vivem só no Python (ADR-044). Gateway só orquestra + persiste.
             string transcricao; string rascunhoJson; bool mencaoRisco;
             try
             {
