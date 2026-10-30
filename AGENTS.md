@@ -8,20 +8,9 @@ Guia para agentes de IA de código (Cursor, Codex, Copilot, Claude Code, etc.) q
 
 ## O que é
 
-SaaS de **psiquiatria, multi-tenant**, que trabalha *entre consultas*: acompanha pacientes, organiza condutas, automatiza lembretes e check-ins. Dois públicos: **médico** (dashboard web) e **paciente** (PWA `/p/*`). O ambiente público atual é um portfólio com dados exclusivamente fictícios.
+SaaS de **psiquiatria, multi-tenant**, que trabalha *entre consultas*: acompanha pacientes, organiza condutas, automatiza lembretes e check-ins. Dois públicos: **médico** (dashboard web) e **paciente** (PWA `/p/*`). Em produção na AWS (EC2 + RDS, `sa-east-1`).
 
-Produto-satélite: **Check-up Mental** (`apps/checkup`) — triagem pública e anônima (PHQ-9, GAD-7, ASRS-18), motor de aquisição.
-
-## Current portfolio runtime
-
-- Frontend: Vercel.
-- Backend: Azure Container Apps.
-- Banco: Azure Database for PostgreSQL Flexible Server.
-- Região: `eastus2` (Estados Unidos).
-- Dados: somente dados fictícios; nenhuma promessa de residência no Brasil.
-- AWS: deployment anterior/arquitetura de referência, fora do request path atual.
-
-Fonte canônica: `docs/CURRENT-PORTFOLIO-RUNTIME.md`; decisão: ADR-080.
+Produto-satélite: **Check-up Mental** (`apps/checkup`) — triagem pública e anônima (PHQ-9, GAD-7, ASRS-18), motor de aquisição. Roda em infra própria (ALB + ASG).
 
 ---
 
@@ -43,12 +32,12 @@ Antes de tocar em resposta ao paciente, conteúdo clínico, crise, prompt de LLM
 
 ## Stack (decisões fechadas — não regredir)
 
-- **Cloud do portfólio atual:** Vercel + Azure `eastus2`, somente dados fictícios (ADR-080).
+- **Cloud:** AWS, `sa-east-1` (residência de dado no Brasil). EC2 + RDS Postgres.
 - **Gateway transacional:** **.NET 10** (ASP.NET Core) — decisão final **ADR-071**. ❌ Não migrar para Go nem Scala (strangler Scala abandonado; source só recuperável). Go descartado.
 - **IA (LLM):** **Python** (FastAPI + LangGraph) chamando Claude via **Anthropic API direta** (`LLM_PROVIDER=anthropic`, **ADR-044**). ❌ Não migrar de volta para Bedrock sem novo ADR. Bedrock continua só para embeddings/RAG in-region (LGPD).
 - **Frontend/BFF:** Next.js 16 + React 19 + TypeScript (strict) + Tailwind 4 + shadcn/ui. BFF nos Route Handlers (`app/api/*`).
-- **Banco:** Azure PostgreSQL Flexible Server, pgvector + pgcrypto. RLS multi-tenant.
-- **AWS:** material histórico/de referência; não descreve o runtime público atual.
+- **Banco:** PostgreSQL (RDS), pgvector + pgcrypto. RLS multi-tenant.
+- ❌ **Azure: REMOVIDO.** Não reintroduzir nenhuma dependência Azure.
 
 ---
 
@@ -60,18 +49,18 @@ apps/
   checkup/          Next.js 16 — Check-up Mental (triagem pública anônima; App Router em /src/app)
   api-gateway/      .NET 10 — REST, JWT, EF Core, RLS, Resend, proxy SSE (minimal APIs)
   api-gateway-tests/ xUnit + Testcontainers — isolamento de tenant/RLS (gate no CI)
+  api-gateway-scala/ DECOMISSIONADO (ADR-071) — não buildar/deployar
   orchestrator-py/  FastAPI + LangGraph — IA conversacional + protocolo de crise (:8081)
   agents-py/        FastAPI + APScheduler — agentes analíticos + RAG (:8082)
   notifier-py/      FastAPI + pywebpush — Web Push / e-mail de check-ins e crise (:8083)
 infra/
   migrations/       DDL versionado do Postgres (0001..0058+) — FONTE DA VERDADE do schema
-  azure/             Runtime atual do portfólio (Vercel + Container Apps + PostgreSQL)
   aws/              EC2, RDS, ALB, ASG, CloudFront, Lambdas, watchdogs, policies
   ci/, caddy/, scripts/
 docs/
   CONTEXT.md        arquitetura completa (leia ao planejar)
   DEBT.md           dívida técnica viva (consulte antes de propor melhorias)
-  adrs/             ADR-001..081+
+  adrs/             ADR-001..073
   runbooks/         operação (restore RDS, swap de roles, drills, cutovers)
 .claude/skills/     conhecimento de domínio carregado sob demanda
 ```
@@ -96,8 +85,7 @@ docs/
 ```bash
 docker compose up -d --build      # precisa de .env preenchido
 ```
-> O compose é apenas para desenvolvimento/local. No portfólio atual, os frontends
-> são promovidos pela Git Integration da Vercel e o backend segue `infra/azure/`.
+> Em **prod nunca** se builda: o deploy faz `docker compose pull && up -d --no-build` com `IMAGE_TAG` do ECR.
 
 ### Web (`apps/web`) — porta 3000
 ```bash
@@ -211,13 +199,13 @@ Rode os testes da área que você tocou antes de considerar a tarefa pronta.
 
 ---
 
-## Segurança / defesas estruturais implementadas (não regrida)
+## Segurança / defesas estruturais já em produção (não regrida)
 
 - **RLS de tenant (ADR-042):** ~17 tabelas com Row-Level Security. Gateway conecta como `cerebro_gateway` (NOBYPASSRLS; tenant via `TenantSessionMiddleware` setando GUC `app.current_medico`/`app.current_paciente`/`app.tenant_bypass`). Workers Python como `cerebro_workers` (BYPASSRLS). **Endpoint/query novo mantém o filtro explícito de tenant E conta com a RLS por baixo.** Só `role=owner` recebe bypass; `admin` (financeiro) não vê tabelas clínicas.
 - **Trava server-side dos prompts de salvaguarda (ADR-035):** prompts de crise/auditoria são bloqueados contra alteração via editor (`PromptValidation.cs`).
 - **Entrega garantida do alerta de crise (ADR-041):** retry com backoff + escalonamento até o médico confirmar.
 - **Cifragem em repouso (ADR-018):** `mensagens.conteudo` cifrada no INSERT (orchestrator-py) e decifrada no SELECT (gateway). Não crie caminho que contorne isso.
-- **Segredos:** `ANTHROPIC_API_KEY`, `JWT_SECRET`, etc. só por env e Azure Key Vault no runtime atual. SSM pertence ao deployment AWS anterior. ❌ Nunca em código, imagem Docker ou log.
+- **Segredos:** `ANTHROPIC_API_KEY`, `JWT_SECRET`, etc. só por env (SSM Parameter Store SecureString em prod). ❌ Nunca em código, imagem Docker ou log.
 - CSP: web em Report-Only; checkup enforcing em prod. HSTS + X-Frame-Options DENY em ambos.
 
 ---
@@ -225,9 +213,8 @@ Rode os testes da área que você tocou antes de considerar a tarefa pronta.
 ## CI/CD
 
 - **CI (`.github/workflows/ci.yml`):** Trivy (gate CRITICAL) · Python ruff + pytest (3 serviços) · .NET build + xUnit/Testcontainers · integração Postgres real + smoke · build web · checkup vitest + build.
-- **Deploy frontend:** Git Integration da Vercel promove os projetos `apps/web` e `apps/checkup`; não há workflow AWS ativo.
-- **Deploy backend:** Azure Container Apps/ACR conforme `infra/azure/`; mudanças de infraestrutura são promovidas deliberadamente, não por um pipeline AWS legado.
-- **CI valida web e checkup em PR:** build strict do web; Vitest + build strict do checkup.
+- **Deploy (`deploy.yml`):** push em `main` → testes → build de 6 imagens clínicas + 1 checkup → ECR (sa-east-1) → SSM na EC2 (`docker compose pull && up -d --no-build` + health checks) · checkup e web via instance refresh do ASG (zero-downtime).
+- **CI não builda o checkup em PR** (só `apps/web`); o checkup é validado no job próprio.
 
 ---
 

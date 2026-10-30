@@ -1,7 +1,3 @@
-<p align="center"><strong><a href="https://www.cerebroamigo.com.br">www.cerebroamigo.com.br</a></strong></p>
-
-<p align="center"><strong><a href="https://www.cerebroamigo.com.br/demo">View live demo</a></strong> · <strong><a href="https://www.cerebroamigo.com.br/p/entrar">Enter the fictional patient portal</a></strong> · no credentials required</p>
-
 # Cérebro Amigo V3
 
 A demonstration platform for psychiatric care between appointments, designed to connect the patient's daily routine to the physician's decision-making with safety, context, and traceability.
@@ -31,24 +27,10 @@ A demonstration platform for psychiatric care between appointments, designed to 
 | **Solution** | Next.js for the product and BFF, .NET for the transactional core, Python for the AI flows, and PostgreSQL with Row-Level Security as the last line of isolation. |
 | **What this repository demonstrates** | Systems architecture, full-stack development, security by design, product UX, integration testing, and CI/CD. |
 
-The goal is not just to simulate screens. The monorepo implements service boundaries, authentication, auditing, migrations, notifications, asynchronous processing, and clinical safeguards in a public portfolio runtime built only with fictional data.
+The goal is not just to simulate screens. The monorepo implements service boundaries, authentication, auditing, migrations, notifications, asynchronous processing, clinical safeguards, and a reference architecture for AWS in the São Paulo region.
 
 > [!NOTE]
 > Product copy and internal documentation (ADRs, runbooks) are written in Brazilian Portuguese — the product targets the Brazilian market and its data-protection law (LGPD). This README summarizes the key engineering decisions in English.
-
-## Current portfolio runtime
-
-| Layer | Current runtime |
-|---|---|
-| **Frontend** | Vercel (`apps/web` and `apps/checkup`) |
-| **Backend** | Azure Container Apps |
-| **Database** | Azure Database for PostgreSQL Flexible Server |
-| **Azure region** | `eastus2` (United States) |
-| **Data** | Fictional, reproducible demonstration data only |
-
-This public environment is a portfolio demonstration, not an active medical service. It makes **no claim of data residency in Brazil**, and real patient or clinical data must not be entered. AWS files and runbooks describe the previous deployment or reference architecture; AWS is not part of the current public request path. See the [canonical runtime statement](./docs/CURRENT-PORTFOLIO-RUNTIME.md) and [ADR-080](./docs/adrs/ADR-080-portfolio-vercel-azure.md).
-
-The recruiter-facing [`/demo`](https://www.cerebroamigo.com.br/demo) experience offers separate physician and patient tours from the same fictional portfolio snapshot. It deliberately does not depend on the clinical backend, so Azure cold starts cannot block inspection. The patient route includes local mood, medication and simulated voice-recording interactions without accessing the microphone. Recruiters can also enter the [authenticated fictional patient portal](https://www.cerebroamigo.com.br/p/entrar) in one click: the shared credential remains server-side while the normal gateway authentication and `httpOnly` session flow are exercised. See [ADR-081](./docs/adrs/ADR-081-resilient-public-demo.md).
 
 ## Product
 
@@ -107,20 +89,16 @@ The recruiter-facing [`/demo`](https://www.cerebroamigo.com.br/demo) experience 
 
 ```mermaid
 flowchart LR
-    subgraph V["Vercel · frontend"]
-      M["Physician · Web"] --> BFF["Next.js · BFF"]
-      P["Patient · PWA"] --> BFF
-      C["Anonymous Check-up"]
-    end
-    subgraph A["Azure eastus2 · fictional demo data only"]
-      BFF --> API[".NET 10 · Container Apps"]
-      API --> DB[("Azure PostgreSQL · RLS")]
-      API --> ORC["Python · Orchestrator"]
-      API --> AGT["Python · Agents / RAG"]
-      API --> NOT["Python · Notifier"]
-      C --> CDB[("Isolated schema")]
-    end
+    M["Physician · Web"] --> BFF["Next.js · BFF"]
+    P["Patient · PWA"] --> BFF
+    BFF --> API[".NET 10 · API Gateway"]
+    API --> DB[("PostgreSQL · RLS")]
+    API --> ORC["Python · Orchestrator"]
+    API --> AGT["Python · Agents / RAG"]
+    API --> NOT["Python · Notifier"]
     ORC --> LLM["Anthropic API"]
+    AGT --> EMB["Bedrock · embeddings"]
+    C["Anonymous Check-up"] --> CDB[("Isolated schema")]
 ```
 
 Boundaries were drawn by responsibility, not by language preference:
@@ -131,7 +109,7 @@ Boundaries were drawn by responsibility, not by language preference:
 | Transactional core | ASP.NET Core / .NET 10 | REST, JWT, access rules, EF Core, and event proxying. |
 | AI & automation | Python 3.12, FastAPI, LangGraph | Orchestration, classification, RAG, jobs, and integrations. |
 | Data | PostgreSQL, pgvector, pgcrypto | Relational model, vector search, encryption, and multi-tenant RLS. |
-| Delivery | Vercel Git Integration, Azure Container Apps/ACR, GitHub Actions CI | Public portfolio delivery, reproducible builds, and quality gates without an active AWS deploy workflow. |
+| Delivery | Docker, GitHub Actions, AWS | Reproducible builds, quality gates, and a regionalized architecture. |
 
 For the full map, see [docs/CONTEXT.md](./docs/CONTEXT.md). Architectural decisions are recorded in [docs/adrs](./docs/adrs).
 
@@ -185,8 +163,7 @@ apps/
 
 infra/
 ├── migrations/          Versioned PostgreSQL DDL
-├── azure/               Current portfolio infrastructure as code
-├── aws/                 Previous/reference architecture and automation
+├── aws/                 Reference architecture and automation
 └── ci/                  Integration scripts and smoke tests
 
 docs/
@@ -196,7 +173,7 @@ docs/
 └── runbooks/            Simulated operational procedures
 ```
 
-The decommissioned Scala gateway experiment (ADR-067/071) was removed from the tree; its source is preserved under the git tag `archive/api-gateway-scala`. The active gateway is .NET 10.
+`apps/api-gateway-scala` is decommissioned code preserved purely as historical record; the active gateway is .NET 10.
 
 ## Running locally
 
@@ -233,16 +210,9 @@ docker compose up -d --build
 
 - No real patient data should ever be entered.
 - All screens and scenarios shown use fictional information.
-- The public runtime is in Vercel and Azure `eastus2`; it does not promise Brazilian data residency.
-- AWS infrastructure is retained only as previous/reference architecture.
+- The AWS infrastructure represents a plausible topology, not a statement of an active clinical environment.
 - Clinical scales and safeguards were treated as controlled artifacts, but real-world use would require independent legal, clinical, security, and privacy validation.
 - Open debts and pending decisions are kept explicit in [docs/DEBT.md](./docs/DEBT.md).
-
-## License
-
-Copyright © 2026 Patrick Arinelli. All rights reserved. This repository is
-publicly accessible for viewing, evaluation, and portfolio review only. See
-the [LICENSE](./LICENSE) file for the complete terms.
 
 ---
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertTriangle, Plus, Loader2, Key, Shield, Users, RefreshCw, Stethoscope, Pencil, UserX, UserCheck, Search } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
 import { toast } from "sonner"
+import { irParaLogin } from "@/lib/login-redirect"
 
 // Schemas Zod para validação
 const novoUsuarioSchema = z.object({
@@ -64,7 +65,7 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
     reset,
     setError,
@@ -78,7 +79,7 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
     },
   })
 
-  const role = watch("role")
+  const role = useWatch({ control, name: "role" })
 
   async function submeter(data: NovoUsuarioFormData) {
     setErro(null)
@@ -141,7 +142,7 @@ function NovoUsuarioDialog({ onCriado }: { onCriado: () => void }) {
           </div>
           <div className="space-y-1.5">
             <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => setValue("role", v as any)}>
+            <Select value={role} onValueChange={(v) => setValue("role", v as NovoUsuarioFormData["role"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="medico">Médico</SelectItem>
@@ -171,15 +172,15 @@ function RoleDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
   const {
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
     reset,
   } = useForm<RoleFormData>({
     resolver: zodResolver(roleSchema),
-    defaultValues: { role: u.role as any },
+    defaultValues: { role: u.role as RoleFormData["role"] },
   })
 
-  const role = watch("role")
+  const role = useWatch({ control, name: "role" })
 
   async function salvar(data: RoleFormData) {
     setErro(null)
@@ -222,7 +223,7 @@ function RoleDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErro(null); reset({ role: u.role as any }) } }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErro(null); reset({ role: u.role as RoleFormData["role"] }) } }}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Mudar role">
           <Shield className="h-3.5 w-3.5" />
@@ -232,7 +233,7 @@ function RoleDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
         <DialogHeader><DialogTitle>Mudar role — {u.nome}</DialogTitle></DialogHeader>
         {erro && <p className="text-sm text-destructive">{erro}</p>}
         <form onSubmit={handleSubmit(salvar)} className="space-y-3">
-          <Select value={role} onValueChange={(v) => setValue("role", v as any)}>
+          <Select value={role} onValueChange={(v) => setValue("role", v as RoleFormData["role"])}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="medico">Médico</SelectItem>
@@ -378,7 +379,7 @@ function ExcluirDialog({ u, onExcluido }: { u: Usuario; onExcluido: () => void }
   )
 }
 
-function SenhaDialog({ u, onSalvo }: { u: Usuario; onSalvo: () => void }) {
+function SenhaDialog({ u }: { u: Usuario }) {
   const [open, setOpen] = useState(false)
   const [senha, setSenha] = useState("")
   const [enviando, setEnviando] = useState(false)
@@ -498,7 +499,7 @@ export default function UsuariosPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/admin/usuarios")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar os usuários."); return }
       setUsuarios(await r.json())
     } catch {
@@ -512,7 +513,7 @@ export default function UsuariosPage() {
     setLoadingDesativados(true); setErroDesativados(null)
     try {
       const r = await fetch("/api/admin/usuarios?desativados=true")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErroDesativados("Não foi possível carregar os usuários desativados."); return }
       setDesativados(await r.json())
     } catch {
@@ -652,7 +653,7 @@ export default function UsuariosPage() {
                         )}
                         <EditarDialog u={u} onSalvo={carregar} />
                         {isOwner && <RoleDialog u={u} onSalvo={carregar} />}
-                        <SenhaDialog u={u} onSalvo={carregar} />
+                        <SenhaDialog u={u} />
                         {u.id !== meId && u.role !== "owner" && (
                           <ExcluirDialog u={u} onExcluido={carregar} />
                         )}

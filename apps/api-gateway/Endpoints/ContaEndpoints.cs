@@ -1,3 +1,5 @@
+using Amazon.S3;
+using Amazon.S3.Model;
 using ApiGateway.Auth;
 using ApiGateway.Data;
 using ApiGateway.Services;
@@ -9,7 +11,7 @@ using System.Text;
 
 // ADR-066 Fase 4 — extras do Portal do Psiquiatra (médico-facing, sem LLM):
 //   Segurança:  trocar senha (logado) · esqueci-senha · redefinir-senha (anon)
-//   Foto:       upload-url + set (SAS do Azure Blob, container dos docs — ADR-082)
+//   Foto:       upload-url + set (S3 presigned, bucket dos docs)
 //   LGPD:       exportar meus dados (JSON) · solicitar exclusão (soft, Regra 5)
 
 namespace ApiGateway.Endpoints;
@@ -18,7 +20,7 @@ public static class ContaEndpoints
 {
     public static void Map(WebApplication app)
     {
-        var container = app.Configuration["BLOB_CONTAINER_MEDICO_DOCS"] ?? "medico-docs";
+        var bucket = app.Configuration["S3_BUCKET_MEDICO_DOCS"] ?? "cerebro-amigo-medico-docs";
 
         // ── SEGURANÇA (logado) ───────────────────────────────────────────────
         app.MapPost("/api/v1/me/senha", async (
@@ -135,7 +137,7 @@ public static class ContaEndpoints
 
         // ── FOTO DE PERFIL ───────────────────────────────────────────────────
         app.MapPost("/api/v1/me/foto/upload-url", async (
-            [FromBody] FotoUploadReq req, AppDbContext db, ClaimsPrincipal user, BlobStoragePresigner storage) =>
+            [FromBody] FotoUploadReq req, AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3) =>
         {
             var medicoId = await GetMedicoIdAsync(db, user);
             if (medicoId is null) return Results.Forbid();
@@ -143,7 +145,11 @@ public static class ContaEndpoints
             if (ext == "") return Results.BadRequest(new { error = "tipo_arquivo_invalido" });
 
             var key = $"medico/{medicoId.Value}/foto/{Guid.NewGuid()}.{ext}";
-            var url = storage.PresignPut(container, key, TimeSpan.FromMinutes(15));
+            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
+            {
+                BucketName = bucket, Key = key, Verb = HttpVerb.PUT,
+                Expires = DateTime.UtcNow.AddMinutes(15), ContentType = req.ContentType,
+            });
             return Results.Ok(new { uploadUrl = url, s3Key = key });
         }).WithTags("conta").RequireAuthorization();
 

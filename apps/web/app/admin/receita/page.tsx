@@ -7,6 +7,7 @@ import {
   LineChart, RefreshCw, Loader2, DollarSign, TrendingUp, AlertTriangle, Clock, CreditCard, UserPlus,
 } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface MrrPlano { plano: string; quantidade: number; valor: number }
 interface ReceitaMes { mes: string; valor: number; pagamentos: number }
@@ -35,7 +36,7 @@ export default function ReceitaPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/admin/cockpit")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar o cockpit de receita."); return }
       setC(await r.json())
     } catch {

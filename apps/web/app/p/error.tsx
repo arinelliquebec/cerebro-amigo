@@ -23,7 +23,6 @@ export default function PortalError({
   reset: () => void
 }) {
   useEffect(() => {
-    // eslint-disable-next-line no-console
     console.error("Portal paciente error:", error)
   }, [error])
 

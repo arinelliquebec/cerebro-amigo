@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buffer = await renderToBuffer(createElement(CheckupPDF, { scale, score, band, label, crisis, rid, qrDataUrl, sub, inj }) as any);
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="checkup-${scale}.pdf"`,

@@ -19,7 +19,7 @@ export function ErroCarregar({
       <AlertTriangle className="mx-auto mb-3 h-6 w-6 text-destructive" />
       <p className="text-sm text-foreground">{mensagem}</p>
       <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
-        A chamada ao servidor falhou — isto não significa "sem dados". Verifique a
+        A chamada ao servidor falhou — isto não significa “sem dados”. Verifique a
         conexão / sessão e tente de novo.
       </p>
       <Button variant="glass" size="sm" onClick={onRetry} className="mt-4 gap-1.5">

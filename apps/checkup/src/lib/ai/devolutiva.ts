@@ -64,10 +64,13 @@ export async function generateDevolutiva(input: DevolutivaInput): Promise<Devolu
   if (!budget.allowed) return getFallback(input);
 
   try {
+    // SDK v1: `temperature` saiu da API — o controle de saída virou
+    // `output_config.effort`. "low" preserva a postura original (resposta curta
+    // e barata numa superfície pública anônima) no lugar do temperature: 0.3.
     const response = await client.messages.create({
       model: HAIKU_MODEL,
       max_tokens: 700,
-      temperature: 0.3,
+      output_config: { effort: "low" },
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: buildUserMessage(input) }],
     });
@@ -80,7 +83,7 @@ export async function generateDevolutiva(input: DevolutivaInput): Promise<Devolu
       const retry = await client.messages.create({
         model: HAIKU_MODEL,
         max_tokens: 700,
-        temperature: 0.3,
+        output_config: { effort: "low" },
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: buildUserMessage(input) }],
       });

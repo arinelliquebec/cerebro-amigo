@@ -25,8 +25,7 @@ namespace ApiGateway.Tests;
 public sealed class TenantIsolationFixture : IAsyncLifetime
 {
     // pgvector/pgvector traz vector + uuid-ossp + pgcrypto (migration 0001 exige).
-    private readonly PostgreSqlContainer _pg = new PostgreSqlBuilder()
-        .WithImage("pgvector/pgvector:pg16")
+    private readonly PostgreSqlContainer _pg = new PostgreSqlBuilder("pgvector/pgvector:pg16")
         .WithDatabase("cerebro_v3_test")
         .Build();
 

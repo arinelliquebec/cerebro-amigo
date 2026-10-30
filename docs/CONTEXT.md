@@ -11,72 +11,37 @@ SaaS de psiquiatria multi-tenant. Dois públicos: **médico** (dashboard `/dashb
 e **paciente** (PWA `/p/*`). Opera *entre consultas*: check-ins, adesão a medicação,
 protocolo de crise, insights analíticos. Dado de saúde mental = LGPD categoria especial.
 
-O ambiente público atual é uma demonstração de portfólio, não um serviço médico
-ativo. Ele contém somente dados fictícios e reproduzíveis.
-
 ---
 
-## Current portfolio runtime
-
-| Camada | Runtime atual |
-|---|---|
-| Frontend | Vercel (`apps/web` e `apps/checkup`) |
-| Backend | Azure Container Apps |
-| Banco | Azure Database for PostgreSQL Flexible Server |
-| Região | `eastus2` (Estados Unidos) |
-| Dados | Somente dados fictícios de demonstração |
-
-Este runtime **não promete residência de dados no Brasil**. AWS representa o
-deployment anterior ou arquitetura de referência e não integra o request path
-público atual. A fonte curta e canônica é `docs/CURRENT-PORTFOLIO-RUNTIME.md`; a
-decisão é o ADR-080. Dados clínicos reais exigem novo ADR com residência, rede
-privada, HA, RPO/RTO, segurança e validação LGPD.
-
-## Topologia pública atual
+## Topologia
 
 ```
-Vercel
-├── apps/web (Next.js + BFF) ───────────────┐
-└── apps/checkup (triagem isolada)          │
-                                             ▼
-Azure eastus2 — somente dados fictícios
-├── api-gateway (.NET 10 · ingress externo)
-├── orchestrator-py (Container Apps · interno) ──► Anthropic API
-├── agents-py (Container Apps · interno)
-├── notifier-py (Container Apps · interno)
-└── Azure PostgreSQL Flexible Server
-    ├── pgvector + pgcrypto
-    └── RLS multi-tenant
+Paciente PWA /p/*      Médico /dashboard/*
+        └──────────┬──────────┘
+                   ▼
+          web (Next.js :3000)
+          BFF: app/api/* — cookies httpOnly
+          auth_token (médico) · paciente_token (paciente)
+                   ▼
+          api-gateway (.NET 10 :5050→:5000)
+          JWT · EF Core · Resend · proxy SSE
+                   │  Bearer ${INTERNAL_API_TOKEN}
+     ┌─────────────┼─────────────┬──────────────┐
+     ▼             ▼             ▼              ▼
+orchestrator-py  agents-py  notifier-py   PostgreSQL (RDS sa-east-1)
+  :8081           :8082       :8083         pgvector + pgcrypto
+  LangGraph       APScheduler  Web Push
+  SSE conversa    5 agentes    check-ins
+     └──────┬──────┘
+            ▼
+     AWS Bedrock In-Region sa-east-1
+     Haiku · Sonnet · Opus 4.7 (IAM role)
 ```
 
-> **Histórico AWS:** referências a EC2, RDS, ECR, SSM, ALB, ASG, Bedrock ou
-> `sa-east-1` abaixo documentam o deployment anterior, integrações opcionais ou
-> runbooks históricos. Elas não descrevem a hospedagem pública atual.
+**Azure: REMOVIDO.** Key Vault, OpenAI, Document Intelligence, Blob, Bicep — fora do V3.
+**`ANTHROPIC_API_KEY`: NÃO EXISTE.** Auth por IAM role. Resíduo V2 = bug.
 
-### Delivery atual
-
-- `apps/web` e `apps/checkup`: promoção pela Git Integration da Vercel a partir
-  de `main`.
-- backend e banco: Azure Container Apps/ACR/PostgreSQL conforme `infra/azure/`,
-  com promoção deliberada.
-- GitHub Actions: somente gates de CI. Os workflows AWS órfãos de deploy e restore
-  drill foram removidos na implementação operacional do ADR-080.
-
----
-
-### Demo pública resiliente
-
-`/demo` é a entrada pública para recrutadores: abre sem credenciais uma conta
-médica fictícia read-only com três pacientes sintéticos e permite alternar para a
-perspectiva PWA em `/demo/patient-app`. Os percursos são `Dashboard → Patient
-record → AI briefing → Architecture` e `Today → Check-in → Voice journal →
-Architecture`. As rotas são renderizadas integralmente na Vercel a partir de um
-snapshot versionado alinhado a `infra/seed/portfolio.sql`; não criam sessão
-clínica e não chamam Azure, banco ou LLM. Interações do paciente são efêmeras na
-aba, e a gravação de voz é simulada sem solicitar microfone ou criar áudio.
-Assim, cold start ou indisponibilidade do backend não bloqueiam a inspeção. O
-dashboard autenticado `/dashboard/*` continua usando o runtime completo e não deve
-ser confundido com esta amostra. Decisão: ADR-081.
+**Postura de infra — PILOTO (2026-06-21):** box clínico `i-057860cd97edafefb` = **`t3.medium`** (era `t3.large`; right-size pós-decomission do Scala + stop-then-start, pico de deploy 5,8→1,27 GB — ver `docs/infra-baseline.md`). RDS `cerebro-postgres-enc` = **`db.t4g.small` Single-AZ** (era Multi-AZ; revertido p/ piloto — backups 7d/PITR/encryption/deletion-protection mantidos; gatilho p/ religar Multi-AZ = 1º paciente pagante ou crédito Founders Hub — ver **ADR-043 Adendo**). EIP `18.229.175.231` (gateway público). Savings Plan EC2Instance t3 cobre o box (in-family).
 
 ---
 
@@ -84,7 +49,7 @@ ser confundido com esta amostra. Decisão: ADR-081.
 
 | Responsabilidade | Serviço |
 |---|---|
-| Chamar LLM (Claude) | **Apenas Python** (orchestrator-py, agents-py) via Anthropic API direta |
+| Chamar LLM (Claude) | **Apenas Python** (orchestrator-py, agents-py) via Bedrock |
 | REST transacional, JWT, e-mail, proxy SSE | **api-gateway (.NET 10)** |
 | Cookies, sessão, agregação, render | **web / BFF** (`app/api/*`) |
 | Push de check-in | **notifier-py** |
@@ -297,7 +262,7 @@ SCHEDULER_INTERVAL_SECONDS
 - `apps/notifier-py/` — portado Python + pywebpush
 - `infra/migrations/` — DDL completo (`0001_init`, `0002_fix_agente_execucoes`, `0003_add_automacao_pausada`), aplicado em RDS
 - `infra/seed/` — seed de demonstração (3 pacientes com histórico clínico, insights, notificações)
-- **ADR-009 (histórico de deploy AWS):** o antigo workflow GitHub Actions → ECR → EC2 foi removido após o ADR-080. Os Dockerfiles, compose e limites de recurso permanecem como referência local/histórica, sem automação ativa contra AWS.
+- **ADR-009 (parte deploy):** `.github/workflows/deploy.yml` reescrito — builds no CI (GitHub Actions → ECR `sa-east-1`); EC2 faz `compose pull + up -d` (sem `--build`); health+ready checks pós-deploy. `docker-compose.yml` com `image:` ECR + limites de recurso batch (mem_limit/cpus em agents-py e notifier-py; orchestrator sem teto).
 - `infra/aws/setup-ecr.sh` — script de bootstrap ECR (5 repos, lifecycle policy, IAM pull policy)
 - Testes unitários verdes: orchestrator-py 19/19, agents-py 52/52 ✓; conftest fixado
 
@@ -307,7 +272,7 @@ SCHEDULER_INTERVAL_SECONDS
 - **PR 3**: scipy/numpy no agents-py (`padroes.py`) para `asyncio.to_thread` — impede bloqueio do event loop na triagem de crise do diário
 - **PR 4 (ADR a criar)**: fechar lacuna de SHADOW_MODE em agents-py (default `true`, crise isenta). NOTA: o número 011 referido no ADR-009 já foi usado pelo enforcement de custo; renumerar ao criar.
 - **PR 5 (ADR a criar)**: consolidar triagem de crise do diário (`services/crisis.py`, `/internal/diario/*`) no orchestrator-py; agents-py vira batch puro
-- **PR 7 (ops, histórico AWS):** criação de ECR e primeiro deploy; supersedido para o portfólio pelo ADR-080.
+- **PR 7 (ops)**: criar repositórios ECR (`setup-ecr.sh`), configurar secrets CI, primeiro deploy via ECR
 - **PR 8**: multi-stage Dockerfiles Python (remover `build-essential` do runtime)
 - **ADR-014**: implementar Fase 1 (dedup-no-SQL em `_listar_candidatos` do risco_silencioso)
 

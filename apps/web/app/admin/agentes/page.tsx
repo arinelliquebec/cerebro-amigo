@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Activity, Loader2, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { ErroCarregar } from "@/components/admin/erro-carregar"
+import { irParaLogin } from "@/lib/login-redirect"
 
 interface AgenteSaude {
   agente: string
@@ -50,7 +51,7 @@ export default function AgentesPage() {
     setLoading(true); setErro(null)
     try {
       const r = await fetch("/api/admin/agentes-saude")
-      if (r.status === 401) { window.location.href = "/login"; return }
+      if (r.status === 401) { irParaLogin(); return }
       if (!r.ok) { setErro("Não foi possível carregar a saúde dos agentes."); return }
       setData(await r.json())
     } catch {

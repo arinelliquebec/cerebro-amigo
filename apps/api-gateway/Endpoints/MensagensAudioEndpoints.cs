@@ -1,14 +1,15 @@
+using Amazon.S3;
+using Amazon.S3.Model;
 using ApiGateway.Data;
 using ApiGateway.Auth;
-using ApiGateway.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 // ADR-064: mensagens de áudio do paciente para o médico.
-// Upload: paciente → SAS PUT → Azure Blob → registrar via POST (ADR-082).
-// Playback: médico → SAS GET (1h) → Blob direto.
-// Retenção: lifecycle 60d no container + expira_em no DB.
+// Upload: paciente → presigned PUT → S3 → registrar via POST.
+// Playback: médico → presigned GET (1h) → S3 direto.
+// Retenção: S3 lifecycle 60d + expira_em no DB.
 
 namespace ApiGateway.Endpoints;
 
@@ -19,7 +20,7 @@ public static class MensagensAudioEndpoints
 
     public static void MapMensagensAudio(this WebApplication app)
     {
-        var container = app.Configuration["BLOB_CONTAINER_AUDIO_MSGS"] ?? "audio-msgs";
+        var bucket = app.Configuration["S3_BUCKET_AUDIO_MSGS"] ?? "cerebro-amigo-audio-msgs";
 
         // ── PORTAL PACIENTE ──────────────────────────────────────────────────
         var p = app.MapGroup("/api/v1/portal/paciente/mensagens-audio")
@@ -46,8 +47,8 @@ public static class MensagensAudioEndpoints
             return Results.Ok(new { consentimento = ok ?? false });
         });
 
-        // Gerar URL de upload (SAS PUT, 15min)
-        p.MapPost("/upload-url", async (AppDbContext db, ClaimsPrincipal user, BlobStoragePresigner storage) =>
+        // Gerar URL de upload (presigned PUT, 15min)
+        p.MapPost("/upload-url", async (AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3) =>
         {
             var pid = PacienteAuthEndpoints.GetPacienteId(user);
             if (pid is null) return Results.Unauthorized();
@@ -58,7 +59,14 @@ public static class MensagensAudioEndpoints
                 return Results.Json(new { erro = "consentimento_pendente" }, statusCode: 403);
 
             var key = $"audio/{pid.Value}/{Guid.NewGuid()}.webm";
-            var url = storage.PresignPut(container, key, TimeSpan.FromMinutes(PresignedUploadMinutes));
+            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
+            {
+                BucketName  = bucket,
+                Key         = key,
+                Verb        = HttpVerb.PUT,
+                Expires     = DateTime.UtcNow.AddMinutes(PresignedUploadMinutes),
+                ContentType = "audio/webm"
+            });
 
             return Results.Ok(new { uploadUrl = url, s3Key = key });
         });
@@ -130,9 +138,9 @@ public static class MensagensAudioEndpoints
             return Results.Ok(lista);
         });
 
-        // SAS GET para playback (1h)
+        // Presigned GET para playback (1h)
         m.MapGet("/{id:guid}/play-url", async (Guid pacienteId, Guid id,
-            AppDbContext db, ClaimsPrincipal user, BlobStoragePresigner storage) =>
+            AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3) =>
         {
             var medicoId = await MedicoIdAsync(db, user);
             if (medicoId is null) return Results.Unauthorized();
@@ -147,7 +155,13 @@ public static class MensagensAudioEndpoints
                 id, pacienteId, medicoId.Value);
             if (key is null) return Results.NotFound();
 
-            var url = storage.PresignGet(container, key, TimeSpan.FromMinutes(PresignedPlayMinutes));
+            var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
+            {
+                BucketName = bucket,
+                Key        = key,
+                Verb       = HttpVerb.GET,
+                Expires    = DateTime.UtcNow.AddMinutes(PresignedPlayMinutes)
+            });
             return Results.Ok(new { playUrl = url });
         });
 

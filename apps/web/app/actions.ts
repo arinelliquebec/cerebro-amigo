@@ -23,7 +23,7 @@ export async function loginAction(
   const senha = formData.get("senha") as string
 
   if (!email || !senha) {
-    return { error: "Email and password are required." }
+    return { error: "Email e senha são obrigatórios" }
   }
 
   let role = "medico"
@@ -47,14 +47,14 @@ export async function loginAction(
       if (err.status === 409) {
         const body = err.body as { error?: string }
         if (body?.error === "wrong_portal") {
-          return { error: "This email belongs to the patient portal. Use /p/entrar." }
+          return { error: "Este email pertence ao portal do paciente. Acesse /p/entrar" }
         }
       }
       if (err.status === 401) {
-        return { error: "Incorrect email or password." }
+        return { error: "Email ou senha incorretos" }
       }
     }
-    return { error: "Connection error. Please try again." }
+    return { error: "Erro de conexão. Tente novamente." }
   }
 
   // owner/admin → painel da plataforma; médico → dashboard clínico

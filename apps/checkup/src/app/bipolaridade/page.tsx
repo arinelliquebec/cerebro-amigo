@@ -157,13 +157,13 @@ export default function BipolaridadePage() {
             Como o resultado é apresentado
           </h2>
           <p className="mb-4 leading-relaxed text-muted-foreground">
-            O MDQ soma os "sim" nos 13 primeiros itens (escore 0–13), mas o escore
+            O MDQ soma os “sim” nos 13 primeiros itens (escore 0–13), mas o escore
             sozinho não determina o resultado. A triagem positiva exige as três
             condições ao mesmo tempo:
           </p>
           <ol className="mb-4 list-decimal list-inside space-y-2 text-muted-foreground">
             <li>
-              <span className="text-foreground font-medium">7 ou mais "sim"</span> nos 13 itens de humor e energia
+              <span className="text-foreground font-medium">7 ou mais “sim”</span> nos 13 itens de humor e energia
             </li>
             <li>
               Os comportamentos ocorreram <span className="text-foreground font-medium">no mesmo período</span> (item 14)

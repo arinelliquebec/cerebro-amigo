@@ -61,8 +61,8 @@ export function AudioDiario({ onTranscricao, onCancelar, className }: AudioDiari
 
   useEffect(() => {
     return () => {
-      timerRef.current && clearInterval(timerRef.current)
-      rafRef.current && cancelAnimationFrame(rafRef.current)
+      if (timerRef.current) clearInterval(timerRef.current)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
       recorderRef.current?.stream?.getTracks().forEach(t => t.stop())
       audioCtxRef.current?.close()
       audioCtxRef.current = null
@@ -118,7 +118,7 @@ export function AudioDiario({ onTranscricao, onCancelar, className }: AudioDiari
 
     recorder.onstop = () => {
       stream.getTracks().forEach(t => t.stop())
-      rafRef.current && cancelAnimationFrame(rafRef.current)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
       audioCtxRef.current?.close()
       audioCtxRef.current = null
       setNivelAudio(0)
@@ -143,7 +143,7 @@ export function AudioDiario({ onTranscricao, onCancelar, className }: AudioDiari
   // ─── Parar gravação ───────────────────────────────────────────────────────
 
   const parar = () => {
-    timerRef.current && clearInterval(timerRef.current)
+    if (timerRef.current) clearInterval(timerRef.current)
     if (recorderRef.current?.state === "recording") {
       recorderRef.current.stop()
     }

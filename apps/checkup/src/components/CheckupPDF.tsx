@@ -1,3 +1,6 @@
+/* eslint-disable jsx-a11y/alt-text --
+   <Image> do @react-pdf/renderer renderiza no PDF, não no DOM;
+   a regra de a11y do jsx não se aplica a este componente. */
 import {
   Document,
   Page,

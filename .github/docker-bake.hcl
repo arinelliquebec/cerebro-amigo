@@ -1,6 +1,6 @@
-// docker-bake.hcl — targets Docker do deployment AWS anterior.
-// Mantido para builds locais/referência histórica; não há workflow ativo que
-// publique estas imagens. O runtime do portfólio segue o ADR-080.
+// docker-bake.hcl — define os 7 targets de build do Cérebro Amigo V3.
+// Usado pelo deploy.yml com docker/bake-action para builds paralelos + cache GHA.
+// IMAGE_TAG é injetado via env pelo CI (${{ github.sha }}).
 
 variable "ECR" {
   default = "004177894935.dkr.ecr.sa-east-1.amazonaws.com"
@@ -20,7 +20,8 @@ variable "NEXT_PUBLIC_MANUAL_PIX_CHAVE"     { default = "" }
 variable "NEXT_PUBLIC_MANUAL_PIX_NOME"      { default = "" }
 variable "NEXT_PUBLIC_MANUAL_PAGAMENTO_URL" { default = "" }
 
-// Grupos históricos por destino do ADR-045. Não representam o runtime atual.
+// Grupos por destino de deploy (ADR-045): o clínico vai pro box EC2 via SSM;
+// o checkup vai pro ASG próprio. deploy.yml builda só o grupo que mudou.
 //   "clinical" → box clínico (compose/SSM)
 //   "checkup"  → ASG cerebro-checkup-asg (instance refresh)
 //   "default"  → os 6 (build completo manual)
@@ -58,9 +59,9 @@ target "api-gateway" {
   platforms  = ["linux/amd64"]
 }
 
-// target "api-gateway-scala" REMOVIDO — ADR-067 pausado, ADR-071 decomissionou.
-// Source fora da árvore desde 2026-07-26: tag git `archive/api-gateway-scala`.
-// Reativar exige novo ADR (restaurar source + target + groups default/clinical).
+// target "api-gateway-scala" REMOVIDO — ADR-067 PAUSADO (2026-06-21). Não buildado
+// no CI. Source em apps/api-gateway-scala/ + imagem antiga no ECR (recuperável).
+// Reativar = restaurar este target + religar nos groups default/clinical.
 
 target "orchestrator-py" {
   context    = "apps/orchestrator-py"

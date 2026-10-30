@@ -5,7 +5,6 @@ import dynamic from "next/dynamic"
 import { Header } from "@/components/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import {
   TrendingUp,
   TrendingDown,

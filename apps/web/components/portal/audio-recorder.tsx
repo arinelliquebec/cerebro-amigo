@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Mic, Square, Send, Loader2, CheckCircle, AlertCircle } from "lucide-react"
+import { Mic, Send, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type Fase = "verificando" | "consent" | "idle" | "gravando" | "enviando" | "ok" | "erro"
@@ -61,13 +61,13 @@ export function AudioRecorder() {
       if (!urlRes.ok) throw new Error("upload-url falhou")
       const { uploadUrl, s3Key } = await urlRes.json()
 
-      // 2. PUT direto no Azure Blob via SAS (x-ms-blob-type é obrigatório)
+      // 2. PUT direto no S3
       const put = await fetch(uploadUrl, {
         method: "PUT",
         body: blob,
-        headers: { "Content-Type": "audio/webm", "x-ms-blob-type": "BlockBlob" },
+        headers: { "Content-Type": "audio/webm" },
       })
-      if (!put.ok) throw new Error("PUT no Blob falhou")
+      if (!put.ok) throw new Error("PUT S3 falhou")
 
       // 3. Registrar no DB
       const reg = await fetch("/api/paciente/audio", {

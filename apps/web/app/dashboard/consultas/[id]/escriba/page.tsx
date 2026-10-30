@@ -5,7 +5,7 @@
 // ESCREVE a avaliação e conduta (parte clínica é do médico) e aprova → evolução.
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Card, CardContent } from "@/components/ui/card"
@@ -38,7 +38,6 @@ const arr = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean)
 
 export default function EscribaRevisaoPage() {
   const { id } = useParams<{ id: string }>()
-  const router = useRouter()
   const me = useMe()
   const { showUpsell } = useFeatureUpsell()
   // Feature gate (ADR-059): escriba = só Master. Trava proativa (me.features) + reativa (402).
@@ -92,7 +91,7 @@ export default function EscribaRevisaoPage() {
 
     carregar()
     return () => { cancelled = true; if (timer) clearTimeout(timer) }
-  }, [id])
+  }, [id, showUpsell])
 
   const rascunhoAtual = (): Rascunho => ({
     resumo_factual: resumo,

@@ -1,3 +1,5 @@
+using Amazon.S3;
+using Amazon.S3.Model;
 using ApiGateway.Auth;
 using ApiGateway.Data;
 using ApiGateway.Models;
@@ -77,7 +79,7 @@ public static class AuthEndpoints
         // GET /api/v1/auth/me — valida a sessão e retorna dados do médico logado.
         // Útil para o frontend verificar se a configuração está ok antes de
         // operações que dependem do registro em `medicos`.
-        g.MapGet("/me", async (AppDbContext db, ClaimsPrincipal user, BlobStoragePresigner storage, IConfiguration cfg) =>
+        g.MapGet("/me", async (AppDbContext db, ClaimsPrincipal user, IAmazonS3 s3, IConfiguration cfg) =>
         {
             var sub = user.FindFirst("sub")?.Value;
             if (!Guid.TryParse(sub, out var usuarioId))
@@ -96,13 +98,17 @@ public static class AuthEndpoints
 
             if (row is null) return Results.Forbid();
 
-            // ADR-066: avatar via SAS GET curta (só se houver foto). /me é
+            // ADR-066: avatar via presigned GET curto (só se houver foto). /me é
             // chamado uma vez por navegação (cache no use-me) → custo aceitável.
             string? fotoUrl = null;
             if (!string.IsNullOrWhiteSpace(row.FotoS3Key))
             {
-                var container = cfg["BLOB_CONTAINER_MEDICO_DOCS"] ?? "medico-docs";
-                fotoUrl = storage.PresignGet(container, row.FotoS3Key, TimeSpan.FromMinutes(60));
+                var bucket = cfg["S3_BUCKET_MEDICO_DOCS"] ?? "cerebro-amigo-medico-docs";
+                fotoUrl = s3.GetPreSignedURL(new GetPreSignedUrlRequest
+                {
+                    BucketName = bucket, Key = row.FotoS3Key, Verb = HttpVerb.GET,
+                    Expires = DateTime.UtcNow.AddMinutes(60),
+                });
             }
 
             // ADR-055: situação de acesso exposta p/ a UI (sidebar/banner/paywall).

@@ -74,15 +74,14 @@ export function MedicacoesEmUso({ pacienteId }: { pacienteId: string }) {
   const [sugestoes, setSugestoes] = useState<CatalogoItem[]>([])
   const buscaTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const carregar = () => {
+  useEffect(() => {
     setLoading(true)
     fetch(`/api/pacientes/${pacienteId}/medicacoes-em-uso`)
       .then((r) => (r.ok ? r.json() : []))
       .then((rows) => setLista(Array.isArray(rows) ? rows : []))
       .catch(() => setLista([]))
       .finally(() => setLoading(false))
-  }
-  useEffect(() => { carregar() /* eslint-disable-next-line */ }, [pacienteId])
+  }, [pacienteId])
 
   // busca no catálogo (debounce). O nome digitado também vale como texto livre.
   function onNome(v: string) {

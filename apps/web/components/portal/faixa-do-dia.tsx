@@ -1,5 +1,4 @@
 import Link from "next/link"
-import type { ComponentType } from "react"
 import {
   CalendarClock,
   ChevronRight,
